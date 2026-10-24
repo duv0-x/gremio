@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pipeline de procesos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F1}
+a{color:#0F6E61}a:hover{color:#0A4F46}
+</style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #16181B; background: #F3F4F1; min-height: 100vh; display: flex; flex-wrap: wrap">
+
+<!-- SIDEBAR -->
+<aside style="flex: 1 1 240px; max-width: 100%; background: #16181B; color: #F3F4F1; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: center; gap: 12px">
+<div style="width: 36px; height: 36px; border-radius: 8px; background: #F3F4F1; color: #16181B; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 500">DB</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px">Panel privado</span>
+</div>
+<nav aria-label="Secciones" style="display: flex; flex-direction: column; gap: 4px; font-size: 15px">
+<a href="#pipeline" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; background: #2A2D33; color: #F3F4F1; text-decoration: none; font-weight: 600">Pipeline</a>
+<a href="#pipeline" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #C9CCC4; text-decoration: none">Perfil y contenido</a>
+<a href="#pipeline" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #C9CCC4; text-decoration: none">Vistas por rol</a>
+<a href="#pipeline" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #C9CCC4; text-decoration: none">Agenda</a>
+<a href="#pipeline" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #C9CCC4; text-decoration: none">Enlaces compartidos</a>
+<a href="#pipeline" style="display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: #C9CCC4; text-decoration: none">Ajustes de instancia</a>
+</nav>
+<div style="margin-top: auto; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #9EA3A9">[tu-dominio] · v0.1</div>
+</aside>
+
+<!-- MAIN -->
+<main id="pipeline" style="flex: 999 1 720px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div>
+<h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; margin: 0; font-weight: 700">Procesos activos</h1>
+<p style="margin: 4px 0 0; color: #4D525A; font-size: 15px">Cada empresa recibe su propio enlace; aquí ves todo el proceso.</p>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: #0F6E61; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">+ Nuevo enlace para empresa</button>
+</div>
+
+<!-- STATS -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+<div style="background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 12px; padding: 18px">
+<div style="font-size: 13px; color: #4D525A">Vistas del perfil (7 días)</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-top: 4px">[N]</div>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 12px; padding: 18px">
+<div style="font-size: 13px; color: #4D525A">Descargas de CV</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-top: 4px">[N]</div>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 12px; padding: 18px">
+<div style="font-size: 13px; color: #4D525A">Citas agendadas</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-top: 4px">[N]</div>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 12px; padding: 18px">
+<div style="font-size: 13px; color: #4D525A">Rol más consultado</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; margin-top: 8px">[ROL]</div>
+</div>
+</div>
+
+<!-- BOARD + DETAIL -->
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<div style="flex: 999 1 640px; min-width: 0; overflow-x: auto">
+<div style="display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); gap: 12px; min-width: 820px">
+<sc-for list="{{columns}}" as="col" hint-placeholder-count="4">
+<section style="background: #ECEDE9; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 4px 2px">
+<h2 style="font-size: 14px; font-weight: 600; margin: 0">{{col.title}}</h2>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4D525A">{{col.count}}</span>
+</div>
+<sc-for list="{{col.cards}}" as="c" hint-placeholder-count="2">
+<article style="{{c.style}}">
+<div style="font-weight: 600; font-size: 15px">{{c.company}}</div>
+<div style="font-size: 13px; color: #4D525A; margin-top: 2px">{{c.role}}</div>
+<div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: #3B3F45">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+<span>{{c.next}}</span>
+</div>
+</article>
+</sc-for>
+</section>
+</sc-for>
+</div>
+</div>
+
+<!-- DETAIL -->
+<aside aria-label="Detalle del proceso" style="flex: 1 1 320px; background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+<div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #0F6E61">Negociación</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 4px">[EMPRESA C]</div>
+<div style="font-size: 14px; color: #4D525A">Platform Engineer · vio el perfil por la vista “Platform”</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="background: #F3F4F1; border-radius: 10px; padding: 12px">
+<div style="font-size: 12px; color: #4D525A">Tu rango publicado</div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 500; margin-top: 4px">[RANGO]</div>
+</div>
+<div style="background: #DDEFEA; border-radius: 10px; padding: 12px">
+<div style="font-size: 12px; color: #0A4F46">Oferta recibida</div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 500; margin-top: 4px">[OFERTA]</div>
+</div>
+</div>
+<div>
+<h3 style="font-size: 14px; font-weight: 600; margin: 0 0 10px">Historial</h3>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; font-size: 14px">
+<sc-for list="{{history}}" as="h" hint-placeholder-count="4">
+<li style="display: flex; gap: 10px">
+<span style="{{h.dot}}"></span>
+<div><div style="font-weight: 500">{{h.what}}</div><div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #4D525A">{{h.when}}</div></div>
+</li>
+</sc-for>
+</ol>
+</div>
+<div>
+<label for="nota" style="font-size: 14px; font-weight: 600">Nota privada</label>
+<textarea id="nota" rows="3" style="width: 100%; box-sizing: border-box; margin-top: 6px; padding: 10px; border: 1px solid #C2C5BD; border-radius: 8px; font: inherit; font-size: 14px; resize: vertical">[Beneficios, equity, fecha límite de respuesta…]</textarea>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="flex: 1 1 auto; min-height: 44px; border: 0; border-radius: 10px; background: #16181B; color: #F3F4F1; font: inherit; font-weight: 600; cursor: pointer">Enviar contraoferta</button>
+<button type="button" style="flex: 1 1 auto; min-height: 44px; border: 1px solid #C2C5BD; border-radius: 10px; background: #FFFFFF; color: #16181B; font: inherit; font-weight: 600; cursor: pointer">Mover etapa</button>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var base = 'background: #FFFFFF; border-radius: 10px; padding: 12px; border: 1px solid #DADCD6';
+    var hot = 'background: #FFFFFF; border-radius: 10px; padding: 12px; border: 2px solid #0F6E61';
+    var COLS = [
+      { title: 'Contacto', cards: [
+        { company: '[EMPRESA A]', role: 'SRE', next: 'Responder mensaje' },
+        { company: '[EMPRESA B]', role: 'Consultoría por horas', next: 'Enviar propuesta' },
+        { company: '[EMPRESA E]', role: 'Platform Engineer', next: 'Esperando vacante' }
+      ] },
+      { title: 'Entrevistas', cards: [
+        { company: '[EMPRESA D]', role: 'Tech Lead / Manager', next: 'Técnica · [fecha]' },
+        { company: '[EMPRESA F]', role: 'Platform Engineer', next: 'Cultural · [fecha]' }
+      ] },
+      { title: 'Oferta', cards: [
+        { company: '[EMPRESA G]', role: 'SRE', next: 'Responder antes de [fecha]' }
+      ] },
+      { title: 'Negociación', cards: [
+        { company: '[EMPRESA C]', role: 'Platform Engineer', next: 'Contraoferta pendiente', hot: true }
+      ] }
+    ];
+    var columns = COLS.map(function (c) {
+      return { title: c.title, count: String(c.cards.length), cards: c.cards.map(function (k) {
+        return Object.assign({}, k, { style: k.hot ? hot : base });
+      }) };
+    });
+    var dotOn = 'width: 10px; height: 10px; border-radius: 50%; background: #0F6E61; margin-top: 5px; flex: none';
+    var dotOff = 'width: 10px; height: 10px; border-radius: 50%; background: #C2C5BD; margin-top: 5px; flex: none';
+    var history = [
+      { what: 'Abrió tu enlace y descargó el CV', when: '[fecha]', dot: dotOff },
+      { what: 'Agendó llamada inicial', when: '[fecha]', dot: dotOff },
+      { what: 'Entrevista técnica', when: '[fecha]', dot: dotOff },
+      { what: 'Oferta recibida', when: '[fecha]', dot: dotOn }
+    ];
+    return { columns: columns, history: history };
+  }
+}
+</script>
+</body>
+</html>

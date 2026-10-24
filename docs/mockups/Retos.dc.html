@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Retos de proyecto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F1}
+a{color:#0F6E61}a:hover{color:#0A4F46}
+</style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #16181B; background: #F3F4F1; min-height: 100vh">
+
+<header style="border-bottom: 1px solid #DADCD6">
+<div style="max-width: 1360px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px">Retos de proyecto</div>
+<div style="font-size: 14px; color: #4D525A">Sugeridos según tu stack y nivel · verificados por un agente revisor</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 8px 12px; background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 8px">3 aprobados · 1 en revisión</span>
+</div>
+</div>
+</header>
+
+<div style="max-width: 1360px; margin: 0 auto; padding: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+<!-- CATALOG -->
+<section aria-label="Catálogo" style="flex: 1 1 400px; display: flex; flex-direction: column; gap: 14px">
+<div role="group" aria-label="Nivel" style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{levels}}" as="lv" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{lv.on}}" onClick="{{lv.pick}}" style="{{lv.style}}">{{lv.label}}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="Disciplina" style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{discs}}" as="d" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{d.on}}" onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{list}}" as="r" hint-placeholder-count="6">
+<button type="button" onClick="{{r.pick}}" aria-pressed="{{r.on}}" style="{{r.style}}">
+<span style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #3B3F45">{{r.disc}}</span>
+<span style="{{r.levelStyle}}">{{r.levelLabel}}</span>
+</span>
+<span style="display: block; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-top: 6px">{{r.title}}</span>
+<span style="display: block; font-size: 14px; color: #3B3F45; margin-top: 4px; line-height: 1.45">{{r.pitch}}</span>
+<span style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 13px">
+<span style="color: #4D525A">{{r.time}}</span>
+<span style="{{r.statusStyle}}">{{r.status}}</span>
+</span>
+</button>
+</sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 20px; border: 1.5px dashed #C2C5BD; border-radius: 12px; font-size: 14px; color: #4D525A">No hay retos con estos filtros todavía.</div>
+</sc-if>
+</div>
+</section>
+
+<!-- DETAIL -->
+<section aria-label="Detalle del reto" style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<div style="background: #16181B; color: #F3F4F1; border-radius: 16px; padding: 28px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #9FD8CD">
+<span>{{cur.disc}}</span><span aria-hidden="true">·</span><span>{{cur.levelLabel}}</span><span aria-hidden="true">·</span><span>{{cur.time}}</span>
+</div>
+<h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; margin: 10px 0 10px; font-weight: 700">{{cur.title}}</h1>
+<p style="margin: 0; font-size: 17px; line-height: 1.55; color: #E4E6E1; max-width: 760px">{{cur.context}}</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px">
+<sc-for list="{{cur.stack}}" as="s" hint-placeholder-count="4">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 10px; border: 1px solid #3A3E44; border-radius: 6px">{{s}}</span>
+</sc-for>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px">
+<div style="background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 14px; padding: 22px">
+<h2 style="font-size: 16px; margin: 0 0 12px">Requisitos técnicos</h2>
+<ul style="margin: 0; padding-left: 18px; line-height: 1.65; font-size: 15px">
+<sc-for list="{{cur.reqs}}" as="q" hint-placeholder-count="5"><li>{{q}}</li></sc-for>
+</ul>
+<h3 style="font-size: 14px; margin: 16px 0 8px; color: #3B3F45">Restricciones</h3>
+<ul style="margin: 0; padding-left: 18px; line-height: 1.65; font-size: 14px; color: #3B3F45">
+<sc-for list="{{cur.limits}}" as="q" hint-placeholder-count="2"><li>{{q}}</li></sc-for>
+</ul>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 14px; padding: 22px">
+<h2 style="font-size: 16px; margin: 0 0 12px">Definition of Done</h2>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 15px">
+<sc-for list="{{cur.dod}}" as="q" hint-placeholder-count="6">
+<li style="display: flex; gap: 10px; align-items: flex-start"><span style="width: 16px; height: 16px; margin-top: 3px; flex: none; border: 1.5px solid #7A8088; border-radius: 4px"></span>{{q}}</li>
+</sc-for>
+</ul>
+<h3 style="font-size: 14px; margin: 16px 0 8px; color: #3B3F45">Entregables</h3>
+<p style="margin: 0; font-size: 14px; color: #3B3F45; line-height: 1.55">Repositorio público · demo (URL o video) · informe de decisiones</p>
+</div>
+</div>
+
+<sc-if value="{{hasReview}}" hint-placeholder-val="{{ true }}">
+<div style="background: #FFFFFF; border: 1px solid #DADCD6; border-radius: 16px; overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 22px; background: #DDEFEA">
+<div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #0A4F46">Revisión del agente · envío de ejemplo</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 4px">Casi listo · 1 criterio pendiente</div>
+</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; color: #0A4F46">{{review.score}}</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 14px">
+<thead>
+<tr style="text-align: left; background: #F3F4F1">
+<th scope="col" style="padding: 12px 22px; font-weight: 600">Criterio</th>
+<th scope="col" style="padding: 12px 22px; font-weight: 600">Cómo se verificó</th>
+<th scope="col" style="padding: 12px 22px; font-weight: 600">Evidencia</th>
+<th scope="col" style="padding: 12px 22px; font-weight: 600">Resultado</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{review.rows}}" as="row" hint-placeholder-count="6">
+<tr style="border-top: 1px solid #ECEDE9">
+<td style="padding: 12px 22px; font-weight: 500">{{row.crit}}</td>
+<td style="padding: 12px 22px; color: #3B3F45">{{row.how}}</td>
+<td style="padding: 12px 22px; font-family: 'IBM Plex Mono', monospace; font-size: 12px"><a href="#evidencia">{{row.ev}}</a></td>
+<td style="padding: 12px 22px"><span style="{{row.badge}}">{{row.res}}</span></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; padding: 20px 22px; border-top: 1px solid #ECEDE9">
+<div style="flex: 999 1 320px; min-width: 0">
+<h3 style="font-size: 14px; margin: 0 0 8px">Estilo de trabajo observado</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{review.style}}" as="st" hint-placeholder-count="4">
+<span style="font-size: 13px; padding: 6px 10px; background: #F3F4F1; border-radius: 6px">{{st}}</span>
+</sc-for>
+</div>
+<p style="margin: 12px 0 0; font-size: 13px; color: #4D525A">Señales tomadas del historial de commits, PRs, ADRs y CI. Puedes ocultar cualquiera antes de publicar.</p>
+</div>
+<div style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px">
+<button type="button" style="min-height: 46px; border: 0; border-radius: 10px; background: #0F6E61; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Publicar en perfil</button>
+<label for="vista" style="font-size: 13px; font-weight: 600">Mostrar en la vista</label>
+<select id="vista" style="min-height: 44px; padding: 0 10px; border: 1px solid #C2C5BD; border-radius: 8px; font: inherit; background: #FFFFFF">
+<option>AI Platform + Platform Engineer</option>
+<option>Solo AI Platform</option>
+<option>Todas las vistas</option>
+</select>
+<button type="button" style="min-height: 44px; border: 1px solid #C2C5BD; border-radius: 10px; background: #FFFFFF; color: #16181B; font: inherit; font-weight: 600; cursor: pointer">Apelar o pedir revisión humana</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{noReview}}" hint-placeholder-val="{{ false }}">
+<div style="background: #FFFFFF; border: 1.5px dashed #C2C5BD; border-radius: 16px; padding: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">Aún no has enviado este reto</div>
+<div style="font-size: 14px; color: #4D525A; margin-top: 4px">Conecta tu repositorio cuando quieras la revisión; el agente evalúa cada criterio con evidencia.</div>
+</div>
+<button type="button" style="min-height: 46px; padding: 0 20px; border: 0; border-radius: 10px; background: #16181B; color: #F3F4F1; font: inherit; font-weight: 600; cursor: pointer">Empezar reto</button>
+</div>
+</sc-if>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { level: 0, disc: 'Todas', sel: 'llm' };
+  }
+  renderVals() {
+    var self = this, S = this.state;
+    var LV = ['', 'Fundamentos', 'Intermedio', 'Avanzado', 'Experto'];
+    var LVC = ['', '#DDEFEA', '#E3E9F7', '#F6E7CF', '#EAD9F2'];
+    var LVT = ['', '#0A4F46', '#1E3A7A', '#6B3F06', '#4E1E6B'];
+    var R = [
+      { id: 'k8s', disc: 'Platform', level: 1, title: 'Clúster local reproducible', pitch: 'Un entorno Kubernetes que cualquiera levanta con un comando.', time: '~1 semana', status: 'Aprobado',
+        context: 'Tu equipo pierde días configurando entornos locales. Entrega un clúster reproducible con los servicios base listos.', stack: ['kind / k3d', 'Helm', 'Make'],
+        reqs: ['Clúster levantado con un solo comando', 'Ingress y cert-manager instalados', 'Un servicio de ejemplo desplegado con Helm'], limits: ['Debe correr en un portátil de 16 GB'],
+        dod: ['README con arquitectura', 'Comando de teardown', 'CI que valida los manifiestos'] },
+      { id: 'gitops', disc: 'Platform', level: 2, title: 'GitOps con promoción de entornos', pitch: 'Despliegues declarativos de staging a producción con aprobación.', time: '~2 semanas', status: 'Aprobado',
+        context: 'Los despliegues son manuales y nadie sabe qué versión corre en producción. Lleva todo a GitOps.', stack: ['Argo CD', 'Kustomize', 'GitHub Actions'],
+        reqs: ['Dos entornos con promoción por PR', 'Rollback en menos de 5 minutos', 'Secretos fuera del repositorio'], limits: ['Sin acceso manual al clúster de producción'],
+        dod: ['ADR sobre la estrategia de ramas', 'Diagrama de flujo de despliegue', 'Runbook de rollback'] },
+      { id: 'idp', disc: 'Platform', level: 3, title: 'Plataforma de autoservicio', pitch: 'Una plantilla que crea servicio, pipeline e infraestructura en minutos.', time: '~3 semanas', status: 'Disponible',
+        context: 'Crear un servicio nuevo toma dos semanas de tickets. Reduce ese tiempo con un golden path.', stack: ['Backstage', 'Terraform', 'Argo CD'],
+        reqs: ['Plantilla de software que genera repo + pipeline', 'Infraestructura provisionada con Terraform', 'Catálogo con dueños y dependencias'], limits: ['Todo debe poder destruirse sin pasos manuales'],
+        dod: ['Demo de punta a punta en video', 'Al menos 2 ADRs', 'Pruebas de la plantilla en CI'] },
+      { id: 'slo', disc: 'SRE', level: 2, title: 'SLOs y alertas por burn rate', pitch: 'Mide lo que importa al usuario y alerta antes de romper el SLO.', time: '~2 semanas', status: 'Aprobado',
+        context: 'Las alertas actuales despiertan a la guardia por ruido. Rediseña la observabilidad alrededor de SLOs.', stack: ['Prometheus', 'Grafana', 'Sloth'],
+        reqs: ['SLIs de disponibilidad y latencia', 'Alertas multi-ventana por burn rate', 'Dashboard de error budget'], limits: ['Máximo 5 alertas paginables'],
+        dod: ['Documento de SLOs', 'Runbook por alerta', 'Prueba de alerta disparada'] },
+      { id: 'chaos', disc: 'SRE', level: 3, title: 'Game day de caos controlado', pitch: 'Rompe cosas a propósito y demuestra que el sistema se recupera.', time: '~2 semanas', status: 'Disponible',
+        context: 'Nadie sabe qué pasa si cae una zona. Diseña y ejecuta un game day documentado.', stack: ['Chaos Mesh', 'Kubernetes', 'k6'],
+        reqs: ['3 experimentos con hipótesis', 'Carga sostenida durante los experimentos', 'Métricas antes y después'], limits: ['Radio de impacto acotado y reversible'],
+        dod: ['Postmortem sin culpables', 'Acciones correctivas priorizadas', 'Grabación del game day'] },
+      { id: 'llm', disc: 'AI Platform', level: 3, title: 'Servir un LLM con autoscaling', pitch: 'Inferencia en Kubernetes que escala con la demanda y controla el costo.', time: '~3 semanas', status: 'En revisión',
+        context: 'Producto quiere un asistente interno, pero la API externa es cara y lenta. Sirve un modelo abierto en tu propia infraestructura con latencia y costo medibles.', stack: ['Kubernetes', 'vLLM', 'KEDA', 'Terraform', 'Prometheus'],
+        reqs: ['Modelo abierto servido con vLLM', 'Autoscaling por cola o latencia, incluyendo escala a cero', 'Infraestructura completa en Terraform', 'Métricas de p95, tokens/s y costo por 1k tokens', 'Prueba de carga con resultados'], limits: ['Presupuesto máximo de [X] USD', 'Reproducible con un comando'],
+        dod: ['README con diagrama de arquitectura', 'Mínimo 2 ADRs', 'CI en verde', 'Informe de prueba de carga', 'Runbook de operación', 'Teardown documentado'] },
+      { id: 'agent', disc: 'Agentic', level: 2, title: 'Agente con herramientas y evals', pitch: 'Un agente que usa herramientas reales y una suite que mide si acierta.', time: '~2 semanas', status: 'Disponible',
+        context: 'El equipo quiere automatizar consultas internas, pero nadie confía en las respuestas. Construye el agente y su forma de evaluarlo.', stack: ['MCP', 'Python o Go', 'Evals'],
+        reqs: ['Servidor MCP con 3 herramientas', 'Suite de evals con 30+ casos', 'Trazas de cada ejecución'], limits: ['Sin acciones destructivas sin confirmación'],
+        dod: ['Reporte de evals con línea base', 'ADR de diseño del agente', 'Demo grabada'] },
+      { id: 'oncall', disc: 'Agentic', level: 4, title: 'Agente de guardia', pitch: 'Un agente que triagea alertas y propone acciones con aprobación humana.', time: '~5 semanas', status: 'Disponible',
+        context: 'La guardia pasa horas en triage repetitivo. Diseña un agente que investigue alertas y proponga mitigaciones seguras.', stack: ['Kubernetes', 'MCP', 'Prometheus', 'LLM'],
+        reqs: ['Correlación de alertas, logs y cambios recientes', 'Propuestas con aprobación humana obligatoria', 'Registro auditable de cada decisión', 'Evals sobre incidentes históricos'], limits: ['Permisos de solo lectura por defecto'],
+        dod: ['Modelo de amenazas', 'Métricas de precisión del triage', 'Postmortem simulado con el agente'] }
+    ];
+    var DISCS = ['Todas', 'Platform', 'SRE', 'AI Platform', 'Agentic'];
+    function chip(on) {
+      return 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; ' + (on ? 'background: #16181B; color: #F3F4F1; border: 1.5px solid #16181B' : 'background: #FFFFFF; color: #16181B; border: 1.5px solid #C2C5BD');
+    }
+    var levels = [0, 1, 2, 3, 4].map(function (n) {
+      return { label: n === 0 ? 'Todos los niveles' : n + ' · ' + LV[n], on: S.level === n ? 'true' : 'false', style: chip(S.level === n), pick: function () { self.setState({ level: n }); } };
+    });
+    var discs = DISCS.map(function (d) {
+      return { label: d, on: S.disc === d ? 'true' : 'false', style: chip(S.disc === d), pick: function () { self.setState({ disc: d }); } };
+    });
+    function lvStyle(n) { return 'font-family: IBM Plex Mono, monospace; font-size: 12px; font-weight: 500; padding: 4px 8px; border-radius: 4px; background: ' + LVC[n] + '; color: ' + LVT[n]; }
+    function stStyle(s) {
+      var c = s === 'Aprobado' ? '#0A4F46' : s === 'En revisión' ? '#6B3F06' : '#4D525A';
+      return 'font-weight: 600; color: ' + c;
+    }
+    var list = R.filter(function (r) { return (S.level === 0 || r.level === S.level) && (S.disc === 'Todas' || r.disc === S.disc); }).map(function (r) {
+      var on = r.id === S.sel;
+      return Object.assign({}, r, {
+        on: on ? 'true' : 'false', levelLabel: 'N' + r.level + ' · ' + LV[r.level], levelStyle: lvStyle(r.level), statusStyle: stStyle(r.status),
+        pick: function () { self.setState({ sel: r.id }); },
+        style: 'display: block; width: 100%; text-align: left; padding: 16px; border-radius: 12px; background: #FFFFFF; font: inherit; color: #16181B; cursor: pointer; ' + (on ? 'border: 2px solid #0F6E61' : 'border: 1px solid #DADCD6')
+      });
+    });
+    var curR = R.filter(function (r) { return r.id === S.sel; })[0];
+    var cur = Object.assign({}, curR, { levelLabel: 'Nivel ' + curR.level + ' · ' + LV[curR.level] });
+
+    function badge(res) {
+      var map = { 'Cumple': ['#DDEFEA', '#0A4F46'], 'Parcial': ['#F6E7CF', '#6B3F06'], 'No cumple': ['#F7DEDB', '#7A1E14'] };
+      var c = map[res];
+      return 'display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: ' + c[0] + '; color: ' + c[1];
+    }
+    var rows = [
+      { crit: 'Modelo servido con vLLM', how: 'Lectura de manifiestos + despliegue en sandbox', ev: 'deploy/vllm.yaml', res: 'Cumple' },
+      { crit: 'Autoscaling y escala a cero', how: 'Prueba de carga automática en sandbox', ev: 'ci/run #[N]', res: 'Cumple' },
+      { crit: 'Infraestructura en Terraform', how: 'terraform validate + plan limpio', ev: 'infra/', res: 'Cumple' },
+      { crit: 'Métricas p95, tokens/s y costo', how: 'Consulta al dashboard exportado', ev: 'dashboards/llm.json', res: 'Parcial' },
+      { crit: 'Mínimo 2 ADRs', how: 'Análisis del texto por el agente', ev: 'docs/adr/', res: 'Cumple' },
+      { crit: 'Teardown documentado', how: 'Ejecución del comando en sandbox', ev: 'Makefile', res: 'No cumple' }
+    ].map(function (r) { return Object.assign({}, r, { badge: badge(r.res) }); });
+    var review = { score: '[NN]/100', rows: rows, style: ['Commits pequeños y frecuentes', 'Decisiones documentadas en ADRs', 'Trunk-based con PRs revisados', 'Pruebas antes que features'] };
+
+    return { levels: levels, discs: discs, list: list, empty: list.length === 0, cur: cur, hasReview: S.sel === 'llm', noReview: S.sel !== 'llm', review: review };
+  }
+}
+</script>
+</body>
+</html>
