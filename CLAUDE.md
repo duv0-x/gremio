@@ -33,7 +33,7 @@ Módulo `github.com/duv0-x/reverse-mini-ats`, Go 1.26. En esta Mac el `go` de `/
 
 1. ~~Modelo de instancia y qué se federa por ActivityPub~~ → `docs/adr/ADR-001-instancia-y-federacion.md` (aceptado).
 2. ~~Modelo Proyecto vs. Ejecución~~ → `docs/adr/ADR-002-proyecto-y-ejecucion.md` (aceptado).
-3. Modelo de perfil para el v1: capacidades con evidencia o algo cercano a JSON Resume.
+3. ~~Modelo de perfil v1~~ → `docs/adr/ADR-003-perfil-v1.md` (aceptado).
 4. Licencia: AGPL (inclinación) vs. MIT.
 
 ## Mockups
