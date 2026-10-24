@@ -23,7 +23,7 @@ Toda la conversación de diseño vive en la KB, no aquí:
 
 ## Arquitectura tentativa (sin ADR todavía)
 
-Go, un binario con frontend embebido (`embed`), SQLite por defecto y Postgres opcional, Docker + Helm. La prioridad es una plataforma descentralizada y robusta (por eso Go), con código idiomático. Referencia local de Go + ActivityPub: el fork de GoToSocial en `/Users/lx-duv0-x/Documents/Repositories/echo.duv0-x.cloud` (AGPL, compatible con la licencia del proyecto).
+Go, un binario con frontend embebido (`embed`), solo SQLite (ncruces + sqlc + goose, ver `docs/adr/ADR-006-almacenamiento.md`, aceptado), Docker + Helm. La prioridad es una plataforma descentralizada y robusta (por eso Go), con código idiomático. Referencia local de Go + ActivityPub: el fork de GoToSocial en `/Users/lx-duv0-x/Documents/Repositories/echo.duv0-x.cloud` (AGPL, compatible con la licencia del proyecto).
 
 ## Go
 
