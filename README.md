@@ -16,4 +16,9 @@ Fase siguiente: armar equipos para proyectos complejos.
 ## Estructura
 
 - `docs/mockups/`: mockups de referencia (formato `.dc.html` del lienzo de diseño; no son HTML ejecutable).
-- `docs/adr/`: decisiones de arquitectura (por crear).
+- `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-004).
+- `internal/goap/`: núcleo de go-ap (ActivityPub) mantenido por nosotros.
+
+## Licencia
+
+[AGPL-3.0-or-later](LICENSE). `internal/goap/` es MIT (copiado de go-ap) y la especificación del vocabulario es CC0. Ver [ADR-004](docs/adr/ADR-004-licencia.md) y [CONTRIBUTING.md](CONTRIBUTING.md).
