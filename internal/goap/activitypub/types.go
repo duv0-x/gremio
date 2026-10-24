@@ -1,0 +1,283 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/valyala/fastjson"
+)
+
+// ActivityVocabularyType is the data type for an Activity type object
+type ActivityVocabularyType string
+
+// ActivityVocabularyTypes is a type alias for a slice of ActivityVocabularyType elements
+type ActivityVocabularyTypes []ActivityVocabularyType
+
+// Types contains all valid types in the ActivityPub vocabulary
+var Types = ActivityVocabularyTypes{
+	LinkType,
+	MentionType,
+
+	ArticleType,
+	AudioType,
+	DocumentType,
+	EventType,
+	ImageType,
+	NoteType,
+	PageType,
+	PlaceType,
+	ProfileType,
+	RelationshipType,
+	TombstoneType,
+	VideoType,
+
+	QuestionType,
+
+	CollectionType,
+	OrderedCollectionType,
+	CollectionPageType,
+	OrderedCollectionPageType,
+
+	ApplicationType,
+	GroupType,
+	OrganizationType,
+	PersonType,
+	ServiceType,
+
+	AcceptType,
+	AddType,
+	AnnounceType,
+	BlockType,
+	CreateType,
+	DeleteType,
+	DislikeType,
+	FlagType,
+	FollowType,
+	IgnoreType,
+	InviteType,
+	JoinType,
+	LeaveType,
+	LikeType,
+	ListenType,
+	MoveType,
+	OfferType,
+	RejectType,
+	ReadType,
+	RemoveType,
+	TentativeRejectType,
+	TentativeAcceptType,
+	UndoType,
+	UpdateType,
+	ViewType,
+
+	ArriveType,
+	TravelType,
+	QuestionType,
+}
+
+// EmptyTypes returns whether the collection of [ActivityVocabularyType]s is empty
+func EmptyTypes(tt ...ActivityVocabularyType) bool {
+	if len(tt) == 0 {
+		return true
+	}
+	return len(flattenTypes(tt...)) == 0
+}
+
+func (at ActivityVocabularyTypes) AsTypes() ActivityVocabularyTypes {
+	res := make(ActivityVocabularyTypes, 0, len(at))
+	for _, tt := range at {
+		if tt != NilType {
+			res = append(res, tt)
+		}
+	}
+	return res
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (at ActivityVocabularyTypes) Match(other Typer) bool {
+	return AnyTypes(at...).Match(types(other)...)
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (at ActivityVocabularyTypes) MarshalJSON() ([]byte, error) {
+	if len(at) == 0 {
+		return nil, nil
+	}
+	b := bytes.Buffer{}
+	if !JSONWriteActivityVocabularyTypes(&b, at) {
+		return nil, fmt.Errorf("error JSON encoding ActivityVocabularyTypes")
+	}
+	return b.Bytes(), nil
+}
+
+// UnmarshalJSON decodes the receiver type from the JSON document.
+func (at *ActivityVocabularyTypes) UnmarshalJSON(b []byte) error {
+	p := fastjson.Parser{}
+	val, err := p.ParseBytes(b)
+	if err != nil {
+		return err
+	}
+	if types := jsonGetTyper(val); types != nil {
+		if typ, ok := types.(ActivityVocabularyType); ok {
+			*at = ActivityVocabularyTypes{typ}
+		}
+		if typ, ok := types.(ActivityVocabularyTypes); ok {
+			*at = typ
+		}
+	}
+	return nil
+}
+
+func HasTypes(it ActivityObject) bool {
+	if it == nil || it.GetType() == nil {
+		return false
+	}
+	return !EmptyTypes(it.GetType().AsTypes()...)
+}
+
+func TypesEqual(r1, r2 Typer) bool {
+	matcherIsNilOrZero := func(m Typer) bool {
+		if m == nil {
+			return true
+		}
+		all := m.AsTypes()
+		if len(all) == 0 {
+			return true
+		}
+		for _, t := range all {
+			if t != NilType {
+				return false
+			}
+		}
+		return true
+	}
+	if r1 == nil || r2 == nil {
+		return matcherIsNilOrZero(r1) && matcherIsNilOrZero(r2)
+	}
+
+	t1 := r1.AsTypes()
+	t2 := r2.AsTypes()
+	if len(t1) != len(t2) {
+		return false
+	}
+	for _, tt1 := range t1 {
+		if !t2.Match(tt1) {
+			return false
+		}
+	}
+	return true
+}
+
+func (a ActivityVocabularyType) MarshalJSON() ([]byte, error) {
+	if len(a) == 0 {
+		return nil, nil
+	}
+	b := bytes.Buffer{}
+	JSONWriteStringValue(&b, string(a))
+	return b.Bytes(), nil
+}
+
+func (t ActivityVocabularyType) String() string {
+	return string(t)
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (a *ActivityVocabularyType) UnmarshalBinary(data []byte) error {
+	*a = ActivityVocabularyType(data)
+	return nil
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (a ActivityVocabularyType) MarshalBinary() ([]byte, error) {
+	return []byte(a), nil
+}
+
+func (a ActivityVocabularyType) AsTypes() ActivityVocabularyTypes {
+	if a == NilType {
+		return ActivityVocabularyTypes{}
+	}
+	return ActivityVocabularyTypes{a}
+}
+
+func (at ActivityVocabularyTypes) String() string {
+	if len(at) == 0 {
+		return ""
+	}
+	s := make([]string, 0, len(at))
+	for _, tt := range at {
+		s = append(s, string(tt))
+	}
+	return strings.Join(s, ", ")
+}
+
+type TypesMatcher interface {
+	Match(...ActivityVocabularyType) bool
+}
+
+type MatcherFn func(...ActivityVocabularyType) bool
+
+func (mfn MatcherFn) Match(tt ...ActivityVocabularyType) bool {
+	return mfn(tt...)
+}
+
+func AllTypes(toMatch ...ActivityVocabularyType) MatcherFn {
+	return func(toCheck ...ActivityVocabularyType) bool {
+		if len(toMatch) == 0 {
+			if len(toCheck) == 0 {
+				return true
+			}
+		}
+		for _, search := range toMatch {
+			if !slices.Contains(toCheck, search) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func flattenTypes(typ ...ActivityVocabularyType) ActivityVocabularyTypes {
+	result := make(ActivityVocabularyTypes, 0, len(typ))
+	for _, t := range typ {
+		if t == NilType {
+			continue
+		}
+		result = append(result, t)
+	}
+	return result
+}
+
+func AnyTypes(toMatch ...ActivityVocabularyType) MatcherFn {
+	return func(toCheck ...ActivityVocabularyType) bool {
+		if len(toMatch) == 0 || len(toCheck) == 0 {
+			// NOTE(marius): if one of the type slices is empty expresses that the code wants
+			// to match for an empty Type property.
+			return len(flattenTypes(toCheck...)) == 0 && len(flattenTypes(toMatch...)) == 0
+		}
+		for _, search := range toMatch {
+			if slices.Contains(toCheck, search) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (a ActivityVocabularyType) Match(other Typer) (match bool) {
+	if other == nil {
+		return a == NilType
+	}
+	tt := types(other)
+	if a == NilType && EmptyTypes(tt...) {
+		return true
+	}
+	for _, search := range tt {
+		if match = a == search; match {
+			break
+		}
+	}
+	return match
+}

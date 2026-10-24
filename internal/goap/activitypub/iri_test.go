@@ -1,0 +1,558 @@
+package activitypub
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"net/url"
+	"reflect"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+)
+
+func TestIRI_GetLink(t *testing.T) {
+	val := "http://example.com"
+	u := IRI(val)
+	if u.GetLink() != IRI(val) {
+		t.Errorf("IRI %q should equal %q", u, val)
+	}
+}
+
+func TestIRI_String(t *testing.T) {
+	val := "http://example.com"
+	u := IRI(val)
+	if u.String() != val {
+		t.Errorf("IRI %q should equal %q", u, val)
+	}
+}
+
+func TestIRI_GetID(t *testing.T) {
+	i := IRI("http://example.com")
+	if id := i.GetID(); !id.IsValid() || id != ID(i) {
+		t.Errorf("ID %q (%T) should equal %q (%T)", id, id, i, ID(i))
+	}
+}
+
+func TestIRI_GetType(t *testing.T) {
+	i := IRI("http://example.com")
+	if !i.Match(IRIType) {
+		t.Errorf("Invalid type for %T object %s, expected %s", i, i.GetType(), IRIType)
+	}
+}
+
+func TestIRI_UnmarshalJSON(t *testing.T) {
+	val := "http://example.com"
+	i := IRI("")
+
+	err := i.UnmarshalJSON([]byte(val))
+	if err != nil {
+		t.Error(err)
+	}
+	if val != i.String() {
+		t.Errorf("%T invalid value after Unmarshal %q, expected %q", i, i, val)
+	}
+}
+
+func TestIRI_MarshalJSON(t *testing.T) {
+	value := []byte("http://example.com")
+	i := IRI(value)
+
+	v, err := i.MarshalJSON()
+	if err != nil {
+		t.Error(err)
+	}
+	expected := fmt.Sprintf("%q", value)
+	if expected != string(v) {
+		t.Errorf("Invalid value after MarshalJSON: %s, expected %s", v, expected)
+	}
+}
+
+func TestFlattenToIRI(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestIRI_URL(t *testing.T) {
+	tests := []struct {
+		name    string
+		i       IRI
+		want    *url.URL
+		wantErr bool
+	}{
+		{
+			name:    "empty",
+			i:       "",
+			want:    nil,
+			wantErr: true, // empty IRI
+		},
+		{
+			name: "example with fragment",
+			i:    "https://example.com/#fragment",
+			want: &url.URL{
+				Scheme:   "https",
+				Host:     "example.com",
+				Path:     "/",
+				Fragment: "fragment",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.i.URL()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("URL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("URL() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIRIs_Contains(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestIRI_Contains(t *testing.T) {
+	type args struct {
+		what        IRI
+		checkScheme bool
+	}
+	tests := []struct {
+		name string
+		i    IRI
+		args args
+		want bool
+	}{
+		{
+			name: "empty",
+			want: true,
+		},
+		{
+			name: "equal",
+			i:    "http://example.com",
+			args: args{what: "http://example.com"},
+			want: true,
+		},
+		{
+			name: "i has /",
+			i:    "http://example.com/",
+			args: args{what: "http://example.com"},
+			want: true,
+		},
+		{
+			name: "what has /",
+			i:    "http://example.com",
+			args: args{what: "http://example.com/"},
+			want: true,
+		},
+		{
+			name: "different protocol w/ no check",
+			i:    "http://example.com",
+			args: args{what: "https://example.com/"},
+			want: true,
+		},
+		{
+			name: "different protocol",
+			i:    "http://example.com",
+			args: args{what: "https://example.com/", checkScheme: true},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.i.Contains(tt.args.what, tt.args.checkScheme); got != tt.want {
+				t.Errorf("Contains() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIRIs_UnmarshalJSON(t *testing.T) {
+	type args struct {
+		d []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		obj  IRIs
+		want IRIs
+		err  error
+	}{
+		{
+			name: "empty",
+			args: args{[]byte{'{', '}'}},
+			want: nil,
+			err:  nil,
+		},
+		{
+			name: "IRI",
+			args: args{[]byte("\"http://example.com\"")},
+			want: IRIs{IRI("http://example.com")},
+			err:  nil,
+		},
+		{
+			name: "IRIs",
+			args: args{[]byte(fmt.Sprintf("[%q, %q, %q]", "http://example.com", "http://example.net", "http://example.org"))},
+			want: IRIs{
+				IRI("http://example.com"),
+				IRI("http://example.net"),
+				IRI("http://example.org"),
+			},
+			err: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.obj.UnmarshalJSON(tt.args.d)
+			if (err != nil && tt.err == nil) || (err == nil && tt.err != nil) {
+				if !errors.Is(err, tt.err) {
+					t.Errorf("UnmarshalJSON() error = %v, wantErr %v", err, tt.err)
+				}
+				return
+			}
+			if !cmp.Equal(tt.obj, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %s", cmp.Diff(tt.want, tt.obj))
+			}
+		})
+	}
+}
+
+func TestIRIs_MarshalJSON(t *testing.T) {
+	value1 := []byte("http://example.com")
+	value2 := []byte("http://example.net")
+	value3 := []byte("http://example.org")
+	i := IRIs{
+		IRI(value1),
+		IRI(value2),
+		IRI(value3),
+	}
+
+	v, err := i.MarshalJSON()
+	if err != nil {
+		t.Error(err)
+	}
+	expected := fmt.Sprintf("[%q, %q, %q]", value1, value2, value3)
+	if expected == string(v) {
+		t.Errorf("Invalid value after MarshalJSON: %s, expected %s", v, expected)
+	}
+}
+
+func TestIRI_AddPath(t *testing.T) {
+	t.Skip("TODO")
+}
+
+func TestIRI_ItemMatches(t *testing.T) {
+	t.Skip("TODO")
+}
+
+func TestIRI_Equals(t *testing.T) {
+	type args struct {
+		with  IRI
+		check bool
+	}
+	tests := []struct {
+		name string
+		i    IRI
+		args args
+		want bool
+	}{
+		{
+			name: "just host",
+			i:    "http://example.com",
+			args: args{
+				with:  IRI("http://example.com"),
+				check: true,
+			},
+			want: true,
+		},
+		{
+			name: "host and path",
+			i:    "http://example.com/ana/are/mere",
+			args: args{
+				with:  IRI("http://example.com/ana/are/mere"),
+				check: true,
+			},
+			want: true,
+		},
+		{
+			name: "different schemes check scheme",
+			i:    "https://example.com/ana/are/mere",
+			args: args{
+				with:  IRI("http://example.com/ana/are/mere"),
+				check: true,
+			},
+			want: false,
+		},
+		{
+			name: "different schemes, don't check scheme",
+			i:    "https://example.com/ana/are/mere",
+			args: args{
+				with:  IRI("http://example.com/ana/are/mere"),
+				check: false,
+			},
+			want: true,
+		},
+		{
+			name: "same host different scheme, same query - different order",
+			i:    "https://example.com?ana=mere&foo=bar",
+			args: args{
+				with:  "http://example.com?foo=bar&ana=mere",
+				check: false,
+			},
+			want: true,
+		},
+		{
+			name: "same host, different scheme and same path, same query different order",
+			i:    "http://example.com/ana/are/mere?foo=bar&ana=mere",
+			args: args{
+				with:  "https://example.com/ana/are/mere?ana=mere&foo=bar",
+				check: false,
+			},
+			want: true,
+		},
+		{
+			name: "same host different scheme, same query",
+			i:    "https://example.com?ana=mere",
+			args: args{
+				with:  "http://example.com?ana=mere",
+				check: false,
+			},
+			want: true,
+		},
+		{
+			name: "different host same scheme",
+			i:    "http://example1.com",
+			args: args{
+				with:  "http://example.com",
+				check: true,
+			},
+			want: false,
+		},
+		{
+			name: "same host, same scheme and different path",
+			i:    "same host, same scheme and different path",
+			args: args{
+				with:  "http://example.com/ana/are/mere",
+				check: true,
+			},
+			want: false,
+		},
+		{
+			name: "same host same scheme, different query key",
+			i:    "http://example.com?ana1=mere",
+			args: args{
+				with:  "http://example.com?ana=mere",
+				check: false,
+			},
+			want: false,
+		},
+		{
+			name: "same host same scheme, different query value",
+			i:    "http://example.com?ana=mere",
+			args: args{
+				with:  "http://example.com?ana=mere1",
+				check: false,
+			},
+			// This was true in the url.Parse implementation
+			want: false,
+		},
+		{
+			name: "i has /",
+			i:    "http://example.com/",
+			args: args{with: "http://example.com"},
+			want: true,
+		},
+		{
+			name: "what has /",
+			i:    "http://example.com",
+			args: args{with: "http://example.com/"},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.i.Equals(tt.args.with, tt.args.check); got != tt.want {
+				t.Errorf("Equal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIRIs_Remove(t *testing.T) {
+	tests := []struct {
+		name      string
+		items     IRIs
+		toRemove  ItemCollection
+		remaining IRIs
+	}{
+		{
+			name:      "empty_collection_nil_item",
+			items:     IRIs{},
+			toRemove:  nil,
+			remaining: IRIs{},
+		},
+		{
+			name:      "empty_collection_non_nil_item",
+			items:     IRIs{},
+			toRemove:  ItemCollection{},
+			remaining: IRIs{},
+		},
+		{
+			name:      "non_empty_collection_nil_item",
+			items:     IRIs{"test"},
+			toRemove:  nil,
+			remaining: IRIs{"test"},
+		},
+		{
+			name:      "non_empty_collection_non_contained_item_empty_ID",
+			items:     IRIs{"test"},
+			toRemove:  ItemCollection{},
+			remaining: IRIs{"test"},
+		},
+		{
+			name:      "non_empty_collection_non_contained_item",
+			items:     IRIs{"test"},
+			toRemove:  ItemCollection{IRI("test123")},
+			remaining: IRIs{"test"},
+		},
+		{
+			name:      "non_empty_collection_just_contained_item",
+			items:     IRIs{"test"},
+			toRemove:  ItemCollection{IRI("test")},
+			remaining: IRIs{},
+		},
+		{
+			name:      "non_empty_collection_contained_item_first_pos",
+			items:     IRIs{"test", "test123"},
+			toRemove:  ItemCollection{IRI("test")},
+			remaining: IRIs{"test123"},
+		},
+		{
+			name:      "non_empty_collection_contained_item_not_first_pos",
+			items:     IRIs{"test123", "test", "test321"},
+			toRemove:  ItemCollection{IRI("test")},
+			remaining: IRIs{"test123", "test321"},
+		},
+		{
+			name:      "non_empty_collection_contained_item_last_pos",
+			items:     IRIs{"test123", "test"},
+			toRemove:  ItemCollection{&Object{ID: "test"}},
+			remaining: IRIs{"test123"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.items.Remove(tt.toRemove...)
+
+			if tt.remaining.Count() != tt.items.Count() {
+				t.Errorf("Post Remove() %T has count %d different than expected %d", tt.items, tt.items.Count(), tt.remaining.Count())
+			}
+			for _, it := range tt.toRemove {
+				if tt.items.Contains(it) {
+					t.Errorf("Post Remove() was still able to find %s in %T Items %v", it.GetLink(), tt.items, tt.items)
+				}
+			}
+			for _, it := range tt.remaining {
+				if !tt.items.Contains(it) {
+					t.Errorf("Post Remove() unable to find %s in %T Items %v", it.GetLink(), tt.items, tt.items)
+				}
+			}
+		})
+	}
+}
+
+func TestIRIs_Normalize(t *testing.T) {
+	tests := []struct {
+		name string
+		i    IRIs
+		want Item
+	}{
+		{
+			name: "empty",
+			i:    nil,
+			want: nil,
+		},
+		{
+			name: "single IRI",
+			i:    IRIs{"http://example.com"},
+			want: IRI("http://example.com"),
+		},
+		{
+			name: "multiple IRIs",
+			i:    IRIs{"http://example.com/1", "http://example.com/2"},
+			want: IRIs{"http://example.com/1", "http://example.com/2"},
+		},
+		{
+			name: "same IRI",
+			i:    IRIs{"http://example.com/1", "http://example.com/1"},
+			want: IRIs{"http://example.com/1", "http://example.com/1"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.i.Normalize(); !cmp.Equal(got, tt.want) {
+				t.Errorf("Normalize() = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestIRI_MarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		i       IRI
+		want    []byte
+		wantErr error
+	}{
+		{
+			name: "empty",
+			i:    "",
+			want: []byte{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.i.MarshalBinary()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !bytes.Equal(got, tt.want) {
+				t.Errorf("MarshalBinary() got = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIRI_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    IRI
+		wantErr error
+	}{
+		{
+			name: "empty",
+			data: nil,
+		},
+		{
+			name: "iri",
+			data: []byte("http://example.com"),
+			want: "http://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := new(IRI)
+			if err := i.UnmarshalBinary(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if *i != tt.want {
+				t.Errorf("UnmarshalBinary() got = %s, want = %s", *i, tt.want)
+			}
+		})
+	}
+}

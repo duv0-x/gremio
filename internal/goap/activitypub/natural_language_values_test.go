@@ -1,0 +1,943 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"strconv"
+	"testing"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/google/go-cmp/cmp"
+	"golang.org/x/text/language"
+)
+
+func TestNaturalLanguageValue_MarshalJSON(t *testing.T) {
+	p := NaturalLanguageValues{
+		English: Content("the test"),
+		French:  Content("le test"),
+	}
+	js1 := `{"en":"the test","fr":"le test"}`
+	js2 := `{"fr":"le test","en":"the test"}`
+	out, err := p.MarshalJSON()
+	if err != nil {
+		t.Errorf("Error: '%s'", err)
+	}
+	if js1 != string(out) && js2 != string(out) {
+		t.Errorf("Different marshal result '%s', instead of '%s' or '%s'", out, js1, js2)
+	}
+	p1 := NaturalLanguageValues{
+		English: Content("the test"),
+	}
+
+	out1, err1 := p1.MarshalJSON()
+
+	if err1 != nil {
+		t.Errorf("Error: '%s'", err1)
+	}
+	txt := `"the test"`
+	if txt != string(out1) {
+		t.Errorf("Different marshal result '%s', instead of '%s'", out1, txt)
+	}
+}
+
+func TestLangRefValue_MarshalJSON(t *testing.T) {
+	{
+		tst := LangRefValue{
+			Ref:   NilLangRef,
+			Value: Content("test"),
+		}
+		j, err := tst.MarshalJSON()
+		if err != nil {
+			t.Errorf("Error: %s", err)
+		}
+		expected := `"test"`
+		if string(j) != expected {
+			t.Errorf("Different marshal result '%s', expected '%s'", j, expected)
+		}
+	}
+	{
+		tst := LangRefValue{
+			Ref:   MakeRef([]byte("en")),
+			Value: Content("test"),
+		}
+		j, err := tst.MarshalJSON()
+		if err != nil {
+			t.Errorf("Error: %s", err)
+		}
+		expected := `"en":"test"`
+		if string(j) != expected {
+			t.Errorf("Different marshal result '%s', expected '%s'", j, expected)
+		}
+	}
+	{
+		tst := LangRefValue{
+			Ref:   MakeRef([]byte("en")),
+			Value: Content("test\nwith characters\tneeding escaping\r\n"),
+		}
+		j, err := tst.MarshalJSON()
+		if err != nil {
+			t.Errorf("Error: %s", err)
+		}
+		expected := `"en":"test\nwith characters\tneeding escaping\r\n"`
+		if string(j) != expected {
+			t.Errorf("Different marshal result '%s', expected '%s'", j, expected)
+		}
+	}
+}
+
+func TestLangRefValue_MarshalText(t *testing.T) {
+	{
+		tst := LangRefValue{
+			Ref:   NilLangRef,
+			Value: Content("test"),
+		}
+		j, err := tst.MarshalText()
+		if err != nil {
+			t.Errorf("Error: %s", err)
+		}
+		expected := "test"
+		if string(j) != expected {
+			t.Errorf("Different marshal result '%s', expected '%s'", j, expected)
+		}
+	}
+	{
+		tst := LangRefValue{
+			Ref:   MakeRef([]byte("en")),
+			Value: Content("test"),
+		}
+		j, err := tst.MarshalText()
+		if err != nil {
+			t.Errorf("Error: %s", err)
+		}
+		expected := "test[en]"
+		if string(j) != expected {
+			t.Errorf("Different marshal result '%s', expected '%s'", j, expected)
+		}
+	}
+}
+
+func TestNaturalLanguageValue_Get(t *testing.T) {
+	testVal := Content("test")
+	a := NaturalLanguageValues{NilLangRef: testVal}
+	if !a.Get(NilLangRef).Equal(testVal) {
+		t.Errorf("Invalid Get result. Expected %s received %s", testVal, a.Get(NilLangRef))
+	}
+}
+
+func TestNaturalLanguageValue_Append(t *testing.T) {
+	a := make(NaturalLanguageValues)
+
+	if len(a) != 0 {
+		t.Errorf("Invalid initialization of %T. Size %d > 0 ", a, len(a))
+	}
+	langEn := English
+	valEn := Content("random value")
+
+	_ = a.Append(langEn, valEn)
+	if len(a) != 1 {
+		t.Errorf("Invalid append of one element to %T. Size %d != 1", a, len(a))
+	}
+	if !a.Get(langEn).Equal(valEn) {
+		t.Errorf("Invalid append of one element to %T. Value of %q not equal to %q, but %q", a, langEn, valEn, a.Get(langEn))
+	}
+	langDe := MakeRef([]byte("de"))
+	valDe := Content("randomisch")
+	_ = a.Append(langDe, valDe)
+
+	if len(a) != 2 {
+		t.Errorf("Invalid append of one element to %T. Size %d != 2", a, len(a))
+	}
+	if !a.Get(langEn).Equal(valEn) {
+		t.Errorf("Invalid append of one element to %T. Value of %q not equal to %q, but %q", a, langEn, valEn, a.Get(langEn))
+	}
+	if !a.Get(langDe).Equal(valDe) {
+		t.Errorf("Invalid append of one element to %T. Value of %q not equal to %q, but %q", a, langDe, valDe, a.Get(langDe))
+	}
+}
+
+func TestNaturalLanguageValue_UnmarshalFullObjectJSON(t *testing.T) {
+	langEn := []byte(AmericanEnglish.String())
+	valEn := Content("random")
+	langDe := []byte(German.String())
+	valDe := Content("zufällig\n")
+
+	// m := make(map[string]string)
+	// m[langEn] = valEn
+	// m[langDe] = valDe
+
+	rawJson := `{
+		"` + string(langEn) + `": "` + valEn.String() + `",
+		"` + string(langDe) + `": "` + valDe.String() + `"
+	}`
+
+	a := make(NaturalLanguageValues)
+	_ = a.Append(AmericanEnglish, valEn)
+	_ = a.Append(German, valDe)
+	err := a.UnmarshalJSON([]byte(rawJson))
+	if err != nil {
+		t.Error(err)
+	}
+	for lang, val := range a {
+		if lang != AmericanEnglish && lang != German {
+			t.Errorf("Invalid json unmarshal for %T. Expected lang %q or %q, found %q", a, langEn, langDe, lang)
+		}
+
+		if lang == AmericanEnglish && !val.Equal(valEn) {
+			t.Errorf("Invalid json unmarshal for %T. Expected value %q, found %q", a, valEn, val)
+		}
+		if lang == German && !val.Equal(valDe) {
+			t.Errorf("Invalid json unmarshal for %T. Expected value %q, found %q", a, valDe, val)
+		}
+	}
+}
+
+func TestNaturalLanguageValue_UnmarshalJSON(t *testing.T) {
+	l := NilLangRef
+	dataEmpty := []byte("")
+
+	_ = l.UnmarshalJSON(dataEmpty)
+	if l != NilLangRef {
+		t.Errorf("Unmarshaled object %T should be an empty string, received %q", l, l)
+	}
+}
+
+func TestNaturalLanguageValue_UnmarshalText(t *testing.T) {
+	l := NilLangRef
+	dataEmpty := []byte("")
+
+	_ = l.UnmarshalText(dataEmpty)
+	if l != NilLangRef {
+		t.Errorf("Unmarshaled object %T should be an empty string, received %q", l, l)
+	}
+	tests := []struct {
+		name    string
+		data    []byte
+		want    NaturalLanguageValues
+		wantErr error
+	}{
+		{
+			name: "empty string",
+			data: []byte(""),
+			want: nil,
+		},
+		{
+			name: "string w/ quotes",
+			data: []byte(`"ana"`),
+			want: NaturalLanguageValues{und: Content(`"ana"`)},
+		},
+		{
+			name: "string w/o quotes",
+			data: []byte(`foo-bar`),
+			want: NaturalLanguageValues{und: Content("foo-bar")},
+		},
+		// TODO(marius): actually unmarshal langRef:Content\n text lines
+		//{
+		//	name: "en:ana are mere",
+		//	data: []byte(`en:ana are mere`),
+		//	want: NaturalLanguageValues{English: Content("ana are mere")},
+		//},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := make(NaturalLanguageValues)
+			err := c.UnmarshalText(tt.data)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalText() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if tt.wantErr != nil {
+				return
+			}
+			if !cmp.Equal(c, tt.want) {
+				t.Errorf("UnmarshalText() got = %s", cmp.Diff(tt.want, c, EquateWeakErrors))
+			}
+		})
+	}
+}
+
+func TestNaturalLanguageValue_First(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValueNew(t *testing.T) {
+	n := naturalLangValNew()
+
+	if len(n) != 0 {
+		t.Errorf("Initial %T should have length 0, received %d", n, len(n))
+	}
+}
+
+func TestNaturalLanguageValue_MarshalText(t *testing.T) {
+	val := Content("test")
+	tst := NaturalLanguageValues{English: val}
+	j, err := tst.MarshalText()
+	if err != nil {
+		t.Errorf("Error marshaling: %s", err)
+	}
+	if j == nil {
+		t.Errorf("Error marshaling: nil value returned")
+	}
+	expected := fmt.Sprintf("%s[%s]", val, English)
+	if string(j) != expected {
+		t.Errorf("Wrong value: %s, expected %s", j, expected)
+	}
+}
+
+func TestNaturalLanguageValues_Append(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValues_First(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValues_Get(t *testing.T) {
+	tests := []struct {
+		name string
+		n    NaturalLanguageValues
+		ref  LangRef
+		want Content
+	}{
+		{
+			name: "nil",
+		},
+		{
+			name: "empty",
+			n:    NaturalLanguageValues{},
+		},
+		{
+			name: "empty does not have undef",
+			n:    NaturalLanguageValues{},
+			ref:  Und,
+		},
+		{
+			name: "empty does not have en",
+			n:    NaturalLanguageValues{},
+			ref:  English,
+		},
+		{
+			name: "en exists",
+			n: NaturalLanguageValues{
+				English: Content("test"),
+			},
+			ref:  English,
+			want: Content("test"),
+		},
+		{
+			name: "fr exists",
+			n: NaturalLanguageValues{
+				English: Content("test"),
+				French:  Content("teste"),
+			},
+			ref:  French,
+			want: Content("teste"),
+		},
+		{
+			name: "en does not exist",
+			n: NaturalLanguageValues{
+				German: Content("test"),
+				French: Content("teste"),
+			},
+			ref:  English,
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.n.Get(tt.ref); !bytes.Equal(got, tt.want) {
+				t.Errorf("Get() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNaturalLanguageValues_MarshalJSON(t *testing.T) {
+	{
+		m := NaturalLanguageValues{
+			English: Content("test"),
+			German:  Content("test"),
+		}
+		result, err := m.MarshalJSON()
+		if err != nil {
+			t.Errorf("Failed marshaling '%v'", err)
+		}
+		mRes1 := `{"en":"test","de":"test"}`
+		mRes2 := `{"de":"test","en":"test"}`
+		if string(result) != mRes1 && string(result) != mRes2 {
+			t.Errorf("Different results '%v' vs. '%v' or '%v'", string(result), mRes1, mRes2)
+		}
+		// n := NaturalLanguageValuesNew()
+		// result, err := n.MarshalJSON()
+
+		s := make(map[LangRef]string)
+		s[LangRef(language.English)] = "test"
+		n1 := NaturalLanguageValues{
+			English: Content("test"),
+		}
+		result1, err1 := n1.MarshalJSON()
+		if err1 != nil {
+			t.Errorf("Failed marshaling '%v'", err1)
+		}
+		mRes3 := `"test"`
+		if string(result1) != mRes3 {
+			t.Errorf("Different results '%v' vs. '%v'", string(result1), mRes3)
+		}
+	}
+	{
+		val := Content("test")
+		tst := NaturalLanguageValues{NilLangRef: val}
+		j, err := tst.MarshalJSON()
+		if err != nil {
+			t.Errorf("Error marshaling: %s", err)
+		}
+		if j == nil {
+			t.Errorf("Error marshaling: nil value returned")
+		}
+		expected := fmt.Sprintf("\"%s\"", val)
+		if string(j) != expected {
+			t.Errorf("Wrong value: %s, expected %s", j, expected)
+		}
+	}
+	{
+		val := Content("test")
+		tst := NaturalLanguageValues{English: val}
+		j, err := tst.MarshalJSON()
+		if err != nil {
+			t.Errorf("Error marshaling: %s", err)
+		}
+		if j == nil {
+			t.Errorf("Error marshaling: nil value returned")
+		}
+		expected := fmt.Sprintf("\"%s\"", val)
+		if string(j) != expected {
+			t.Errorf("Wrong value: %s, expected %s", j, expected)
+		}
+	}
+	{
+		valEn := Content("test")
+		valFr := Content("teste")
+		tst := NaturalLanguageValues{English: valEn, French: valFr}
+		j, err := tst.MarshalJSON()
+		if err != nil {
+			t.Errorf("Error marshaling: %s", err)
+		}
+		if j == nil {
+			t.Errorf("Error marshaling: nil value returned")
+		}
+		expected1 := fmt.Sprintf(`{"%s":"%s","%s":"%s"}`, English, valEn, French, valFr)
+		expected2 := fmt.Sprintf(`{"%s":"%s","%s":"%s"}`, French, valFr, English, valEn)
+		if string(j) != expected1 && string(j) != expected2 {
+			t.Errorf("Wrong value: '%s', expected '%s' or '%s'", j, expected1, expected2)
+		}
+	}
+	{
+		valEn := Content("test\nwith new line")
+		valFr := Content("teste\navec une ligne nouvelle")
+		tst := NaturalLanguageValues{English: valEn, French: valFr}
+		j, err := tst.MarshalJSON()
+		if err != nil {
+			t.Errorf("Error marshaling: %s", err)
+		}
+		if j == nil {
+			t.Errorf("Error marshaling: nil value returned")
+		}
+		expected1 := fmt.Sprintf(`{"%s":%s,"%s":%s}`, English, strconv.Quote(valEn.String()), French, strconv.Quote(valFr.String()))
+		expected2 := fmt.Sprintf(`{"%s":%s,"%s":%s}`, French, strconv.Quote(valFr.String()), English, strconv.Quote(valEn.String()))
+		if string(j) != expected1 && string(j) != expected2 {
+			t.Errorf("Wrong value: '%s', expected '%s' or '%s'", j, expected1, expected2)
+		}
+	}
+}
+
+func TestNaturalLanguageValues_MarshalText(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValues_Set(t *testing.T) {
+	type args struct {
+		ref LangRef
+		v   Content
+	}
+	tests := []struct {
+		name   string
+		n      NaturalLanguageValues
+		args   args
+		exists bool
+		want   Content
+	}{
+		{
+			name:   "empty",
+			n:      NaturalLanguageValues{},
+			args:   args{ref: und},
+			exists: true, // NOTE(marius): the zero value of the LangRef is und so the Set call adds a nil to the map
+		},
+		{
+			name: "en",
+			n:    NaturalLanguageValues{},
+			args: args{
+				ref: English,
+				v:   Content("test"),
+			},
+			exists: true,
+			want:   Content("test"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.n.Set(tt.args.ref, tt.args.v)
+			got, exists := tt.n[tt.args.ref]
+			if exists != tt.exists {
+				t.Errorf("Check value after Set() = got %t, want %t", exists, tt.exists)
+				return
+			}
+			if !bytes.Equal(got, tt.want) {
+				t.Errorf("Check value after Set() = got %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNaturalLanguageValues_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    NaturalLanguageValues
+		wantErr error
+	}{
+		{
+			name: "empty string",
+			data: []byte(""),
+			want: nil,
+		},
+		{
+			name: "string w/ quotes",
+			data: []byte(`"ana"`),
+			want: NaturalLanguageValues{und: Content("ana")},
+		},
+		{
+			name:    "string w/o quotes",
+			data:    []byte(`foo-bar`),
+			wantErr: errors.Newf("unquoted string value when unmarshaling Content type"),
+		},
+		{
+			name: "en:ana are mere",
+			data: []byte(`{"en":"ana are mere"}`),
+			want: NaturalLanguageValues{English: Content("ana are mere")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := make(NaturalLanguageValues)
+			err := c.UnmarshalJSON(tt.data)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if tt.wantErr != nil {
+				return
+			}
+			if !cmp.Equal(c, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %s", cmp.Diff(tt.want, c, EquateWeakErrors))
+			}
+		})
+	}
+}
+
+func TestNaturalLanguageValues_UnmarshalText(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValuesNew(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValues_String(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValues_Count(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestNaturalLanguageValues_Equals(t *testing.T) {
+	tests := []struct {
+		name string
+		n    NaturalLanguageValues
+		with NaturalLanguageValues
+		want bool
+	}{
+		{
+			name: "equal-key-value",
+			n: NaturalLanguageValues{
+				English: Content("test123#"),
+			},
+			with: NaturalLanguageValues{
+				English: Content("test123#"),
+			},
+			want: true,
+		},
+		{
+			name: "not-equal-key",
+			n: NaturalLanguageValues{
+				English: Content("test123#"),
+			},
+			with: NaturalLanguageValues{
+				French: Content("test123#"),
+			},
+			want: false,
+		},
+		{
+			name: "not-equal-value",
+			n: NaturalLanguageValues{
+				English: Content("test123#"),
+			},
+			with: NaturalLanguageValues{
+				English: Content("test123"),
+			},
+			want: false,
+		},
+		{
+			name: "multiple-values-same-order",
+			n: NaturalLanguageValues{
+				French:  Content("teste"),
+				English: Content("test"),
+			},
+			with: NaturalLanguageValues{
+				French:  Content("teste"),
+				English: Content("test"),
+			},
+			want: true,
+		},
+		{
+			name: "multiple-values-different-order",
+			n: NaturalLanguageValues{
+				English: Content("test"),
+				French:  Content("teste"),
+			},
+			with: NaturalLanguageValues{
+				French:  Content("teste"),
+				English: Content("test"),
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.n.Equal(tt.with); got != tt.want {
+				t.Errorf("Equal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestContent_String(t *testing.T) {
+	t.Skip("TODO")
+}
+
+func TestContent_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Content
+		wantErr error
+	}{
+		{
+			name: "empty string",
+			data: []byte(""),
+			want: nil,
+		},
+		{
+			name: "string w/ quotes",
+			data: []byte(`"ana"`),
+			want: Content(`ana`),
+		},
+		{
+			name:    "string w/o quotes",
+			data:    []byte(`foo-bar`),
+			wantErr: errors.Newf("unquoted string value when unmarshaling Content type"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := Content{}
+			err := c.UnmarshalJSON(tt.data)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if tt.wantErr != nil {
+				return
+			}
+			if !cmp.Equal(c, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %s", cmp.Diff(tt.want, c))
+			}
+		})
+	}
+}
+
+func TestContent_UnmarshalText(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Content
+		wantErr error
+	}{
+		{
+			name: "empty string",
+			data: []byte(""),
+			want: nil,
+		},
+		{
+			name: "string w/ quotes",
+			data: []byte(`"ana"`),
+			want: Content(`"ana"`),
+		},
+		{
+			name: "string w/o quotes",
+			data: []byte(`foo-bar`),
+			want: Content(`foo-bar`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := Content{}
+			err := c.UnmarshalText(tt.data)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalText() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if tt.wantErr != nil {
+				return
+			}
+			if !cmp.Equal(c, tt.want) {
+				t.Errorf("UnmarshalText() got = %s", cmp.Diff(tt.want, c))
+			}
+		})
+	}
+}
+
+func TestLangRefValue_String(t *testing.T) {
+	type fields struct {
+		Ref   LangRef
+		Value Content
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name:   "empty",
+			fields: fields{},
+			want:   "",
+		},
+		{
+			name: "empty LangRef, not empty Value",
+			fields: fields{
+				Value: Content("not empty"),
+			},
+			want: "not empty",
+		},
+		{
+			name: "nil LangRef, empty Value",
+			fields: fields{
+				Ref:   NilLangRef,
+				Value: Content(""),
+			},
+			want: "",
+		},
+		{
+			name: "nil LangRef, non empty Value",
+			fields: fields{
+				Ref:   NilLangRef,
+				Value: Content("test"),
+			},
+			want: "test",
+		},
+		{
+			name: "ro-example",
+			fields: fields{
+				Ref:   MakeRef([]byte("ro")),
+				Value: Content("example"),
+			},
+			want: "example[ro]",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := LangRefValue{
+				Ref:   tt.fields.Ref,
+				Value: tt.fields.Value,
+			}
+			if got := l.String(); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLangRefValue_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+		data    []byte
+		want    LangRefValue
+	}{
+		{
+			name: "empty",
+			data: []byte(""),
+			want: LangRefValue{Ref: DefaultLang},
+		},
+		{
+			name: "empty LangRef, not empty Value",
+			want: LangRefValue{Ref: DefaultLang, Value: Content("not empty")},
+			data: []byte("not empty"),
+		},
+		{
+			name: "nil LangRef, non empty Value",
+			want: LangRefValue{Ref: DefaultLang, Value: Content("test")},
+			data: []byte("test"),
+		},
+		{
+			name: "ro-example",
+			data: []byte(`{"ro":"example"}`),
+			want: LangRefValue{
+				Ref:   MakeRef([]byte("ro")),
+				Value: Content("example"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := LangRefValue{}
+			if _ = l.UnmarshalJSON(tt.data); !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %+v, want %+v", l, tt.want)
+			}
+		})
+	}
+}
+
+func TestLangValue(t *testing.T) {
+	type testCase struct {
+		name string
+		refs []LangRefValue
+		want NaturalLanguageValues
+	}
+	tests := []testCase{
+		{
+			name: "empty",
+		},
+		{
+			name: "default",
+			refs: []LangRefValue{DefaultRefValue("ana")},
+			want: NaturalLanguageValues{
+				DefaultLang: Content("ana"),
+			},
+		},
+		{
+			name: "default and eng",
+			refs: []LangRefValue{DefaultRefValue("ana"), RefValue(English, "anne")},
+			want: NaturalLanguageValues{
+				DefaultLang: Content("anne"),
+			},
+		},
+		{
+			name: "default and fr",
+			refs: []LangRefValue{DefaultRefValue("ann"), RefValue(French, "anne")},
+			want: NaturalLanguageValues{
+				DefaultLang: Content("ann"),
+				French:      Content("anne"),
+			},
+		},
+		{
+			name: "en and fr",
+			refs: []LangRefValue{RefValue(English, "ann"), RefValue(French, "anne")},
+			want: NaturalLanguageValues{
+				English: Content("ann"),
+				French:  Content("anne"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := LangValues(tt.refs...); !cmp.Equal(got, tt.want) {
+				t.Errorf("LangValue() = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func ExampleNaturalLanguageValues_initialize() {
+	// Some of the properties of the Activity Vocabulary objects are formed of textual content,
+	// which can be mapped per language. These properties are the "name", "summary", "content",
+	// the "content" of the "source" property of Object types, and the "preferredUsername" of the Actor ones.
+	//
+	// The library uses a map to store these, the keys are values of the [golang.org/x/text/language#Tag] type
+	// and the values are a byte slice aliased to a local Content type.
+
+	// We can initialize such a map inline:
+	fox1 := NaturalLanguageValues{
+		English: Content("The brown fox jumped"),
+		French:  Content("Le renard brun a sauté"),
+		German:  Content("Der braune Fuchs sprang"),
+	}
+	fmt.Printf("Fox1: %#v\n", fox1)
+
+	// Or we can use some of the helper functions
+	fox2 := LangValues(DefaultRefValue("The brown fox"), RefValue(French, "Le renard brun"))
+	fmt.Printf("Fox2: %#v\n", fox2)
+
+	// Output:
+	// Fox1: [ de: Der braune Fuchs sprang en: The brown fox jumped fr: Le renard brun a sauté ]
+	// Fox2: [ en: The brown fox fr: Le renard brun ]
+}
+
+func TestNaturalLanguageValues_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    NaturalLanguageValues
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := NaturalLanguageValues{}
+			if err := l.UnmarshalBinary(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalBinary() got = %s", cmp.Diff(tt.want, l))
+			}
+		})
+	}
+}
+
+func TestNaturalLanguageValues_MarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     NaturalLanguageValues
+		want    []byte
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			sub:     NaturalLanguageValues{},
+			want:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalBinary()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("MarshalBinary() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}

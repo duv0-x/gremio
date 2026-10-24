@@ -1,0 +1,577 @@
+package tests
+
+// Server to Server tests from: https://test.activitypub.rocks/
+
+import (
+	"fmt"
+	"testing"
+
+	pub "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+)
+
+// S2S Server: Activities requiring the object property
+// The distribution of the following activities require that they contain the object property:
+// Create, Update, Delete, Follow, Add, Remove, Like, Block, Undo.
+// Implementation always includes object property for each of the above supported activities
+func TestObjectPropertyExists(t *testing.T) {
+	desc := `
+S2S Server: Activities requiring the object property
+  The distribution of the following activities require that they contain the object property:
+   Create, Update, Delete, Follow, Add, Remove, Like, Block, Undo.
+
+  Implementation always includes object property for each of the above supported activities
+`
+	t.Log(desc)
+
+	obj := pub.Mention{ID: "gigel", Type: pub.MentionType}
+
+	add := pub.Add{ID: "https://localhost/myactivity", Type: pub.AddType, Object: obj}
+	if pub.IsNil(add.Object) {
+		t.Errorf("Missing GetID in Add activity %#v", add.Object)
+	}
+	if !pub.ItemsEqual(add.Object, obj) {
+		t.Errorf("Add.GetID different than what we initialized %#v %#v", add.Object, obj)
+	}
+
+	block := pub.Block{ID: "https://localhost/myactivity", Type: pub.BlockType, Object: obj}
+	if pub.IsNil(block.Object) {
+		t.Errorf("Missing GetID in Add activity %#v", block.Object)
+	}
+	if !pub.ItemsEqual(block.Object, obj) {
+		t.Errorf("Block.GetID different than what we initialized %#v %#v", block.Object, obj)
+	}
+
+	create := pub.Create{ID: "https://localhost/myactivity", Type: pub.CreateType, Object: obj}
+	if create.Object == nil {
+		t.Errorf("Missing GetID in Add activity %#v", create.Object)
+	}
+	if !pub.ItemsEqual(create.Object, obj) {
+		t.Errorf("Create.GetID different than what we initialized %#v %#v", create.Object, obj)
+	}
+
+	delete := pub.Delete{ID: "https://localhost/myactivity", Type: pub.DeleteType, Object: obj}
+	if pub.IsNil(delete.Object) {
+		t.Errorf("Missing GetID in Delete activity %#v", delete.Object)
+	}
+	if !pub.ItemsEqual(delete.Object, obj) {
+		t.Errorf("Delete.GetID different than what we initialized %#v %#v", delete.Object, obj)
+	}
+
+	follow := &pub.Follow{ID: "https://localhost/myactivity", Type: pub.FollowType, Object: obj}
+	if pub.IsNil(follow.Object) {
+		t.Errorf("Missing GetID in Follow activity %#v", follow.Object)
+	}
+	if !pub.ItemsEqual(follow.Object, obj) {
+		t.Errorf("Follow.GetID different than what we initialized %#v %#v", follow.Object, obj)
+	}
+
+	like := pub.Like{ID: "https://localhost/myactivity", Type: pub.LikeType, Object: obj}
+	if pub.IsNil(like.Object) {
+		t.Errorf("Missing GetID in Like activity %#v", like.Object)
+	}
+	if !pub.ItemsEqual(like.Object, obj) {
+		t.Errorf("Like.GetID different than what we initialized %#v %#v", add.Object, obj)
+	}
+
+	update := pub.Update{ID: "https://localhost/myactivity", Type: pub.UpdateType, Object: obj}
+	if pub.IsNil(update.Object) {
+		t.Errorf("Missing GetID in Update activity %#v", update.Object)
+	}
+	if !pub.ItemsEqual(update.Object, obj) {
+		t.Errorf("Update.GetID different than what we initialized %#v %#v", update.Object, obj)
+	}
+
+	undo := pub.Undo{ID: "https://localhost/myactivity", Type: pub.UndoType, Object: obj}
+	if undo.Object == nil {
+		t.Errorf("Missing GetID in Undo activity %#v", undo.Object)
+	}
+	if !pub.ItemsEqual(undo.Object, obj) {
+		t.Errorf("Undo.GetID different than what we initialized %#v %#v", undo.Object, obj)
+	}
+}
+
+// S2S Server: Activities requiring the target property
+// The distribution of the following activities require that they contain the target property:
+// Add, Remove.
+// Implementation always includes target property for each of the above supported activities.
+func TestTargetPropertyExists(t *testing.T) {
+	desc := `
+S2S Server: Activities requiring the target property
+  The distribution of the following activities require that they contain the target
+property: Add, Remove.
+
+  Implementation always includes target property for each of the above supported activities.
+`
+	t.Log(desc)
+
+	obj := pub.Mention{ID: "foo"}
+	target := pub.Mention{ID: "bar"}
+
+	add := pub.Add{ID: "https://localhost/myactivity", Type: pub.AddType, Object: obj, Target: target}
+	if pub.IsNil(add.Target) {
+		t.Errorf("Missing Target in Add activity %#v", add.Target)
+	}
+	if !pub.ItemsEqual(add.Target, target) {
+		t.Errorf("Add.Target different than what we initialized %#v %#v", add.Target, target)
+	}
+
+	remove := pub.Remove{ID: "https://localhost/myactivity", Type: pub.RemoveType, Object: obj, Target: target}
+	if pub.IsNil(remove.Target) {
+		t.Errorf("Missing Target in Remove activity %#v", remove.Target)
+	}
+	if !pub.ItemsEqual(remove.Target, target) {
+		t.Errorf("Remove.Target different than what we initialized %#v %#v", remove.Target, target)
+	}
+}
+
+// S2S Server: Deduplication of recipient list
+// Attempt to submit for delivery an activity that addresses the same actor
+// (ie an actor with the same id) twice.
+// (For example, the same actor could appear on both the to and cc fields,
+// or the actor could be explicitly addressed
+// in to but could also be a member of the addressed followers collection of the sending actor.)
+// The server should deduplicate the list of inboxes to deliver to before delivering.
+// The final recipient list is deduplicated before delivery.
+func TestDeduplication(t *testing.T) {
+	desc := `
+S2S Server: Deduplication of recipient list
+  Attempt to submit for delivery an activity that addresses the same actor
+(ie an actor with the same id) twice.
+
+  The final recipient list is deduplicated before delivery.
+`
+	t.Log(desc)
+
+	to := &pub.Person{Type: pub.PersonType, ID: ("bob")}
+	o := &pub.Object{Type: pub.ArticleType}
+	cc := &pub.Person{Type: pub.PersonType, ID: ("alice")}
+
+	o.ID = "something"
+	c := pub.Create{ID: "create", Type: pub.CreateType, Object: o}
+	c.To.Append(to)
+	c.CC.Append(cc)
+	c.BCC.Append(cc)
+
+	c.Recipients()
+
+	checkDedup := func(list pub.ItemCollection, recIds *[]pub.ID) error {
+		for _, rec := range list {
+			for _, id := range *recIds {
+				if rec.GetID() == id {
+					return fmt.Errorf("%T[%s] already stored in recipients list, Deduplication faild", rec, id)
+				}
+			}
+			*recIds = append(*recIds, rec.GetID())
+		}
+		return nil
+	}
+
+	var err error
+	recIds := make([]pub.ID, 0)
+	err = checkDedup(c.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// S2S Server: Do-not-deliver considerations
+// Server does not deliver to recipients which are the same as the actor of the
+// Activity being notified about
+func TestDoNotDeliverToActor(t *testing.T) {
+	desc := `
+S2S Server: Do-not-deliver considerations
+
+  Server does not deliver to recipients which are the same as the actor of the
+Activity being notified about
+`
+	t.Skip(desc)
+
+	p := &pub.Person{Type: pub.PersonType, ID: ("main actor")}
+
+	to := &pub.Person{Type: pub.PersonType, ID: ("bob")}
+	o := &pub.Object{Type: pub.ArticleType}
+	cc := &pub.Person{Type: pub.PersonType, ID: ("alice")}
+
+	o.ID = "something"
+	c := pub.Create{ID: "create", Type: pub.CreateType, Object: o}
+	c.Actor = *p
+
+	_ = c.To.Append(p)
+	_ = c.To.Append(to)
+	_ = c.CC.Append(cc)
+	_ = c.CC.Append(p)
+	_ = c.BCC.Append(cc)
+	_ = c.BCC.Append(p)
+
+	recipients := c.Recipients()
+
+	checkActor := func(list pub.ItemCollection, actor pub.Item) error {
+		for _, rec := range list {
+			if rec.GetID() == actor.GetID() {
+				return fmt.Errorf("%T[%s] Actor of activity should not be in the recipients list", rec, actor.GetID())
+			}
+		}
+		return nil
+	}
+
+	var err error
+	err = checkActor(recipients, c.Actor)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkActor(c.To, c.Actor)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkActor(c.Bto, c.Actor)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkActor(c.CC, c.Actor)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkActor(c.BCC, c.Actor)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// S2S Server: Do-not-deliver considerations
+// Server does not deliver Block activities to their object.
+func TestDoNotDeliverBlockToObject(t *testing.T) {
+	desc := `
+S2S Server: Do-not-deliver considerations
+
+  Server does not deliver Block activities to their object.
+`
+	t.Log(desc)
+
+	p := &pub.Person{Type: pub.PersonType, ID: ("blocked")}
+	bob := &pub.Person{Type: pub.PersonType, ID: ("bob")}
+	jane := &pub.Person{Type: pub.PersonType, ID: ("jane doe")}
+
+	b := &pub.Block{Type: pub.BlockType, ID: "block actor", Object: p}
+	b.Actor = *bob
+
+	_ = b.To.Append(jane)
+	_ = b.To.Append(p)
+	_ = b.To.Append(bob)
+
+	recipients := b.Recipients()
+
+	checkActor := func(list pub.ItemCollection, ob pub.Item) error {
+		for _, rec := range list {
+			if rec.GetID() == ob.GetID() {
+				return fmt.Errorf("%T[%s] of activity should not be in the recipients list", rec, ob.GetID())
+			}
+		}
+		return nil
+	}
+
+	var err error
+	err = checkActor(recipients, b.Object)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkActor(b.To, b.Object)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Skip("Checking for actor is no longer valid")
+	err = checkActor(b.To, b.Actor)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// S2S Sever: Support for sharedInbox
+// Delivers to sharedInbox endpoints to reduce the number of receiving actors delivered
+// to by identifying all followers which share the same sharedInbox who would otherwise be
+// individual recipients and instead deliver objects to said sharedInbox.
+func TestSharedInboxIdentifySharedInbox(t *testing.T) {
+	desc := `
+S2S Sever: Support for sharedInbox
+
+  Delivers to sharedInbox endpoints to reduce the number of receiving actors delivered 
+to by identifying all followers which share the same sharedInbox who would otherwise be
+individual recipients and instead deliver objects to said sharedInbox.
+`
+	t.Skip(desc)
+}
+
+// S2S Sever: Support for sharedInbox
+// Deliver to actor inboxes and collections otherwise addressed which do not have a sharedInbox.
+func TestSharedInboxActorsWOSharedInbox(t *testing.T) {
+	desc := `
+S2S Server: Do-not-deliver considerations
+
+  Server does not deliver Block activities to their object.
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Deduplicating received activities
+// Server deduplicates activities received in inbox by comparing activity ids
+func TestInboxDeduplication(t *testing.T) {
+	desc := `
+S2S Server: Deduplicating received activities
+
+  Server deduplicates activities received in inbox by comparing activity ids
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Special forwarding mechanism
+// ActivityPub contains a special mechanism for forwarding replies to avoid "ghost replies".
+// Forwards incoming activities to the values of to, bto, cc, bcc, audience if and only if criteria are met.
+func TestForwardingMechanismsToRecipients(t *testing.T) {
+	desc := `
+S2S Server: Special forwarding mechanism
+ ActivityPub contains a special mechanism for forwarding replies to avoid "ghost replies".
+
+  Forwards incoming activities to the values of to, bto, cc, bcc, audience if and only if criteria are met.
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Special forwarding mechanism
+// ActivityPub contains a special mechanism for forwarding replies to avoid "ghost replies".
+// Recurse through to, bto, cc, bcc, audience object values to determine whether/where
+// to forward according to criteria in 7.1.2
+func TestForwardingMechanismsRecurseRecipients(t *testing.T) {
+	desc := `
+S2S Server: Special forwarding mechanism
+ActivityPub contains a special mechanism for forwarding replies to avoid "ghost replies".
+
+  Recurse through to, bto, cc, bcc, audience object values to determine whether/where
+  to forward according to criteria in 7.1.2
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Special forwarding mechanism
+// ActivityPub contains a special mechanism for forwarding replies to avoid "ghost replies".
+// Limits depth of this recursion.
+func TestForwardingMechanismsLimitsRecursion(t *testing.T) {
+	desc := `
+S2S Server: Special forwarding mechanism
+ ActivityPub contains a special mechanism for forwarding replies to avoid "ghost replies".
+
+  Limits depth of this recursion.
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Verification of content authorship
+// Before accepting activities delivered to an actor's inbox some sort of verification
+// should be performed. (For example, if the delivering actor has a public key on their profile,
+// the request delivering the activity may be signed with HTTP Signatures.)
+// Don't trust content received from a server other than the content's origin without some form of verification.
+func TestVerification(t *testing.T) {
+	desc := `
+S2S Server: Verification of content authorship
+ Before accepting activities delivered to an actor's inbox some sort of verification
+ should be performed. (For example, if the delivering actor has a public key on their profile,
+ the request delivering the activity may be signed with HTTP Signatures.)
+
+  Don't trust content received from a server other than the content's origin without some form of verification.
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Update activity
+// On receiving an Update activity to an actor's inbox, the server:
+// Takes care to be sure that the Update is authorized to modify its object
+func TestUpdateIsAuthorized(t *testing.T) {
+	desc := `
+S2S Server: Update activity
+ On receiving an Update activity to an actor's inbox, the server:
+
+  Takes care to be sure that the Update is authorized to modify its object
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Update activity
+// On receiving an Update activity to an actor's inbox, the server:
+// Completely replaces its copy of the activity with the newly received value
+func TestUpdateReplacesActivity(t *testing.T) {
+	desc := `
+S2S Server: Update activity
+ On receiving an Update activity to an actor's inbox, the server:
+
+  Completely replaces its copy of the activity with the newly received value
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Delete activity
+// Delete removes object's representation, assuming object is owned by sending actor/server
+func TestDeleteRemoves(t *testing.T) {
+	desc := `
+S2S Server: Delete activity
+
+  Delete removes object's representation, assuming object is owned by sending actor/server
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Delete activity
+// Replaces deleted object with a Tombstone object (optional)
+func TestDeleteReplacesWithTombstone(t *testing.T) {
+	desc := `
+S2S Server: Delete activity
+
+  Replaces deleted object with a Tombstone object (optional)
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Following, and handling accept/reject of follows
+// Follow should add the activity's actor to the receiving actor's Followers Collection.
+func TestFollowAddsToFollowers(t *testing.T) {
+	desc := `
+S2S Server: Following, and handling accept/reject of follows
+
+  Follow should add the activity's actor to the receiving actor's Followers Collection.
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Following, and handling accept/reject of follows
+// Generates either an Accept or Reject activity with Follow as object and deliver to actor of the Follow
+func TestGeneratesAcceptOrReject(t *testing.T) {
+	desc := `
+S2S Server: Following, and handling accept/reject of follows
+
+  Generates either an Accept or Reject activity with Follow as object and deliver to actor of the Follow
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Following, and handling accept/reject of follows
+// If receiving an Accept in reply to a Follow activity, adds actor to receiver's Following Collection
+func TestAddsFollowerIfAccept(t *testing.T) {
+	desc := `
+S2S Server: Following, and handling accept/reject of follows
+
+  If receiving an Accept in reply to a Follow activity, adds actor to receiver's Following Collection
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Following, and handling accept/reject of follows
+// If receiving a Reject in reply to a Follow activity, does not add actor to receiver's Following Collection
+func TestDoesntAddFollowerIfReject(t *testing.T) {
+	desc := `
+S2S Server: Following, and handling accept/reject of follows
+
+  If receiving a Reject in reply to a Follow activity, does not add actor to receiver's Following Collection
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Activity acceptance side-effects
+// Test accepting the following activities to an actor's inbox and observe the side effects:
+//
+// Create makes record of the object existing
+func TestCreateMakesRecord(t *testing.T) {
+	desc := `
+S2S Server: Activity acceptance side-effects
+ Test accepting the following activities to an actor's inbox and observe the side effects:
+
+  Create makes record of the object existing
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Activity acceptance side-effects
+// Test accepting the following activities to an actor's inbox and observe the side effects:
+//
+// Add should add the activity's object to the Collection specified in the target property,
+// unless not allowed per requirements
+func TestAddObjectToTarget(t *testing.T) {
+	desc := `
+S2S Server: Activity acceptance side-effects
+ Test accepting the following activities to an actor's inbox and observe the side effects:
+
+  Add should add the activity's object to the Collection specified in the target property,
+  unless not allowed per requirements
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Activity acceptance side-effects
+// Test accepting the following activities to an actor's inbox and observe the side effects:
+//
+// Remove should remove the object from the Collection specified in the target property,
+// unless not allowed per requirements
+func TestRemoveObjectFromTarget(t *testing.T) {
+	desc := `
+S2S Server: Activity acceptance side-effects
+ Test accepting the following activities to an actor's inbox and observe the side effects:
+
+  Remove should remove the object from the Collection specified in the target property,
+  unless not allowed per requirements
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Activity acceptance side-effects
+// Test accepting the following activities to an actor's inbox and observe the side effects:
+//
+// Like increments the object's count of likes by adding the received activity to the likes
+// collection if this collection is present
+func TestLikeIncrementsLikes(t *testing.T) {
+	desc := `
+S2S Server: Activity acceptance side-effects
+ Test accepting the following activities to an actor's inbox and observe the side effects:
+
+  Like increments the object's count of likes by adding the received activity to the likes
+  collection if this collection is present
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Activity acceptance side-effects
+// Test accepting the following activities to an actor's inbox and observe the side effects:
+//
+// Announce increments object's count of shares by adding the received activity to the
+// 'shares' collection if this collection is present
+func TestAnnounceIncrementsShares(t *testing.T) {
+	desc := `
+S2S Server: Activity acceptance side-effects
+ Test accepting the following activities to an actor's inbox and observe the side effects:
+
+  Announce increments object's count of shares by adding the received activity to the
+ 'shares' collection if this collection is present
+`
+	t.Skip(desc)
+}
+
+// S2S Server: Activity acceptance side-effects
+// Test accepting the following activities to an actor's inbox and observe the side effects:
+//
+// Undo performs Undo of object in federated context
+func TestUndoPerformsUndoOnObject(t *testing.T) {
+	desc := `
+S2S Server: Activity acceptance side-effects
+ Test accepting the following activities to an actor's inbox and observe the side effects:
+
+  Undo performs Undo of object in federated context
+`
+	t.Skip(desc)
+}

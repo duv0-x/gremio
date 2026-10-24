@@ -1,0 +1,410 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"time"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/valyala/fastjson"
+)
+
+// Place represents a logical or physical location. See 5.3 Representing Places for additional information.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-place
+//
+// The Place object is used to represent both physical and logical locations.
+// While numerous existing vocabularies exist for describing locations in a variety of ways,
+// inconsistencies and incompatibilities between those vocabularies make it difficult to achieve appropriate
+// interoperability between implementations. The Place object is included within the Activity vocabulary
+// to provide a minimal, interoperable starting point for describing locations consistently across
+// Activity Streams 2.0 implementations.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#places
+type Place struct {
+	// ID provides the globally unique identifier for the object.
+	ID ID `jsonld:"id,omitempty"`
+	// Type identifies the Object type. Multiple values may be specified.
+	Type Typer `jsonld:"type,omitempty"`
+	// Name represents a simple, human-readable, plain-text name for the object.
+	// HTML markup MUST NOT be included. The name MAY be expressed using multiple language-tagged values.
+	Name NaturalLanguageValues `jsonld:"name,omitempty,collapsible"`
+	// Attachment identifies a resource attached or related to an object that potentially requires special handling.
+	// The intent is to provide a model that is at least semantically similar to attachments in email.
+	Attachment Item `jsonld:"attachment,omitempty"`
+	// AttributedTo identifies one or more entities to which this object is attributed. The attributed entities might not be Actors.
+	// For instance, an object might be attributed to the completion of another activity.
+	AttributedTo Item `jsonld:"attributedTo,omitempty"`
+	// Audience identifies one or more entities that represent the total population of entities
+	// for which the object can be considered to be relevant.
+	Audience ItemCollection `jsonld:"audience,omitempty"`
+	// Content represents a textual representation of the Object encoded as a JSON string.
+	// By default, the value of content is HTML.
+	// The MediaType property can be used in the object to indicate a different content type.
+	// (The content MAY be expressed using multiple language-tagged values.)
+	Content NaturalLanguageValues `jsonld:"content,omitempty,collapsible"`
+	// Context identifies the context within which the object exists or an activity was performed.
+	// The notion of "context" used is intentionally vague.
+	// The intended function is to serve as a means of grouping objects and activities that share a
+	// common originating context or purpose. An example could be all activities relating to a common project or event.
+	Context Item `jsonld:"context,omitempty"`
+	// MediaType identifies the MIME media type of the value of the Content property.
+	// If not specified, the content property is assumed to contain text/html content.
+	MediaType MimeType `jsonld:"mediaType,omitempty"`
+	// EndTime represents the date and time describing the actual or expected ending time of the object.
+	// When used with an Activity object, for instance, the EndTime property specifies the moment
+	// the activity concluded or is expected to conclude.
+	EndTime time.Time `jsonld:"endTime,omitempty"`
+	// Generator identifies the entity (e.g. an application) that generated the object.
+	Generator Item `jsonld:"generator,omitempty"`
+	// Icon indicates an entity that describes an icon for this object.
+	// The image should have an aspect ratio of one (horizontal) to one (vertical)
+	// and should be suitable for presentation at a small size.
+	Icon Item `jsonld:"icon,omitempty"`
+	// Image indicates an entity that describes an image for this object.
+	// Unlike the icon property, there are no aspect ratio or display size limitations assumed.
+	Image Item `jsonld:"image,omitempty"`
+	// InReplyTo indicates one or more entities for which this object is considered a response.
+	InReplyTo Item `jsonld:"inReplyTo,omitempty"`
+	// Location indicates one or more physical or logical locations associated with the object.
+	Location Item `jsonld:"location,omitempty"`
+	// Preview identifies an entity that provides a preview of this object.
+	Preview Item `jsonld:"preview,omitempty"`
+	// Published the date and time at which the object was published
+	Published time.Time `jsonld:"published,omitempty"`
+	// Replies identifies a Collection containing objects considered to be responses to this object.
+	Replies Item `jsonld:"replies,omitempty"`
+	// StartTime represents the date and time describing the actual or expected starting time of the object.
+	// When used with an Activity object, for instance, the StartTime property specifies
+	// the moment the activity began or is scheduled to begin.
+	StartTime time.Time `jsonld:"startTime,omitempty"`
+	// Summary represents a natural language summarization of the object encoded as HTML.
+	// Multiple language tagged summaries MAY be provided.
+	Summary NaturalLanguageValues `jsonld:"summary,omitempty,collapsible"`
+	// Tag identifies one or more "tags" that have been associated with an objects. A tag can be any kind of Object.
+	// The key difference between attachment and tag is that the former implies association by inclusion,
+	// while the latter implies associated by reference.
+	Tag Item `jsonld:"tag,omitempty"`
+	// Updated represents the date and time at which the object was updated
+	Updated time.Time `jsonld:"updated,omitempty"`
+	// URL identifies one or more links to representations of the object
+	URL Item `jsonld:"url,omitempty"`
+	// To identifies an entity considered to be part of the public primary audience of an Object
+	To ItemCollection `jsonld:"to,omitempty"`
+	// Bto identifies an Object that is part of the private primary audience of this Object.
+	Bto ItemCollection `jsonld:"bto,omitempty"`
+	// CC identifies an Object that is part of the public secondary audience of this Object.
+	CC ItemCollection `jsonld:"cc,omitempty"`
+	// BCC identifies one or more Objects that are part of the private secondary audience of this Object.
+	BCC ItemCollection `jsonld:"bcc,omitempty"`
+	// Duration indicates the object's approximate duration when the Object describes a time-bound resource,
+	// such as an Audio or Video, a meeting, etc,
+	// The value must be expressed as an xsd:duration as defined by [xmlschema11-2],
+	// section 3.3.6 (e.g. a period of 5 seconds is represented as "PT5S").
+	Duration time.Duration `jsonld:"duration,omitempty"`
+	// Likes identifies the collection containing a list of all Like activities with this object as the object property, added as a side effect.
+	// The likes collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Likes Item `jsonld:"likes,omitempty"`
+	// Shares identifies the collection containing a list of all Announce activities with this object as the object property, added as a side effect.
+	// The shares collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Shares Item `jsonld:"shares,omitempty"`
+	// Source property is intended to convey some sort of source from which the content markup was derived,
+	// as a form of provenance, or to support future editing by clients.
+	// In general, clients do the conversion from source to content, not the other way around.
+	Source Source `jsonld:"source,omitempty"`
+	// Accuracy indicates the accuracy of position coordinates on a Place objects.
+	// Expressed in properties of percentage. e.g. "94.0" means "94.0% accurate".
+	Accuracy float64 `jsonld:"accuracy,omitempty"`
+	// Altitude indicates the altitude of a place. The measurement units is indicated using the units property.
+	// If units is not specified, the default is assumed to be "m" indicating meters.
+	Altitude float64 `jsonld:"altitude,omitempty"`
+	// Latitude represents the latitude of a Place
+	Latitude float64 `jsonld:"latitude,omitempty"`
+	// Longitude represents the longitude of a Place
+	Longitude float64 `jsonld:"longitude,omitempty"`
+	// Radius represents the radius from the given Latitude and Longitude for a Place.
+	// The units it is expressed in is defined by the Units property.
+	// If Units is not specified, the default is assumed to be "m" indicating "meters".
+	Radius int64 `jsonld:"radius,omitempty"`
+	// Specifies the measurement units for the radius and altitude properties on a Place object.
+	// If not specified, the default is assumed to be "m" for "meters".
+	// Values "cm" | " feet" | " inches" | " km" | " m" | " miles" | xsd:anyURI
+	Units string `jsonld:"units,omitempty"`
+}
+
+// GetLink returns the IRI corresponding to the current Place object
+func (p Place) GetLink() IRI {
+	return IRI(p.ID)
+}
+
+// GetType returns the type of the current Place
+func (p Place) GetType() Typer {
+	return p.Type
+}
+
+// GetID returns the ID corresponding to the current Place
+func (p Place) GetID() ID {
+	return p.ID
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (p Place) Match(tt ...ActivityVocabularyType) bool {
+	return ActivityVocabularyTypes(tt).Match(p.Type)
+}
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (p *Place) UnmarshalJSON(data []byte) error {
+	par := fastjson.Parser{}
+	val, err := par.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	return JSONLoadPlace(val, p)
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (p Place) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	notEmpty := false
+	JSONWrite(&b, '{')
+
+	_ = OnObject(p, func(o *Object) error {
+		notEmpty = JSONWriteObjectValue(&b, *o)
+		return nil
+	})
+	if p.Accuracy > 0 {
+		notEmpty = JSONWriteFloatProp(&b, "accuracy", p.Accuracy, notEmpty) || notEmpty
+	}
+	if p.Altitude > 0 {
+		notEmpty = JSONWriteFloatProp(&b, "altitude", p.Altitude, notEmpty) || notEmpty
+	}
+	if p.Latitude > 0 {
+		notEmpty = JSONWriteFloatProp(&b, "latitude", p.Latitude, notEmpty) || notEmpty
+	}
+	if p.Longitude > 0 {
+		notEmpty = JSONWriteFloatProp(&b, "longitude", p.Longitude, notEmpty) || notEmpty
+	}
+	if p.Radius > 0 {
+		notEmpty = JSONWriteIntProp(&b, "radius", p.Radius, notEmpty) || notEmpty
+	}
+	if len(p.Units) > 0 {
+		notEmpty = JSONWriteStringProp(&b, "radius", p.Units, notEmpty) || notEmpty
+	}
+	if !notEmpty {
+		return nil, nil
+	}
+	JSONWrite(&b, '}')
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (p *Place) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (p Place) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// Recipients performs recipient de-duplication on the Place object's To, Bto, CC and BCC properties
+func (p *Place) Recipients() ItemCollection {
+	aud := p.Audience
+	return ItemCollectionDeduplication(&p.To, &p.CC, &p.Bto, &p.BCC, &aud)
+}
+
+func cleanPlaceProperties(pp *Place) {
+	_ = OnObject(pp, func(ob *Object) error {
+		cleanObjectProperties(ob)
+		return nil
+	})
+}
+
+// Clean removes Bto and BCC properties
+func (p *Place) Clean() Item {
+	pp := *p
+	cleanPlaceProperties(&pp)
+	return &pp
+}
+
+func fmtPlaceProps(w io.Writer, n *int) func(*Place) error {
+	return func(p *Place) error {
+		_ = OnObject(p, fmtObjectProps(w, n))
+		comma := func() {
+			if *n > 0 {
+				_, _ = io.WriteString(w, ", ")
+			}
+		}
+		if p.Accuracy > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "accuracy: %f", p.Accuracy)
+		}
+		if p.Altitude > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "altitude: %f", p.Altitude)
+		}
+		if p.Latitude > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "latitude: %f", p.Latitude)
+		}
+		if p.Longitude > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "longitude: %f", p.Longitude)
+		}
+		if p.Radius > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "radius: %d", p.Radius)
+		}
+		if len(p.Units) > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "units: %s", p.Units)
+		}
+		return nil
+	}
+}
+
+func (p Place) Format(s fmt.State, verb rune) {
+	typ := p.Type
+	switch verb {
+	case 's':
+		iri := p.ID
+		if iri != "" {
+			s.Write([]byte(iri))
+		} else {
+			_, _ = fmt.Fprintf(s, "%T[%v]", p, typ)
+		}
+	case 'v':
+		n := 0
+		if typ != nil {
+			_, _ = fmt.Fprintf(s, "%T[%v] { ", p, typ)
+			_ = fmtPlaceProps(s, &n)(&p)
+			_, _ = io.WriteString(s, " }")
+		} else {
+			_, _ = fmt.Fprintf(s, "%T { ", p)
+			_ = fmtPlaceProps(s, &n)(&p)
+			_, _ = io.WriteString(s, " }")
+		}
+	}
+}
+
+// Equals verifies if our receiver Place is equals with the "with" Item
+func (p Place) Equals(with Item) bool {
+	withPlace, err := ToPlace(with)
+	if err != nil {
+		return false
+	}
+	return p.equal(*withPlace)
+}
+
+// equal verifies if our receiver Place is equals with the "with" Place
+func (p Place) equal(with Place) bool {
+	result := true
+	_ = OnObject(p, func(pi *Object) error {
+		result = pi.Equals(with)
+		return nil
+	})
+	if !result {
+		return false
+	}
+	if p.Accuracy != with.Accuracy {
+		return false
+	}
+	if p.Altitude != with.Altitude {
+		return false
+	}
+	if p.Latitude != with.Latitude {
+		return false
+	}
+	if p.Longitude != with.Longitude {
+		return false
+	}
+	if p.Radius != with.Radius {
+		return false
+	}
+	if p.Units != with.Units {
+		return false
+	}
+	return true
+}
+
+func tombstoneAsPlace(t *Tombstone) (*Place, error) {
+	p := new(Place)
+	err := OnObject(p, func(pob *Object) error {
+		return OnObject(t, func(tob *Object) error {
+			_, err := CopyObjectProperties(pob, tob)
+			return err
+		})
+	})
+	return p, err
+}
+
+// ToPlace
+func ToPlace(it LinkOrIRI) (*Place, error) {
+	switch i := it.(type) {
+	case *Place:
+		return i, nil
+	case Place:
+		return &i, nil
+	case *Tombstone:
+		return tombstoneAsPlace(i)
+	case Tombstone:
+		return tombstoneAsPlace(&i)
+	default:
+		return reflectItemToType[Place](it)
+	}
+}
+
+type WithPlaceFn func(*Place) error
+
+// OnPlace calls function fn on it Item if it can be asserted to type *Place
+//
+// This function should be called if trying to access the Place specific properties
+// like "accuracy", "altitude", "latitude", "longitude", "radius", or "units".
+// For the other properties OnObject should be used instead.
+func OnPlace(it LinkOrIRI, fn func(*Place) error) error {
+	if IsNil(it) {
+		return nil
+	}
+	pFn := func(it LinkOrIRI) error {
+		p, err := ToPlace(it)
+		if err != nil {
+			return err
+		}
+		return fn(p)
+	}
+
+	if !IsItemCollection(it) {
+		return pFn(it)
+	}
+	return OnItemCollection(it, func(col *ItemCollection) error {
+		for _, ob := range *col {
+			if IsLink(ob) {
+				continue
+			}
+			if err := pFn(ob); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func notEmptyPlace(p *Place) bool {
+	notEmpty := p.Accuracy != 0 &&
+		p.Altitude != 0 &&
+		p.Latitude != 0 &&
+		p.Longitude != 0 &&
+		p.Radius != 0 &&
+		len(p.Units) > 0
+	if notEmpty {
+		return notEmpty
+	}
+	_ = OnObject(p, func(ob *Object) error {
+		notEmpty = notEmptyObject(ob)
+		return nil
+	})
+	return notEmpty
+}

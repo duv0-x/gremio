@@ -1,0 +1,1039 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/google/go-cmp/cmp"
+)
+
+var (
+	fnAct = func(_ *Actor) error { return nil }
+
+	maybeActor Item = new(Actor)
+)
+
+func Benchmark_ToActor(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ToActor(maybeActor)
+	}
+}
+
+func Benchmark_OnActor(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		OnActor(maybeActor, fnAct)
+	}
+}
+
+func TestActor_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Actor
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			wantErr: fmt.Errorf(`cannot parse JSON: cannot parse empty string; unparsed tail: ""`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Actor{}
+			if err := l.UnmarshalJSON(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %s", cmp.Diff(tt.want, l))
+			}
+		})
+	}
+}
+
+func TestActor_GetID(t *testing.T) {
+	tests := []struct {
+		name string
+		ID   ID
+		want ID
+	}{
+		{
+			name: "empty",
+			ID:   "",
+			want: "",
+		},
+		{
+			name: "not empty",
+			ID:   "http://example.com",
+			want: "http://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Actor{ID: tt.ID}
+			if got := l.GetID(); got != tt.want {
+				t.Errorf("GetID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestActor_GetLink(t *testing.T) {
+	tests := []struct {
+		name string
+		IRI  IRI
+		want IRI
+	}{
+		{
+			name: "empty",
+			IRI:  "",
+			want: "",
+		},
+		{
+			name: "not empty",
+			IRI:  "http://example.com",
+			want: "http://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Actor{ID: tt.IRI}
+			if got := l.GetLink(); got != tt.want {
+				t.Errorf("GetLink() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestActor_GetType(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestEndpoints_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Endpoints
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			want:    Endpoints{},
+			wantErr: fmt.Errorf(`cannot parse JSON: cannot parse empty string; unparsed tail: ""`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := Endpoints{}
+			if err := e.UnmarshalJSON(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(e, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %s", cmp.Diff(tt.want, e))
+			}
+		})
+	}
+}
+
+func TestActor_Clean(t *testing.T) {
+	tests := []struct {
+		name string
+		a    Actor
+		want Item
+	}{
+		{
+			name: "empty",
+			a:    Actor{},
+			want: &Actor{},
+		},
+		{
+			name: "has Bto",
+			a:    Actor{Type: GroupType, Bto: ItemCollection{IRI("http://example.com")}},
+			want: &Actor{Type: GroupType},
+		},
+		{
+			name: "has BCC",
+			a:    Actor{Type: ServiceType, BCC: ItemCollection{IRI("http://example.com")}},
+			want: &Actor{Type: ServiceType},
+		},
+		{
+			name: "audience has BCC",
+			a:    Actor{Type: ApplicationType, Audience: ItemCollection{&Object{BCC: ItemCollection{IRI("http://example.com")}}}},
+			want: &Actor{Type: ApplicationType, Audience: ItemCollection{&Object{}}},
+		},
+		{
+			name: "attachment has BCC",
+			a:    Actor{Type: PersonType, Attachment: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Actor{Type: PersonType, Attachment: &Object{}},
+		},
+		{
+			name: "icon has BCC",
+			a:    Actor{Type: PersonType, Icon: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Actor{Type: PersonType, Icon: &Object{}},
+		},
+		{
+			name: "image has BCC",
+			a:    Actor{Type: PersonType, Image: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Actor{Type: PersonType, Image: &Object{}},
+		},
+		{
+			name: "context has BCC",
+			a:    Actor{Type: PersonType, Context: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Actor{Type: PersonType, Context: &Object{}},
+		},
+		{
+			name: "generator has BCC",
+			a:    Actor{Type: PersonType, Generator: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Actor{Type: PersonType, Generator: &Object{}},
+		},
+		{
+			name: "attributedTo has BCC",
+			a:    Actor{Type: PersonType, AttributedTo: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Actor{Type: PersonType, AttributedTo: &Object{}},
+		},
+		{
+			name: "preview has BCC",
+			a:    Actor{Type: PersonType, Preview: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Actor{Type: PersonType, Preview: &Object{}},
+		},
+		{
+			name: "tag has BCC",
+			a:    Actor{Type: ApplicationType, Tag: ItemCollection{&Object{BCC: ItemCollection{IRI("http://example.com")}}}},
+			want: &Actor{Type: ApplicationType, Tag: ItemCollection{&Object{}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.a.Clean(); !cmp.Equal(got, tt.want, EquateItems) {
+				t.Errorf("Clean() = %s", cmp.Diff(tt.want, got, EquateItems))
+			}
+		})
+	}
+}
+
+func TestToActor(t *testing.T) {
+	tests := []struct {
+		name    string
+		it      LinkOrIRI
+		want    *Actor
+		wantErr error
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name: "Valid Actor",
+			it:   Actor{ID: "test", Type: UpdateType},
+			want: &Actor{ID: "test", Type: UpdateType},
+		},
+		{
+			name:    "IRI",
+			it:      IRI("https://example.com"),
+			wantErr: ErrorInvalidType[Actor](IRI("")),
+		},
+		{
+			name:    "IRIs",
+			it:      IRIs{IRI("https://example.com")},
+			wantErr: ErrorInvalidType[Actor](IRIs{}),
+		},
+		{
+			name:    "ItemCollection",
+			it:      ItemCollection{},
+			wantErr: ErrorInvalidType[Actor](ItemCollection{}),
+		},
+		{
+			name:    "Object",
+			it:      &Object{ID: "test", Type: ArticleType},
+			wantErr: ErrorInvalidType[Actor](&Object{}),
+		},
+		{
+			name:    "Activity",
+			it:      &Activity{ID: "test", Type: CreateType},
+			wantErr: ErrorInvalidType[Actor](&Activity{}),
+		},
+		{
+			name:    "IntransitiveActivity",
+			it:      &IntransitiveActivity{ID: "test", Type: ArriveType},
+			wantErr: ErrorInvalidType[Actor](&IntransitiveActivity{}),
+		},
+		{
+			name: "Tombstone",
+			it:   &Tombstone{ID: "test", Type: TombstoneType, FormerType: PersonType},
+			want: &Actor{ID: "test", Type: TombstoneType},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToActor(tt.it)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("ToActor() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("ToActor(): %s got = %s", tt.name, cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestActor_Recipients(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestPublicKey_UnmarshalJSON(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestActor_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     Actor
+		want    []byte
+		wantErr error
+	}{
+		{
+			name: "nil",
+			sub:  Actor{},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalJSON()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("MarshalJSON() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestEndpoints_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     Endpoints
+		want    []byte
+		wantErr error
+	}{
+		{
+			name: "nil",
+			sub:  Endpoints{},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalJSON()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("MarshalJSON() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestPublicKey_MarshalJSON(t *testing.T) {
+	type fields struct {
+		ID           ID
+		Owner        IRI
+		PublicKeyPem string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []byte
+		wantErr error
+	}{
+		{
+			name:   "empty",
+			fields: fields{},
+			want:   nil,
+		},
+		{
+			name: "just id",
+			fields: fields{
+				ID: "https://example.com",
+			},
+			want:    []byte(`{"id":"https://example.com"}`),
+			wantErr: nil,
+		},
+		{
+			name: "just owner",
+			fields: fields{
+				Owner: "https://example.com/~jdoe",
+			},
+			want:    []byte(`{"owner":"https://example.com/~jdoe"}`),
+			wantErr: nil,
+		},
+		{
+			name: "just PEM",
+			fields: fields{
+				PublicKeyPem: "-----BEGIN PUBLIC KEY-----\ntest\n-----END PUBLIC KEY-----",
+			},
+			want:    []byte(`{"publicKeyPem":"-----BEGIN PUBLIC KEY-----\ntest\n-----END PUBLIC KEY-----"}`),
+			wantErr: nil,
+		},
+		{
+			name: "id and pem",
+			fields: fields{
+				ID:           "https://example.com",
+				PublicKeyPem: "-----BEGIN PUBLIC KEY-----\nid_and_pem\n-----END PUBLIC KEY-----",
+			},
+			want:    []byte(`{"id":"https://example.com","publicKeyPem":"-----BEGIN PUBLIC KEY-----\nid_and_pem\n-----END PUBLIC KEY-----"}`),
+			wantErr: nil,
+		},
+		{
+			name: "owner and pem",
+			fields: fields{
+				Owner:        "https://example.com/~jdoe",
+				PublicKeyPem: "-----BEGIN PUBLIC KEY-----\nowner_and_pem\n-----END PUBLIC KEY-----",
+			},
+			want:    []byte(`{"owner":"https://example.com/~jdoe","publicKeyPem":"-----BEGIN PUBLIC KEY-----\nowner_and_pem\n-----END PUBLIC KEY-----"}`),
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := PublicKey{
+				ID:           tt.fields.ID,
+				Owner:        tt.fields.Owner,
+				PublicKeyPem: tt.fields.PublicKeyPem,
+			}
+			got, err := p.MarshalJSON()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				if err != nil {
+					return
+				}
+			}
+			if !bytes.Equal(got, tt.want) {
+				t.Errorf("MarshalJSON() got = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOnActor(t *testing.T) {
+	type args struct {
+		it Item
+		fn func(*testing.T) WithActorFn
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected Item
+		wantErr  error
+	}{
+		{
+			name: "empty",
+			args: args{
+				it: nil,
+				fn: func(t *testing.T) WithActorFn {
+					return nil
+				},
+			},
+		},
+		{
+			name: "single",
+			args: args{
+				it: Actor{ID: "https://example.com"},
+				fn: func(t *testing.T) WithActorFn {
+					return func(actor *Actor) error {
+						return nil
+					}
+				},
+			},
+			expected: &Actor{ID: "https://example.com"},
+		},
+		{
+			name: "single fails",
+			args: args{
+				it: Person{ID: "https://not-equals"},
+				fn: func(t *testing.T) WithActorFn {
+					return func(actor *Actor) error {
+						return nil
+					}
+				}},
+			expected: &Actor{ID: "https://example.com"},
+		},
+		{
+			name: "collectionOfPersons",
+			args: args{
+				it: ItemCollection{
+					Actor{ID: "https://example.com"},
+					Actor{ID: "https://example.com"},
+				},
+				fn: func(t *testing.T) WithActorFn {
+					return func(actor *Actor) error {
+						return nil
+					}
+				},
+			},
+			expected: &Actor{ID: "https://example.com"},
+		},
+		{
+			name: "collectionOfPersons fails",
+			args: args{
+				it: ItemCollection{Person{}, Person{ID: "https://not-equals"}},
+				fn: func(t *testing.T) WithActorFn {
+					return func(actor *Actor) error {
+						return nil
+					}
+				},
+			},
+			expected: &Actor{ID: "https://example.com"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := OnActor(tt.args.it, tt.args.fn(t))
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("OnPerson() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+		})
+	}
+}
+
+func TestActor_Equals(t *testing.T) {
+	type fields struct {
+		ID                ID
+		Type              Typer
+		Name              NaturalLanguageValues
+		Attachment        Item
+		AttributedTo      Item
+		Audience          ItemCollection
+		Content           NaturalLanguageValues
+		Context           Item
+		MediaType         MimeType
+		EndTime           time.Time
+		Generator         Item
+		Icon              Item
+		Image             Item
+		InReplyTo         Item
+		Location          Item
+		Preview           Item
+		Published         time.Time
+		Replies           Item
+		StartTime         time.Time
+		Summary           NaturalLanguageValues
+		Tag               ItemCollection
+		Updated           time.Time
+		URL               Item
+		To                ItemCollection
+		Bto               ItemCollection
+		CC                ItemCollection
+		BCC               ItemCollection
+		Duration          time.Duration
+		Likes             Item
+		Shares            Item
+		Source            Source
+		Inbox             Item
+		Outbox            Item
+		Following         Item
+		Followers         Item
+		Liked             Item
+		PreferredUsername NaturalLanguageValues
+		Endpoints         *Endpoints
+		Streams           ItemCollection
+		PublicKey         PublicKey
+	}
+	tests := []struct {
+		name string
+		act  Actor
+		arg  Item
+		want bool
+	}{
+		{
+			name: "equal-empty-actor",
+			arg:  Actor{},
+			want: true,
+		},
+		{
+			name: "equal-actor-just-id",
+			act:  Actor{ID: "test"},
+			arg:  Actor{ID: "test"},
+			want: true,
+		},
+		{
+			name: "equal-actor-id",
+			act:  Actor{ID: "test", URL: IRI("example.com")},
+			arg:  Actor{ID: "test"},
+			want: false,
+		},
+		{
+			name: "equal-false-with-id-and-url",
+			act:  Actor{ID: "test"},
+			arg:  Actor{ID: "test", URL: IRI("example.com")},
+			want: false,
+		},
+		{
+			name: "not a valid actor",
+			act:  Actor{ID: "http://example.com"},
+			arg:  Activity{ID: "http://example.com"},
+			want: false,
+		},
+		{
+			name: "inbox different",
+			act:  Actor{Inbox: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Inbox: IRI("http://example.com")},
+			want: false,
+		},
+		{
+			name: "inbox same",
+			act:  Actor{Inbox: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Inbox: IRI("http://example.com/test")},
+			want: true,
+		},
+		{
+			name: "outbox different",
+			act:  Actor{Outbox: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Outbox: IRI("http://example.com")},
+			want: false,
+		},
+		{
+			name: "outbox same",
+			act:  Actor{Outbox: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Outbox: IRI("http://example.com/test")},
+			want: true,
+		},
+		{
+			name: "following different",
+			act:  Actor{Following: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Following: IRI("http://example.com")},
+			want: false,
+		},
+		{
+			name: "following same",
+			act:  Actor{Following: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Following: IRI("http://example.com/test")},
+			want: true,
+		},
+		{
+			name: "followers different",
+			act:  Actor{Followers: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Followers: IRI("http://example.com")},
+			want: false,
+		},
+		{
+			name: "followers same",
+			act:  Actor{Followers: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Followers: IRI("http://example.com/test")},
+			want: true,
+		},
+		{
+			name: "liked different",
+			act:  Actor{Liked: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Liked: IRI("http://example.com")},
+			want: false,
+		},
+		{
+			name: "liked same",
+			act:  Actor{Liked: CollectionPath("test").IRI(IRI("http://example.com"))},
+			arg:  Actor{Liked: IRI("http://example.com/test")},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.act.Equals(tt.arg); got != tt.want {
+				t.Errorf("Equal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func ExampleActor_initialization() {
+	// actor1 is a struct literal which can be operated on directly.
+	// For example, we can set the URL
+	actor1 := Actor{}
+	actor1.URL = IRI("http://example.com/1")
+	fmt.Printf("Actor1: %v\n", actor1)
+
+	// actor2 is wrapped in an Item interface.
+	// It is probably the most common way of interacting with objects in the library,
+	// because usually they get unmarshaled from an HTTP request, or another representation.
+	var actor2 Item = &Actor{Type: ActorType}
+
+	// That means we can't set any properties directly, so
+	// if you uncomment the next line you will get a compiler error.
+	// actor2.URL = IRI("http://example.com")
+
+	_ = OnActor(actor2, func(actor *Actor) error {
+		// In order to operate on it, we must wrap it in a call to OnActor
+		actor.URL = IRI("http://example.com/~jdoe")
+		actor.PreferredUsername = DefaultLangValue("jdoe")
+		return nil
+	})
+	fmt.Printf("Actor2: %v\n", actor2)
+
+	// Output:
+	// Actor1: activitypub.Actor { url: http://example.com/1 }
+	// Actor2: activitypub.Actor[Actor] { url: http://example.com/~jdoe, preferredUsername: jdoe }
+}
+
+func ExampleToActor() {
+	// The Actor types form a large part of the data handled by the library,
+	// especially in the ActivityPub state machine module.
+
+	// We can see here an initialization for the Application type which
+	// is just an alias for Actor, but can be used to convey additional meaning.
+	// There are additional aliases for all Actor types: Person, Group, and Service.
+	//
+	// However, there is no mechanism to coerce the Type property to the correct
+	// Vocabulary Type value corresponding to the used alias, so it must be set manually.
+	var actor1 Item = &Application{ID: "http://example.com/app-1", Type: ApplicationType}
+
+	// As we've seen previously, we can't operate on actor1 as it's an Item instance, so
+	// uncommenting the following line will trigger a compiler error:
+	//actor1.PreferredUsername = DefaultNaturalLanguage("app")
+	a1, _ := ToActor(actor1)
+	a1.PreferredUsername = DefaultLangValue("app")
+	fmt.Printf("Actor1: %v\n", actor1)
+	fmt.Printf("      : %v\n\n", a1)
+
+	// Here we see another valid, but maybe slightly misleading inline initialization.
+	var actor2 Item = Actor{ID: "http://example.com/~jdoe", Type: PersonType, Name: DefaultLangValue("Jane Doe")}
+	a2, _ := ToActor(actor2)
+	a2.PreferredUsername = DefaultLangValue("jdoe")
+	// We can still access the properties common with the Object type
+	a2.Name = DefaultLangValue("Jane Doe Phd")
+	// However since the Item interface is not wrapping a pointer to Actor,
+	// these changes won't be reflected onto the actor2 value.
+	fmt.Printf("Actor2: %v\n", actor2)
+	// They persist though, on the "a2" value.
+	fmt.Printf("      : %v\n", a2)
+
+	// Another thing that we could do here is to assign back to actor2.
+	// But, take care because stomping on the original value might not *always* be what you want.
+	// I think that most times the correct thing to do is to ensure that the Item interface
+	// wraps a pointer to the data you want.
+	actor2 = a2
+	fmt.Printf("Actor2: %v\n\n", actor2)
+
+	// A special case in the library must be allowed for Tombstone types.
+	// Tombstones are the objects left behind Delete activities, and they can replace
+	// any of the other types, including Actor.
+	//
+	// Therefore, we support converting them to an Actor instance,
+	// even though there is loss of data incurred, and the mechanism is slower as it
+	// requires copying the common properties.
+	maybeActor := Tombstone{ID: "http://example.com", Type: TombstoneType, FormerType: ServiceType}
+	ma, _ := ToActor(maybeActor)
+	fmt.Printf("MaybeActor: %v\n", maybeActor)
+	fmt.Printf("          : %v\n\n", ma)
+
+	// We should also consider that the hierarchy of types that can be converted is unidirectional.
+	// As an example, an Object type can't be converted to an Actor type, and trying results in an error.
+	//
+	// We could use the same mechanism as for Tombstone objects, but we want to enforce the fact that
+	// the types are actually disjoint in the Activity Vocabulary ontology.
+	var notActor Item = &Object{ID: "http://example.com", Type: GroupType}
+	na, err := ToActor(notActor)
+	fmt.Printf("NotActor: %v\n", notActor)
+	fmt.Printf("        : %v\n", na)
+	fmt.Printf("Error   : %v\n\n", err)
+
+	// Output:
+	// Actor1: activitypub.Actor[Application] { id: http://example.com/app-1, preferredUsername: app }
+	//       : activitypub.Actor[Application] { id: http://example.com/app-1, preferredUsername: app }
+	//
+	// Actor2: activitypub.Actor[Person] { id: http://example.com/~jdoe, name: Jane Doe }
+	//       : activitypub.Actor[Person] { id: http://example.com/~jdoe, name: Jane Doe Phd, preferredUsername: jdoe }
+	// Actor2: activitypub.Actor[Person] { id: http://example.com/~jdoe, name: Jane Doe Phd, preferredUsername: jdoe }
+	//
+	// MaybeActor: activitypub.Tombstone[Tombstone] { id: http://example.com, formerType: Service }
+	//           : activitypub.Actor[Tombstone] { id: http://example.com }
+	//
+	// NotActor: activitypub.Object[Group] { id: http://example.com }
+	//         : <nil>
+	// Error   : unable to convert *activitypub.Object to *activitypub.Actor
+}
+
+func ExampleOnActor() {
+	// In the ToActor() example function, we saw how we can convert data types
+	// to Actor pointer values and be allowed to use their properties in that way.
+	//
+	// Here we can see how this mechanism can be used to build specific logic when dealing
+	// with opaque Item interface values.
+
+	// As we've seen, you can not access this Actor's properties
+	// because it's wrapped in the Item interface.
+	var actor1 Item = &Actor{ID: "http://example.com/~jdoe", Type: PersonType}
+	// Uncommenting this line will trigger a compiler error.
+	//actor1.Name = DefaultNaturalLanguage("John Doe")
+
+	_ = OnActor(actor1, func(act *Actor) error {
+		// Instead we can wrap it in an OnActor() call in which
+		// we can modify it, and the changes will be visible outside its scope.
+		act.PreferredUsername = DefaultLangValue("jdoe")
+
+		// Similarly, as we've seen in the ToActor() example, we can also modify
+		// the properties in common with the Object type, without needing
+		// a call to OnObject/ToObject.
+		act.Name = DefaultLangValue("John Doe")
+		return nil
+	})
+	fmt.Printf("Actor1: %v\n", actor1)
+
+	// Here's an example of handling a Tombstone actor that's a little more realistic.
+	var deletedActor *Actor
+	tombstone := Tombstone{ID: "http://example.com", Type: TombstoneType, FormerType: ServiceType}
+	_ = OnActor(tombstone, func(act *Actor) error {
+		// We can set the deletedActor's Type to the value contained in the
+		// Tombstone.formerType property, as a way to ensure that future
+		// type switches happening in the code, work as expected.
+		act.Type = tombstone.FormerType
+		deletedActor = act
+		return nil
+	})
+	if ServiceType.Match(deletedActor.GetType()) {
+		fmt.Printf("DeletedActor: %v\n", deletedActor)
+	}
+
+	// Output:
+	// Actor1: activitypub.Actor[Person] { id: http://example.com/~jdoe, name: John Doe, preferredUsername: jdoe }
+	// DeletedActor: activitypub.Actor[Service] { id: http://example.com }
+}
+
+func TestActor_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Actor
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Actor{}
+			if err := l.UnmarshalBinary(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalBinary() got = %s", cmp.Diff(tt.want, l))
+			}
+		})
+	}
+}
+
+func TestActor_MarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     Actor
+		want    []byte
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			sub:     Actor{},
+			want:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalBinary()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("MarshalBinary() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestCopyActorProperties(t *testing.T) {
+	type args struct {
+		to   *Actor
+		from *Actor
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Actor
+		wantErr error
+	}{
+		{
+			name: "nil",
+			args: args{},
+			want: nil,
+		},
+		{
+			name: string(Inbox),
+			args: args{
+				to:   &Actor{},
+				from: &Actor{Inbox: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Inbox: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Outbox),
+			args: args{
+				to:   &Actor{},
+				from: &Actor{Outbox: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Outbox: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Following),
+			args: args{
+				to:   &Actor{},
+				from: &Actor{Following: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Following: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Followers),
+			args: args{
+				to:   &Actor{},
+				from: &Actor{Followers: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Followers: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Liked),
+			args: args{
+				to:   &Actor{},
+				from: &Actor{Liked: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Liked: IRI("http://example.com/test")},
+		},
+		{
+			name: "preferredUsername",
+			args: args{
+				to:   &Actor{},
+				from: &Actor{PreferredUsername: DefaultLangValue("jdoe")},
+			},
+			want: &Actor{PreferredUsername: DefaultLangValue("jdoe")},
+		},
+		{
+			name: "endpoints",
+			args: args{
+				to: &Actor{},
+				from: &Actor{Endpoints: &Endpoints{
+					UploadMedia:                IRI("http://example.com/upload"),
+					OauthAuthorizationEndpoint: IRI("http://example.com/auth-url"),
+					OauthTokenEndpoint:         IRI("http://example.com/token-url"),
+					SharedInbox:                IRI("http://example.com/shared-inbox"),
+					ProxyURL:                   "http://example.com/proxy-url",
+				}},
+			},
+			want: &Actor{Endpoints: &Endpoints{
+				UploadMedia:                IRI("http://example.com/upload"),
+				OauthAuthorizationEndpoint: IRI("http://example.com/auth-url"),
+				OauthTokenEndpoint:         IRI("http://example.com/token-url"),
+				SharedInbox:                IRI("http://example.com/shared-inbox"),
+				ProxyURL:                   "http://example.com/proxy-url",
+			}},
+		},
+		{
+			name: "streams",
+			args: args{
+				to:   &Actor{},
+				from: &Actor{Streams: ItemCollection{IRI("http://example.com/stream1"), IRI("stream2")}},
+			},
+			want: &Actor{Streams: ItemCollection{IRI("http://example.com/stream1"), IRI("stream2")}},
+		},
+		{
+			name: "publickKey",
+			args: args{
+				to: &Actor{},
+				from: &Actor{PublicKey: PublicKey{
+					ID:           "http://example.com/public-key",
+					Owner:        "http://example.com/~jdoe",
+					PublicKeyPem: "--- NOT A PUBLIC KEY ---",
+				}},
+			},
+			want: &Actor{PublicKey: PublicKey{
+				ID:           "http://example.com/public-key",
+				Owner:        "http://example.com/~jdoe",
+				PublicKeyPem: "--- NOT A PUBLIC KEY ---",
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := CopyActorProperties(tt.args.to, tt.args.from)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("CopyActorProperties() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("CopyActorProperties() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestFlattenActorProperties(t *testing.T) {
+	tests := []struct {
+		name string
+		a    *Actor
+		want *Actor
+	}{
+		{
+			name: "nil",
+			a:    nil,
+			want: nil,
+		},
+		{
+			name: string(Inbox),
+			a: &Actor{
+				Inbox: Object{ID: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Inbox: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Outbox),
+			a: &Actor{
+				Outbox: Object{ID: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Outbox: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Following),
+			a: &Actor{
+				Following: Object{ID: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Following: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Followers),
+			a: &Actor{
+				Followers: Object{ID: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Followers: IRI("http://example.com/test")},
+		},
+		{
+			name: string(Liked),
+			a: &Actor{
+				Liked: Object{ID: CollectionPath("test").IRI(IRI("http://example.com"))},
+			},
+			want: &Actor{Liked: IRI("http://example.com/test")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FlattenActorProperties(tt.a); !cmp.Equal(got, tt.want) {
+				t.Errorf("FlattenActorProperties() = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}

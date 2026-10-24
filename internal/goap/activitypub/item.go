@@ -1,0 +1,737 @@
+package activitypub
+
+import (
+	"fmt"
+	"reflect"
+	"slices"
+	"strings"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+)
+
+// Item struct
+type Item = ObjectOrLink
+
+const (
+	// EmptyIRI represents a zero length IRI
+	EmptyIRI IRI = ""
+	// NilIRI represents by convention an IRI which is nil
+	// Its use is mostly to check if a property of an ActivityPub Item is nil
+	NilIRI IRI = "-"
+
+	// EmptyID represents a zero length ID
+	EmptyID = EmptyIRI
+	// NilID represents by convention an ID which is nil, see details of NilIRI
+	NilID = NilIRI
+)
+
+func compareByType(typ Typer, it, with ObjectOrLink) bool {
+	if it == nil || with == nil {
+		return it == nil && with == nil
+	}
+	result := false
+	iTyp := it.GetType()
+	if !typesEqual(typ, iTyp) {
+		return false
+	}
+	switch {
+	case QuestionType.Match(iTyp):
+		_ = OnQuestion(it, func(q *Question) error {
+			result = q.Equals(with)
+			return nil
+		})
+	case IntransitiveActivityTypes.Match(iTyp):
+		_ = OnIntransitiveActivity(it, func(i *IntransitiveActivity) error {
+			result = i.Equals(with)
+			return nil
+		})
+	case ActivityTypes.Match(iTyp):
+		_ = OnActivity(it, func(i *Activity) error {
+			result = i.Equals(with)
+			return nil
+		})
+	case ActorTypes.Match(iTyp):
+		_ = OnActor(it, func(i *Actor) error {
+			result = i.Equals(with)
+			return nil
+		})
+	case CollectionType.Match(it.GetType()):
+		_ = OnCollection(it, func(c *Collection) error {
+			result = c.Equals(with)
+			return nil
+		})
+	case OrderedCollectionType.Match(iTyp):
+		_ = OnOrderedCollection(it, func(c *OrderedCollection) error {
+			result = c.Equals(with)
+			return nil
+		})
+	case CollectionPageType.Match(iTyp):
+		_ = OnCollectionPage(it, func(c *CollectionPage) error {
+			result = c.Equals(with)
+			return nil
+		})
+	case OrderedCollectionPageType.Match(iTyp):
+		_ = OnOrderedCollectionPage(it, func(c *OrderedCollectionPage) error {
+			result = c.Equals(with)
+			return nil
+		})
+	case TombstoneType.Match(iTyp):
+		_ = OnTombstone(it, func(t *Tombstone) error {
+			result = t.Equals(with)
+			return nil
+		})
+	case ProfileType.Match(iTyp):
+		_ = OnProfile(it, func(t *Profile) error {
+			result = t.Equals(with)
+			return nil
+		})
+	case RelationshipType.Match(iTyp):
+		_ = OnRelationship(it, func(t *Relationship) error {
+			result = t.Equals(with)
+			return nil
+		})
+	case PlaceType.Match(iTyp):
+		_ = OnPlace(it, func(t *Place) error {
+			result = t.Equals(with)
+			return nil
+		})
+	default:
+		_ = OnObject(it, func(i *Object) error {
+			result = i.Equals(with)
+			return nil
+		})
+	}
+	return result
+}
+
+// ItemsEqual checks if it and with Items are equal
+func ItemsEqual(it, with Item) bool {
+	if IsNil(it) || IsNil(with) {
+		return IsNil(with) && IsNil(it)
+	}
+
+	if ita, ok := it.(interface{ Equals(Item) bool }); ok {
+		eq := ita.Equals(with)
+		return eq
+	}
+
+	// NOTE(marius): these don't have Equals(Item) methods yet
+	switch {
+	case IsIRI(with) || IsIRI(it):
+		ii, ok := it.(IRI)
+		iw, wok := with.(IRI)
+		return ok && wok && ii.Equal(iw)
+	case IsIRIs(it) || IsIRIs(with):
+		if !(IsIRIs(it) && IsIRIs(with)) {
+			return false
+		}
+		iIRIs, _ := ToIRIs(it)
+		wIRIs, _ := ToIRIs(with)
+		return slices.Equal(*iIRIs, *wIRIs)
+	}
+	return typedObjectsEqual(it, with)
+}
+
+func typedObjectsEqual(it, with ObjectOrLink) bool {
+	if it == nil || with == nil {
+		return it == nil && with == nil
+	}
+	if !typesEqual(it.GetType(), with.GetType()) {
+		return false
+	}
+	return compareByType(with.GetType(), it, with)
+}
+
+func typesEqual(t1, t2 Typer) bool {
+	if t1 == nil || t2 == nil {
+		return t1 == nil && t2 == nil
+	}
+	tt1 := t1.AsTypes()
+	tt2 := t2.AsTypes()
+	if len(tt1) != len(tt2) {
+		return false
+	}
+	slices.Sort(tt1)
+	slices.Sort(tt2)
+	for i, ti1 := range tt1 {
+		if ti1 != tt2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// IsCollection returns if the current Item interface holds an ItemCollection, or any of the collection types
+func IsCollection(it LinkOrIRI) bool {
+	switch it.(type) {
+	case Collection:
+		return true
+	case *Collection:
+		return true
+	case CollectionPage:
+		return true
+	case *CollectionPage:
+		return true
+	case OrderedCollection:
+		return true
+	case *OrderedCollection:
+		return true
+	case OrderedCollectionPage:
+		return true
+	case *OrderedCollectionPage:
+		return true
+	default:
+		return IsItemCollection(it)
+	}
+}
+
+// IsItemCollection returns if the current Item interface holds a Collection
+func IsItemCollection(it LinkOrIRI) bool {
+	if _, ok := it.(ItemCollection); ok {
+		return ok
+	}
+	if _, ok := it.(*ItemCollection); ok {
+		return ok
+	}
+	return !IsNil(it) && IsIRIs(it)
+}
+
+// IsIRI returns if the current Item interface holds an IRI
+func IsIRI(it LinkOrIRI) bool {
+	if _, ok := it.(IRI); ok {
+		return true
+	}
+	if iri, ok := it.(*IRI); ok {
+		return iri != nil
+	}
+	return false
+}
+
+// IsIRIs returns if the current Item interface holds an IRI slice
+func IsIRIs(it LinkOrIRI) bool {
+	_, ok := it.(IRIs)
+	_, okp := it.(*IRIs)
+	return ok || okp
+}
+
+// IsLink returns if the current Item interface holds a Link
+func IsLink(it LinkOrIRI) bool {
+	if IsNil(it) {
+		return false
+	}
+	if _, ok := it.(Link); ok {
+		return true
+	}
+	if l, ok := it.(*Link); ok {
+		return l != nil
+	}
+	return false
+}
+
+// IsObject returns if the current Item interface holds an Object
+func IsObject(it LinkOrIRI) bool {
+	if IsNil(it) {
+		return false
+	}
+	switch ob := it.(type) {
+	case Object:
+		return true
+	case *Object:
+		return ob != nil
+	case Actor:
+		return true
+	case *Actor:
+		return ob != nil
+	case Profile:
+		return true
+	case *Profile:
+		return ob != nil
+	case Place:
+		return true
+	case *Place:
+		return ob != nil
+	case Relationship:
+		return true
+	case *Relationship:
+		return ob != nil
+	case Tombstone:
+		return true
+	case *Tombstone:
+		return ob != nil
+	case Activity:
+		return true
+	case *Activity:
+		return ob != nil
+	case IntransitiveActivity:
+		return true
+	case *IntransitiveActivity:
+		return ob != nil
+	case Question:
+		return true
+	case *Question:
+		return ob != nil
+	case Collection:
+		return true
+	case *Collection:
+		return ob != nil
+	case CollectionPage:
+		return true
+	case *CollectionPage:
+		return ob != nil
+	case OrderedCollection:
+		return true
+	case *OrderedCollection:
+		return ob != nil
+	case OrderedCollectionPage:
+		return true
+	case *OrderedCollectionPage:
+		return ob != nil
+	default:
+		return false
+	}
+}
+
+// IsNil checks if the object matching an ObjectOrLink interface is nil
+func IsNil(it LinkOrIRI) bool {
+	if it == nil {
+		return true
+	}
+
+	// This is the default if the argument can't be cast to Object, as is the case for an ItemCollection
+	switch maybeNil := it.(type) {
+	case IRI:
+		return len(maybeNil) == 0 || strings.EqualFold(maybeNil.String(), NilIRI.String())
+	case *IRI:
+		return maybeNil == nil || len(*maybeNil) == 0 || strings.EqualFold(maybeNil.String(), NilIRI.String())
+	case IRIs:
+		return maybeNil == nil
+	case *IRIs:
+		return maybeNil == nil
+	case ItemCollection:
+		return maybeNil == nil
+	case *ItemCollection:
+		return maybeNil == nil
+	}
+	// NOTE(marius): we're not dealing with a type that we know about, so we use slow reflection
+	// as we still care about the result
+	v := reflect.ValueOf(it)
+	return v.Kind() == reflect.Pointer && v.IsNil()
+}
+
+func ErrorInvalidType[T Objects | Links](received LinkOrIRI) error {
+	return fmt.Errorf("unable to convert %T to %T", received, new(T))
+}
+
+// OnItem runs function "fn" on the Item "it", with the benefit of destructuring "it" to individual
+// items if it's actually an ItemCollection or an object holding an ItemCollection
+//
+// It is expected that the caller handles the logic of dealing with different Item implementations
+// internally in "fn".
+func OnItem(it Item, fn func(Item) error) error {
+	if IsNil(it) {
+		return nil
+	}
+	if !IsItemCollection(it) {
+		return fn(it)
+	}
+	return OnItemCollection(it, func(col *ItemCollection) error {
+		for _, it := range *col {
+			if err := OnItem(it, fn); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// NotEmpty tells us if an Item interface value has a non nil value for various types
+// that implement
+func NotEmpty(it Item) bool {
+	if IsNil(it) {
+		return false
+	}
+	var notEmpty bool
+	switch {
+	case IsIRI(it):
+		notEmpty = len(it.GetLink()) > 0
+	case IsIRIs(it):
+		_ = OnIRIs(it, func(is *IRIs) error {
+			notEmpty = len(*is) > 0
+			return nil
+		})
+	case IsItemCollection(it):
+		_ = OnItemCollection(it, func(ic *ItemCollection) error {
+			notEmpty = len(*ic) > 0
+			return nil
+		})
+	default:
+		if itt, ok := it.(ObjectOrLink); ok {
+			notEmpty = emptyItem(itt)
+		}
+	}
+	return notEmpty
+}
+
+func emptyItem(it ObjectOrLink) bool {
+	var notEmpty bool
+
+	err := OnTombstone(it, func(t *Tombstone) error {
+		notEmpty = notEmptyTombstone(t)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnActivity(it, func(a *Activity) error {
+		notEmpty = notEmptyActivity(a)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnQuestion(it, func(q *Question) error {
+		notEmpty = notEmptyQuestion(q)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnIntransitiveActivity(it, func(a *IntransitiveActivity) error {
+		notEmpty = notEmptyIntransitiveActivity(a)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnActor(it, func(a *Actor) error {
+		notEmpty = notEmptyActor(a)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnLink(it, func(l *Link) error {
+		notEmpty = notEmptyLink(l)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnCollectionIntf(it, func(c CollectionInterface) error {
+		notEmpty = c != nil || len(c.Collection()) > 0
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnProfile(it, func(p *Profile) error {
+		notEmpty = notEmptyProfile(p)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnRelationship(it, func(r *Relationship) error {
+		notEmpty = notEmptyRelationship(r)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	err = OnPlace(it, func(r *Place) error {
+		notEmpty = notEmptyPlace(r)
+		return nil
+	})
+	if err == nil {
+		return notEmpty
+	}
+
+	_ = OnObject(it, func(o *Object) error {
+		notEmpty = notEmptyObject(o)
+		return nil
+	})
+
+	return notEmpty
+}
+
+// DerefItem wraps an Item into an ItemCollection.
+// If the Item is a slice type, like [IRIs], or [ItemCollection], it returns the [ItemCollection] corresponding to that
+func DerefItem(it Item) ItemCollection {
+	if IsNil(it) {
+		return nil
+	}
+	col := make(ItemCollection, 0)
+	_ = OnItem(it, func(item Item) error {
+		return col.Append(item)
+	})
+	return col
+}
+
+// Clone returns a copy of item
+func Clone(it Item) Item {
+	var n Item
+	switch ob := it.(type) {
+	case *IRI:
+		n = *ob
+	case IRI:
+		n = ob
+	case *IRIs:
+		t := make(IRIs, len(*ob))
+		copy(t, *ob)
+		n = &t
+	case IRIs:
+		t := make(IRIs, len(ob))
+		copy(t, ob)
+		n = &t
+	case *ItemCollection:
+		t := make(ItemCollection, len(*ob))
+		copy(t, *ob)
+		n = &t
+	case ItemCollection:
+		t := make(ItemCollection, len(ob))
+		copy(t, ob)
+		n = &t
+	case Link:
+		t := ob
+		n = &t
+	case *Link:
+		t := *ob
+		n = &t
+	case *Object:
+		t := *ob
+		n = &t
+	case Object:
+		t := ob
+		n = &t
+	case *Place:
+		t := *ob
+		n = &t
+	case Place:
+		t := ob
+		n = &t
+	case *Profile:
+		t := *ob
+		n = &t
+	case Profile:
+		t := ob
+		n = &t
+	case *Relationship:
+		t := *ob
+		n = &t
+	case Relationship:
+		t := ob
+		n = &t
+	case *Tombstone:
+		t := *ob
+		n = &t
+	case Tombstone:
+		t := ob
+		n = &t
+	case *Activity:
+		t := *ob
+		n = &t
+	case Activity:
+		t := ob
+		n = &t
+	case *IntransitiveActivity:
+		t := *ob
+		n = &t
+	case IntransitiveActivity:
+		t := ob
+		n = &t
+	case *Question:
+		t := *ob
+		n = &t
+	case Question:
+		t := ob
+		n = &t
+	case *Actor:
+		t := *ob
+		n = &t
+	case Actor:
+		t := ob
+		n = &t
+	case *Collection:
+		t := *ob
+		n = &t
+	case Collection:
+		t := ob
+		n = &t
+	case *OrderedCollection:
+		t := *ob
+		n = &t
+	case OrderedCollection:
+		t := ob
+		n = &t
+	case *CollectionPage:
+		t := *ob
+		n = &t
+	case CollectionPage:
+		t := ob
+		n = &t
+	case *OrderedCollectionPage:
+		t := *ob
+		n = &t
+	case OrderedCollectionPage:
+		t := ob
+		n = &t
+	}
+	return n
+}
+
+func copyAllItemProperties(to, from ObjectOrLink) (ObjectOrLink, error) {
+	switch {
+	case CollectionType.Match(to.GetType()):
+		o, err := ToCollection(to)
+		if err != nil {
+			return to, err
+		}
+		n, err := ToCollection(from)
+		if err != nil {
+			return o, err
+		}
+		return CopyCollectionProperties(o, n)
+	case CollectionPageType.Match(to.GetType()):
+		o, err := ToCollectionPage(to)
+		if err != nil {
+			return to, err
+		}
+		n, err := ToCollectionPage(from)
+		if err != nil {
+			return o, err
+		}
+		return CopyCollectionPageProperties(o, n)
+	case OrderedCollectionType.Match(to.GetType()):
+		o, err := ToOrderedCollection(to)
+		if err != nil {
+			return to, err
+		}
+		n, err := ToOrderedCollection(from)
+		if err != nil {
+			return o, err
+		}
+		return CopyOrderedCollectionProperties(o, n)
+	case OrderedCollectionPageType.Match(to.GetType()):
+		o, err := ToOrderedCollectionPage(to)
+		if err != nil {
+			return to, err
+		}
+		n, err := ToOrderedCollectionPage(from)
+		if err != nil {
+			return o, err
+		}
+		return CopyOrderedCollectionPageProperties(o, n)
+	case ActorTypes.Match(to.GetType()):
+		o, err := ToActor(to)
+		if err != nil {
+			return to, err
+		}
+		n, err := ToActor(from)
+		if err != nil {
+			return o, err
+		}
+		return CopyActorProperties(o, n)
+	case !HasTypes(to) || ObjectTypes.Match(to.GetType()):
+		o, err := ToObject(to)
+		if err != nil {
+			return to, err
+		}
+		n, err := ToObject(from)
+		if err != nil {
+			return o, err
+		}
+		return CopyObjectProperties(o, n)
+	}
+	return to, errors.Errorf("could not process objects with type %s", to.GetType())
+}
+
+// CopyItemProperties delegates to the correct per type functions for copying
+// properties between matching Activity Objects
+func CopyItemProperties(to, from ObjectOrLink) (Item, error) {
+	if to == nil {
+		return to, errors.Errorf("nil object to update")
+	}
+	if from == nil {
+		return to, errors.Errorf("nil object for update")
+	}
+	if !to.GetLink().Equal(from.GetLink()) {
+		return to, errors.Errorf("object IDs don't match")
+	}
+	return copyAllItemProperties(to, from)
+}
+
+func CopyUnsafeItemProperties(to, from ObjectOrLink) (ObjectOrLink, error) {
+	if from == nil || IsNil(from) {
+		return to, nil
+	}
+	if to == nil {
+		return to, errors.Errorf("nil object to update")
+	}
+	return copyAllItemProperties(to, from)
+}
+
+// FlattenProperties flattens the Item's properties from Object types to IRI
+func FlattenProperties(it ObjectOrLink) Item {
+	if IsNil(it) {
+		return nil
+	}
+	typ := it.GetType()
+	switch {
+	case IntransitiveActivityTypes.Match(typ):
+		_ = OnIntransitiveActivity(it, func(a *IntransitiveActivity) error {
+			FlattenIntransitiveActivityProperties(a)
+			return nil
+		})
+	case ActivityTypes.Match(typ):
+		_ = OnActivity(it, func(a *Activity) error {
+			FlattenActivityProperties(a)
+			return nil
+		})
+	case ActorTypes.Match(typ):
+		_ = OnActor(it, func(a *Actor) error {
+			FlattenActorProperties(a)
+			return nil
+		})
+	case ObjectTypes.Match(typ) || typ == nil:
+		_ = OnObject(it, func(o *Object) error {
+			FlattenObjectProperties(o)
+			return nil
+		})
+	}
+	return it
+}
+
+// Flatten checks if Item can be flattened to an IRI or array of IRIs and returns it if so
+func Flatten(it Item) Item {
+	if IsNil(it) {
+		return nil
+	}
+	if IsItemCollection(it) {
+		_ = OnItemCollection(it, func(c *ItemCollection) error {
+			it = FlattenItemCollection(*c).Normalize()
+			return nil
+		})
+		return it
+	}
+	// NOTE(marius): we can't flatten a transient object, that doesn't have a valid ID
+	if it.GetID() != "" {
+		return it.GetID()
+	}
+	return it
+}
+
+func replaceIfItem(old, new Item) Item {
+	if new == nil {
+		return old
+	}
+	return new
+}

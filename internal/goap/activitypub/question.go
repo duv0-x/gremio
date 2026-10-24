@@ -1,0 +1,352 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"time"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/valyala/fastjson"
+)
+
+// Question represents a question being asked. Question objects are an extension of IntransitiveActivity.
+// That is, the Question object is an Activity, but the direct object is the question
+// itself and therefore it would not contain an object property.
+// Either of the anyOf and oneOf properties may be used to express possible answers,
+// but a Question object must not have both properties.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-question
+type Question struct {
+	// ID provides the globally unique identifier for the object.
+	ID ID `jsonld:"id,omitempty"`
+	// Type identifies the Object type. Multiple values may be specified.
+	Type Typer `jsonld:"type,omitempty"`
+	// Name represents a simple, human-readable, plain-text name for the object.
+	// HTML markup MUST NOT be included. The name MAY be expressed using multiple language-tagged values.
+	Name NaturalLanguageValues `jsonld:"name,omitempty,collapsible"`
+	// Attachment identifies a resource attached or related to an object that potentially requires special handling.
+	// The intent is to provide a model that is at least semantically similar to attachments in email.
+	Attachment Item `jsonld:"attachment,omitempty"`
+	// AttributedTo identifies one or more entities to which this object is attributed. The attributed entities might not be Actors.
+	// For instance, an object might be attributed to the completion of another activity.
+	AttributedTo Item `jsonld:"attributedTo,omitempty"`
+	// Audience identifies one or more entities that represent the total population of entities
+	// for which the object can be considered to be relevant.
+	Audience ItemCollection `jsonld:"audience,omitempty"`
+	// Content represents a textual representation of the Object encoded as a JSON string.
+	// By default, the value of content is HTML.
+	// The MediaType property can be used in the object to indicate a different content type.
+	// (The content MAY be expressed using multiple language-tagged values.)
+	Content NaturalLanguageValues `jsonld:"content,omitempty,collapsible"`
+	// Context identifies the context within which the object exists or an activity was performed.
+	// The notion of "context" used is intentionally vague.
+	// The intended function is to serve as a means of grouping objects and activities that share a
+	// common originating context or purpose. An example could be all activities relating to a common project or event.
+	Context Item `jsonld:"context,omitempty"`
+	// MediaType identifies the MIME media type of the value of the Content property.
+	// If not specified, the content property is assumed to contain text/html content.
+	MediaType MimeType `jsonld:"mediaType,omitempty"`
+	// EndTime represents the date and time describing the actual or expected ending time of the object.
+	// When used with an Activity object, for instance, the EndTime property specifies the moment
+	// the activity concluded or is expected to conclude.
+	EndTime time.Time `jsonld:"endTime,omitempty"`
+	// Generator identifies the entity (e.g. an application) that generated the object.
+	Generator Item `jsonld:"generator,omitempty"`
+	// Icon indicates an entity that describes an icon for this object.
+	// The image should have an aspect ratio of one (horizontal) to one (vertical)
+	// and should be suitable for presentation at a small size.
+	Icon Item `jsonld:"icon,omitempty"`
+	// Image indicates an entity that describes an image for this object.
+	// Unlike the icon property, there are no aspect ratio or display size limitations assumed.
+	Image Item `jsonld:"image,omitempty"`
+	// InReplyTo indicates one or more entities for which this object is considered a response.
+	InReplyTo Item `jsonld:"inReplyTo,omitempty"`
+	// Location indicates one or more physical or logical locations associated with the object.
+	Location Item `jsonld:"location,omitempty"`
+	// Preview identifies an entity that provides a preview of this object.
+	Preview Item `jsonld:"preview,omitempty"`
+	// Published the date and time at which the object was published
+	Published time.Time `jsonld:"published,omitempty"`
+	// Replies identifies a Collection containing objects considered to be responses to this object.
+	Replies Item `jsonld:"replies,omitempty"`
+	// StartTime represents the date and time describing the actual or expected starting time of the object.
+	// When used with an Activity object, for instance, the StartTime property specifies
+	// the moment the activity began or is scheduled to begin.
+	StartTime time.Time `jsonld:"startTime,omitempty"`
+	// Summary represents a natural language summarization of the object encoded as HTML.
+	// Multiple language tagged summaries MAY be provided.
+	Summary NaturalLanguageValues `jsonld:"summary,omitempty,collapsible"`
+	// Tag identifies one or more "tags" that have been associated with an objects. A tag can be any kind of Object.
+	// The key difference between attachment and tag is that the former implies association by inclusion,
+	// while the latter implies associated by reference.
+	Tag Item `jsonld:"tag,omitempty"`
+	// Updated represents the date and time at which the object was updated
+	Updated time.Time `jsonld:"updated,omitempty"`
+	// URL identifies one or more links to representations of the object
+	URL Item `jsonld:"url,omitempty"`
+	// To identifies an entity considered to be part of the public primary audience of an Object
+	To ItemCollection `jsonld:"to,omitempty"`
+	// Bto identifies an Object that is part of the private primary audience of this Object.
+	Bto ItemCollection `jsonld:"bto,omitempty"`
+	// CC identifies an Object that is part of the public secondary audience of this Object.
+	CC ItemCollection `jsonld:"cc,omitempty"`
+	// BCC identifies one or more Objects that are part of the private secondary audience of this Object.
+	BCC ItemCollection `jsonld:"bcc,omitempty"`
+	// Duration indicates the object's approximate duration when the Object describes a time-bound resource,
+	// such as an Audio or Video, a meeting, etc,
+	// The value must be expressed as an xsd:duration as defined by [xmlschema11-2],
+	// section 3.3.6 (e.g. a period of 5 seconds is represented as "PT5S").
+	Duration time.Duration `jsonld:"duration,omitempty"`
+	// Likes identifies the collection containing a list of all Like activities with this object as the object property, added as a side effect.
+	// The likes collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Likes Item `jsonld:"likes,omitempty"`
+	// Shares identifies the collection containing a list of all Announce activities with this object as the object property, added as a side effect.
+	// The shares collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Shares Item `jsonld:"shares,omitempty"`
+	// Source property is intended to convey some sort of source from which the content markup was derived,
+	// as a form of provenance, or to support future editing by clients.
+	// In general, clients do the conversion from source to content, not the other way around.
+	Source Source `jsonld:"source,omitempty"`
+	// Actor describes one or more entities that either performed or are expected to perform the activity.
+	// Any single activity can have multiple actors. The actor may be specified using an indirect Link.
+	Actor Item `jsonld:"actor,omitempty"`
+	// Target describes the indirect object, or target, of the activity.
+	// The precise meaning of the target is largely dependent on the type of action being described
+	// but will often be the object of the English preposition "to".
+	// For instance, in the activity "John added a movie to his wishlist",
+	// the target of the activity is John's wishlist. An activity can have more than one target.
+	Target Item `jsonld:"target,omitempty"`
+	// Result describes the result of the Activity. For instance, if a particular action results in the creation
+	// of a new resource, the result property can be used to describe that new resource.
+	Result Item `jsonld:"result,omitempty"`
+	// Origin describes an indirect object of the activity from which the activity is directed.
+	// The precise meaning of the origin is the object of the English preposition "from".
+	// For instance, in the activity "John moved an item to List B from List A", the origin of the activity is "List A".
+	Origin Item `jsonld:"origin,omitempty"`
+	// Instrument identifies one or more objects used (or to be used) in the completion of an Activity.
+	Instrument Item `jsonld:"instrument,omitempty"`
+	// OneOf identifies an exclusive option for a Question. Use of OneOf implies that the Question
+	// can have only a single answer. To indicate that a Question can have multiple answers, use AnyOf.
+	OneOf Item `jsonld:"oneOf,omitempty"`
+	// AnyOf identifies an inclusive option for a Question. Use of AnyOf implies that the Question can have multiple answers.
+	// To indicate that a Question can have only one answer, use OneOf.
+	AnyOf Item `jsonld:"anyOf,omitempty"`
+	// Closed indicates that a question has been closed, and answers are no longer accepted.
+	Closed bool `jsonld:"closed,omitempty"`
+}
+
+// GetID returns the ID corresponding to the Question object
+func (q Question) GetID() ID {
+	return q.ID
+}
+
+// GetLink returns the IRI corresponding to the Question object
+func (q Question) GetLink() IRI {
+	return IRI(q.ID)
+}
+
+// GetType returns the ActivityVocabulary type of the current Activity
+func (q Question) GetType() Typer {
+	return q.Type
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (q Question) Match(tt ...ActivityVocabularyType) bool {
+	return ActivityVocabularyTypes(tt).Match(q.Type)
+}
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (q *Question) UnmarshalJSON(data []byte) error {
+	p := fastjson.Parser{}
+	val, err := p.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	return JSONLoadQuestion(val, q)
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (q Question) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	JSONWrite(&b, '{')
+
+	if !JSONWriteQuestionValue(&b, q) {
+		return nil, nil
+	}
+	JSONWrite(&b, '}')
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (q *Question) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (q Question) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+func fmtQuestionProps(w io.Writer, n *int) func(*Question) error {
+	return func(q *Question) error {
+		_ = OnIntransitiveActivity(q, fmtIntransitiveActivityProps(w, n))
+
+		comma := func() {
+			if *n > 0 {
+				_, _ = io.WriteString(w, ", ")
+			}
+		}
+
+		if !IsNil(q.AnyOf) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "anyOf: %s", q.AnyOf)
+		}
+		if !IsNil(q.OneOf) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "oneOf: %s", q.OneOf)
+		}
+		if q.Closed {
+			comma()
+			*n, _ = fmt.Fprintf(w, "closed: %t", q.Closed)
+		}
+
+		return nil
+	}
+}
+
+func (q Question) Format(s fmt.State, verb rune) {
+	typ := q.Type
+	switch verb {
+	case 's':
+		iri := q.ID
+		if iri != "" {
+			s.Write([]byte(iri))
+		} else {
+			_, _ = fmt.Fprintf(s, "%T[%v]", q, typ)
+		}
+	case 'v':
+		n := 0
+		if typ != nil {
+			_, _ = fmt.Fprintf(s, "%T[%v] { ", q, typ)
+			_ = fmtQuestionProps(s, &n)(&q)
+			_, _ = io.WriteString(s, " }")
+		} else {
+			_, _ = fmt.Fprintf(s, "%T { ", q)
+			_ = fmtQuestionProps(s, &n)(&q)
+			_, _ = io.WriteString(s, " }")
+		}
+	}
+}
+
+// ToQuestion tries to convert the "it" Item to a Question object.
+func ToQuestion(it LinkOrIRI) (*Question, error) {
+	switch i := it.(type) {
+	case *Question:
+		return i, nil
+	case Question:
+		return &i, nil
+	default:
+		return reflectItemToType[Question](it)
+	}
+}
+
+// Recipients performs recipient de-duplication on the Question's To, Bto, CC and BCC properties
+func (q *Question) Recipients() ItemCollection {
+	aud := q.Audience
+	return ItemCollectionDeduplication(&q.To, &q.CC, &q.Bto, &q.BCC, &ItemCollection{q.Actor}, &aud)
+}
+
+func cleanQuestionProperties(qq *Question) {
+	_ = OnIntransitiveActivity(qq, func(i *IntransitiveActivity) error {
+		cleanIntransitiveActivityProperties(i)
+		return nil
+	})
+	qq.AnyOf = CleanRecipients(qq.AnyOf)
+	qq.OneOf = CleanRecipients(qq.OneOf)
+}
+
+// Clean removes Bto and BCC properties
+func (q *Question) Clean() Item {
+	qq := *q
+	cleanQuestionProperties(&qq)
+	return &qq
+}
+
+// Equals verifies if our receiver IntransitiveActivity is equals with the "with" Item
+func (q Question) Equals(with Item) bool {
+	withQuestion, err := ToQuestion(with)
+	if err != nil {
+		return false
+	}
+	return q.equal(*withQuestion)
+}
+
+// equal verifies if our receiver IntransitiveActivity is equals with the "with" IntransitiveActivity
+func (q Question) equal(with Question) bool {
+	result := true
+	_ = OnIntransitiveActivity(q, func(a *IntransitiveActivity) error {
+		result = a.Equals(with)
+		return nil
+	})
+	if !result {
+		return false
+	}
+	if !ItemsEqual(q.AnyOf, with.AnyOf) {
+		return false
+	}
+	if !ItemsEqual(q.OneOf, with.OneOf) {
+		return false
+	}
+	if q.Closed != with.Closed {
+		return false
+	}
+	return true
+}
+
+// WithQuestionFn represents a function type that can be used as a parameter for OnQuestion helper function
+type WithQuestionFn func(*Question) error
+
+// OnQuestion calls function fn on it Item if it can be asserted to type Question
+//
+// This function should be called if trying to access the Questions specific
+// properties like "anyOf", "oneOf", "closed", etc. For the other properties
+// OnObject or OnIntransitiveActivity should be used instead.
+func OnQuestion(it LinkOrIRI, fn func(question *Question) error) error {
+	if IsNil(it) {
+		return nil
+	}
+	qFn := func(it LinkOrIRI) error {
+		q, err := ToQuestion(it)
+		if err != nil {
+			return err
+		}
+		return fn(q)
+	}
+
+	if !IsItemCollection(it) {
+		return qFn(it)
+	}
+	return OnItemCollection(it, func(col *ItemCollection) error {
+		for _, ob := range *col {
+			if err := qFn(ob); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func notEmptyQuestion(i *Question) bool {
+	notEmpty := NotEmpty(i.AnyOf) || NotEmpty(i.OneOf)
+	if notEmpty {
+		return true
+	}
+	_ = OnIntransitiveActivity(i, func(ob *IntransitiveActivity) error {
+		notEmpty = notEmptyIntransitiveActivity(ob)
+		return nil
+	})
+	return notEmpty
+}

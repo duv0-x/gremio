@@ -1,0 +1,360 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"time"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/valyala/fastjson"
+)
+
+// Relationship describes a relationship between two individuals.
+// The subject and object properties are used to identify the connected individuals.
+// See 5.2 Representing Relationships Between Entities for additional information.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-relationship
+//
+// Relationship specifies the kind of relationship that exists between the two individuals identified
+// by the subject and object properties. Used together, these three properties form what is commonly known
+// as a "reified statement" where subject identifies the subject, relationship identifies the predicate,
+// and object identifies the object.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#connections
+type Relationship struct {
+	// ID provides the globally unique identifier for the object.
+	ID ID `jsonld:"id,omitempty"`
+	// Type identifies the Object type. Multiple values may be specified.
+	Type Typer `jsonld:"type,omitempty"`
+	// Name represents a simple, human-readable, plain-text name for the object.
+	// HTML markup MUST NOT be included. The name MAY be expressed using multiple language-tagged values.
+	Name NaturalLanguageValues `jsonld:"name,omitempty,collapsible"`
+	// Attachment identifies a resource attached or related to an object that potentially requires special handling.
+	// The intent is to provide a model that is at least semantically similar to attachments in email.
+	Attachment Item `jsonld:"attachment,omitempty"`
+	// AttributedTo identifies one or more entities to which this object is attributed. The attributed entities might not be Actors.
+	// For instance, an object might be attributed to the completion of another activity.
+	AttributedTo Item `jsonld:"attributedTo,omitempty"`
+	// Audience identifies one or more entities that represent the total population of entities
+	// for which the object can be considered to be relevant.
+	Audience ItemCollection `jsonld:"audience,omitempty"`
+	// Content represents a textual representation of the Object encoded as a JSON string.
+	// By default, the value of content is HTML.
+	// The MediaType property can be used in the object to indicate a different content type.
+	// (The content MAY be expressed using multiple language-tagged values.)
+	Content NaturalLanguageValues `jsonld:"content,omitempty,collapsible"`
+	// Context identifies the context within which the object exists or an activity was performed.
+	// The notion of "context" used is intentionally vague.
+	// The intended function is to serve as a means of grouping objects and activities that share a
+	// common originating context or purpose. An example could be all activities relating to a common project or event.
+	Context Item `jsonld:"context,omitempty"`
+	// MediaType identifies the MIME media type of the value of the Content property.
+	// If not specified, the content property is assumed to contain text/html content.
+	MediaType MimeType `jsonld:"mediaType,omitempty"`
+	// EndTime represents the date and time describing the actual or expected ending time of the object.
+	// When used with an Activity object, for instance, the EndTime property specifies the moment
+	// the activity concluded or is expected to conclude.
+	EndTime time.Time `jsonld:"endTime,omitempty"`
+	// Generator identifies the entity (e.g. an application) that generated the object.
+	Generator Item `jsonld:"generator,omitempty"`
+	// Icon indicates an entity that describes an icon for this object.
+	// The image should have an aspect ratio of one (horizontal) to one (vertical)
+	// and should be suitable for presentation at a small size.
+	Icon Item `jsonld:"icon,omitempty"`
+	// Image indicates an entity that describes an image for this object.
+	// Unlike the icon property, there are no aspect ratio or display size limitations assumed.
+	Image Item `jsonld:"image,omitempty"`
+	// InReplyTo indicates one or more entities for which this object is considered a response.
+	InReplyTo Item `jsonld:"inReplyTo,omitempty"`
+	// Location indicates one or more physical or logical locations associated with the object.
+	Location Item `jsonld:"location,omitempty"`
+	// Preview identifies an entity that provides a preview of this object.
+	Preview Item `jsonld:"preview,omitempty"`
+	// Published the date and time at which the object was published
+	Published time.Time `jsonld:"published,omitempty"`
+	// Replies identifies a Collection containing objects considered to be responses to this object.
+	Replies Item `jsonld:"replies,omitempty"`
+	// StartTime represents the date and time describing the actual or expected starting time of the object.
+	// When used with an Activity object, for instance, the StartTime property specifies
+	// the moment the activity began or is scheduled to begin.
+	StartTime time.Time `jsonld:"startTime,omitempty"`
+	// Summary represents a natural language summarization of the object encoded as HTML.
+	// Multiple language tagged summaries MAY be provided.
+	Summary NaturalLanguageValues `jsonld:"summary,omitempty,collapsible"`
+	// Tag identifies one or more "tags" that have been associated with an objects. A tag can be any kind of Object.
+	// The key difference between attachment and tag is that the former implies association by inclusion,
+	// while the latter implies associated by reference.
+	Tag Item `jsonld:"tag,omitempty"`
+	// Updated represents the date and time at which the object was updated
+	Updated time.Time `jsonld:"updated,omitempty"`
+	// URL identifies one or more links to representations of the object
+	URL Item `jsonld:"url,omitempty"`
+	// To identifies an entity considered to be part of the public primary audience of an Object
+	To ItemCollection `jsonld:"to,omitempty"`
+	// Bto identifies an Object that is part of the private primary audience of this Object.
+	Bto ItemCollection `jsonld:"bto,omitempty"`
+	// CC identifies an Object that is part of the public secondary audience of this Object.
+	CC ItemCollection `jsonld:"cc,omitempty"`
+	// BCC identifies one or more Objects that are part of the private secondary audience of this Object.
+	BCC ItemCollection `jsonld:"bcc,omitempty"`
+	// Duration indicates the object's approximate duration when the Object describes a time-bound resource,
+	// such as an Audio or Video, a meeting, etc,
+	// The value must be expressed as an xsd:duration as defined by [xmlschema11-2],
+	// section 3.3.6 (e.g. a period of 5 seconds is represented as "PT5S").
+	Duration time.Duration `jsonld:"duration,omitempty"`
+	// Likes identifies the collection containing a list of all Like activities with this object as the object property, added as a side effect.
+	// The likes collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Likes Item `jsonld:"likes,omitempty"`
+	// Shares identifies the collection containing a list of all Announce activities with this object as the object property, added as a side effect.
+	// The shares collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Shares Item `jsonld:"shares,omitempty"`
+	// Source property is intended to convey some sort of source from which the content markup was derived,
+	// as a form of provenance, or to support future editing by clients.
+	// In general, clients do the conversion from source to content, not the other way around.
+	Source Source `jsonld:"source,omitempty"`
+	// Subject property identifies one of the connected individuals.
+	// For instance, for a Relationship object describing "John is related to Sally", Subject would refer to John.
+	Subject Item `jsonld:"subject,omitempty"`
+	// Object describes the entity to which the Subject is related.
+	// For instance, for a Relationship object describing "John is related to Sally", Object would refer to Sally.
+	Object Item `jsonld:"object,omitempty"`
+	// Relationship property identifies the kind of relationship that exists between Subject and Object.
+	Relationship Item `jsonld:"relationship,omitempty"`
+}
+
+// GetLink returns the IRI corresponding to the current Relationship object
+func (r Relationship) GetLink() IRI {
+	return IRI(r.ID)
+}
+
+// GetType returns the type of the current Relationship
+func (r Relationship) GetType() Typer {
+	return r.Type
+}
+
+// GetID returns the ID corresponding to the current Relationship
+func (r Relationship) GetID() ID {
+	return r.ID
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (r Relationship) Match(tt ...ActivityVocabularyType) bool {
+	return ActivityVocabularyTypes(tt).Match(r.Type)
+}
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (r *Relationship) UnmarshalJSON(data []byte) error {
+	par := fastjson.Parser{}
+	val, err := par.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	return JSONLoadRelationship(val, r)
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (r Relationship) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	notEmpty := false
+	JSONWrite(&b, '{')
+
+	_ = OnObject(r, func(o *Object) error {
+		notEmpty = JSONWriteObjectValue(&b, *o)
+		return nil
+	})
+
+	if r.Subject != nil {
+		notEmpty = JSONWriteItemProp(&b, "subject", r.Subject, notEmpty) || notEmpty
+	}
+	if r.Object != nil {
+		notEmpty = JSONWriteItemProp(&b, "object", r.Object, notEmpty) || notEmpty
+	}
+	if r.Relationship != nil {
+		notEmpty = JSONWriteItemProp(&b, "relationship", r.Relationship, notEmpty) || notEmpty
+	}
+
+	if !notEmpty {
+		return nil, nil
+	}
+	JSONWrite(&b, '}')
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (r *Relationship) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (r Relationship) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// Recipients performs recipient de-duplication on the Relationship object's To, Bto, CC and BCC properties
+func (r *Relationship) Recipients() ItemCollection {
+	aud := r.Audience
+	return ItemCollectionDeduplication(&r.To, &r.CC, &r.Bto, &r.BCC, &aud)
+}
+
+// Equals verifies if our receiver Relationship is equals with the "with" Item
+func (r Relationship) Equals(with Item) bool {
+	withRelationship, err := ToRelationship(with)
+	if err != nil {
+		return false
+	}
+	return r.equal(*withRelationship)
+}
+
+// equal verifies if our receiver Relationship is equals with the "with" Relationship
+func (r Relationship) equal(with Relationship) bool {
+	result := true
+	_ = OnObject(r, func(pi *Object) error {
+		result = pi.Equals(with)
+		return nil
+	})
+	if !result {
+		return false
+	}
+	if !ItemsEqual(r.Relationship, with.Relationship) {
+		return false
+	}
+	return true
+}
+
+func cleanRelationshipProperties(rr *Relationship) {
+	_ = OnObject(rr, func(ob *Object) error {
+		cleanObjectProperties(ob)
+		return nil
+	})
+	rr.Relationship = CleanRecipients(rr.Relationship)
+}
+
+// Clean removes Bto and BCC properties
+func (r *Relationship) Clean() Item {
+	rr := *r
+	cleanRelationshipProperties(&rr)
+	return &rr
+}
+
+func fmtRelationshipProps(w io.Writer, n *int) func(*Relationship) error {
+	return func(r *Relationship) error {
+		_ = OnObject(r, fmtObjectProps(w, n))
+		comma := func() {
+			if *n > 0 {
+				_, _ = io.WriteString(w, ", ")
+			}
+		}
+
+		if !IsNil(r.Subject) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "subject: %s", r.Subject)
+		}
+		if !IsNil(r.Object) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "object: %s", r.Object)
+		}
+		if !IsNil(r.Relationship) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "relationship: %s", r.Relationship)
+		}
+		return nil
+	}
+}
+
+func (r Relationship) Format(s fmt.State, verb rune) {
+	typ := r.Type
+	switch verb {
+	case 's':
+		iri := r.ID
+		if iri != "" {
+			s.Write([]byte(iri))
+		} else {
+			_, _ = fmt.Fprintf(s, "%T[%v]", r, typ)
+		}
+	case 'v':
+		n := 0
+		if typ != nil {
+			_, _ = fmt.Fprintf(s, "%T[%v] { ", r, typ)
+			_ = fmtRelationshipProps(s, &n)(&r)
+			_, _ = io.WriteString(s, " }")
+		} else {
+			_, _ = fmt.Fprintf(s, "%T { ", r)
+			_ = fmtRelationshipProps(s, &n)(&r)
+			_, _ = io.WriteString(s, " }")
+		}
+	}
+}
+
+func tombstoneAsRelationship(t *Tombstone) (*Relationship, error) {
+	r := new(Relationship)
+	err := OnObject(r, func(pob *Object) error {
+		return OnObject(t, func(tob *Object) error {
+			_, err := CopyObjectProperties(pob, tob)
+			return err
+		})
+	})
+	return r, err
+}
+
+// ToRelationship tries to convert the "it" Item to a Relationship object.
+func ToRelationship(it LinkOrIRI) (*Relationship, error) {
+	switch i := it.(type) {
+	case *Relationship:
+		return i, nil
+	case Relationship:
+		return &i, nil
+	case *Tombstone:
+		return tombstoneAsRelationship(i)
+	case Tombstone:
+		return tombstoneAsRelationship(&i)
+	default:
+		return reflectItemToType[Relationship](it)
+	}
+}
+
+type WithRelationshipFn func(*Relationship) error
+
+// OnRelationship calls function fn on it Item if it can be asserted to type *Relationship
+//
+// This function should be called if trying to access the Relationship specific properties
+// like "subject", "object", or "relationship".
+// For the other properties OnObject should be used instead.
+func OnRelationship(it LinkOrIRI, fn WithRelationshipFn) error {
+	if IsNil(it) {
+		return nil
+	}
+	rFn := func(it LinkOrIRI) error {
+		r, err := ToRelationship(it)
+		if err != nil {
+			return err
+		}
+		return fn(r)
+	}
+
+	if !IsItemCollection(it) {
+		return rFn(it)
+	}
+	return OnItemCollection(it, func(col *ItemCollection) error {
+		for _, ob := range *col {
+			if err := rFn(ob); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func notEmptyRelationship(r *Relationship) bool {
+	notEmpty := NotEmpty(r.Relationship)
+	if notEmpty {
+		return true
+	}
+	_ = OnObject(r, func(ob *Object) error {
+		notEmpty = notEmptyObject(ob)
+		return nil
+	})
+	return notEmpty
+}

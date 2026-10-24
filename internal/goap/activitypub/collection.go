@@ -1,0 +1,457 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"time"
+	"unsafe"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/valyala/fastjson"
+)
+
+const CollectionOfIRIs ActivityVocabularyType = "IRICollection"
+const CollectionOfItems ActivityVocabularyType = "ItemCollection"
+
+var CollectionTypes = ActivityVocabularyTypes{
+	CollectionOfItems,
+	CollectionType,
+	OrderedCollectionType,
+	CollectionPageType,
+	OrderedCollectionPageType,
+}
+
+// Collections
+//
+// https://www.w3.org/TR/activitypub/#collections
+//
+// [ActivityStreams] defines the collection concept; ActivityPub defines several collections with special behavior.
+//
+// Note that ActivityPub makes use of ActivityStreams paging to traverse large sets of objects.
+//
+// Note that some of these collections are specified to be of type OrderedCollection specifically,
+// while others are permitted to be either a Collection or an OrderedCollection.
+// An OrderedCollection MUST be presented consistently in reverse chronological order.
+//
+// NOTE
+// What property is used to determine the reverse chronological order is intentionally left as an implementation detail.
+// For example, many SQL-style databases use an incrementing integer as an identifier, which can be reasonably used for
+// handling insertion order in most cases. In other databases, an insertion time timestamp may be preferred.
+// What is used isn't important, but the ordering of elements must remain intact, with newer items first.
+// A property which changes regularly, such a "last updated" timestamp, should not be used.
+type Collections interface {
+	Collection | CollectionPage | OrderedCollection | OrderedCollectionPage
+}
+
+type CollectionInterface interface {
+	ObjectOrLink
+	Collection() ItemCollection
+	Append(ob ...Item) error
+	Remove(ob ...Item)
+	Count() uint
+	Contains(Item) bool
+}
+
+// Collection is a subtype of Object that represents ordered or unordered sets of Object or Link instances.
+//
+// Refer to the Activity Streams 2.0 Core specification for a complete description of the Collection type.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-collection
+//
+// Collection objects are a specialization of the base Object that serve as a container for other Objects or Links.
+//
+// In addition to the base properties inherited by all Objects, all Collection types contain the additional properties:
+// items | totalItems | first | last | current
+//
+// The items within a Collection can be ordered or unordered. The OrderedCollection type MAY be used to identify a
+// Collection whose items are always ordered. In the JSON serialization, the unordered items of a Collection are
+// represented using the items property while ordered items are represented using the orderedItems property.
+//
+// https://www.w3.org/TR/activitystreams-core/#collection
+type Collection struct {
+	// ID provides the globally unique identifier for the object.
+	ID ID `jsonld:"id,omitempty"`
+	// Type identifies the Object type. Multiple values may be specified.
+	Type Typer `jsonld:"type,omitempty"`
+	// Name represents a simple, human-readable, plain-text name for the object.
+	// HTML markup MUST NOT be included. The name MAY be expressed using multiple language-tagged values.
+	Name NaturalLanguageValues `jsonld:"name,omitempty,collapsible"`
+	// Attachment identifies a resource attached or related to an object that potentially requires special handling.
+	// The intent is to provide a model that is at least semantically similar to attachments in email.
+	Attachment Item `jsonld:"attachment,omitempty"`
+	// AttributedTo identifies one or more entities to which this object is attributed. The attributed entities might not be Actors.
+	// For instance, an object might be attributed to the completion of another activity.
+	AttributedTo Item `jsonld:"attributedTo,omitempty"`
+	// Audience identifies one or more entities that represent the total population of entities
+	// for which the object can be considered to be relevant.
+	Audience ItemCollection `jsonld:"audience,omitempty"`
+	// Content represents a textual representation of the Object encoded as a JSON string.
+	// By default, the value of content is HTML.
+	// The MediaType property can be used in the object to indicate a different content type.
+	// (The content MAY be expressed using multiple language-tagged values.)
+	Content NaturalLanguageValues `jsonld:"content,omitempty,collapsible"`
+	// Context identifies the context within which the object exists or an activity was performed.
+	// The notion of "context" used is intentionally vague.
+	// The intended function is to serve as a means of grouping objects and activities that share a
+	// common originating context or purpose. An example could be all activities relating to a common project or event.
+	Context Item `jsonld:"context,omitempty"`
+	// MediaType identifies the MIME media type of the value of the Content property.
+	// If not specified, the content property is assumed to contain text/html content.
+	MediaType MimeType `jsonld:"mediaType,omitempty"`
+	// EndTime represents the date and time describing the actual or expected ending time of the object.
+	// When used with an Activity object, for instance, the EndTime property specifies the moment
+	// the activity concluded or is expected to conclude.
+	EndTime time.Time `jsonld:"endTime,omitempty"`
+	// Generator identifies the entity (e.g. an application) that generated the object.
+	Generator Item `jsonld:"generator,omitempty"`
+	// Icon indicates an entity that describes an icon for this object.
+	// The image should have an aspect ratio of one (horizontal) to one (vertical)
+	// and should be suitable for presentation at a small size.
+	Icon Item `jsonld:"icon,omitempty"`
+	// Image indicates an entity that describes an image for this object.
+	// Unlike the icon property, there are no aspect ratio or display size limitations assumed.
+	Image Item `jsonld:"image,omitempty"`
+	// InReplyTo indicates one or more entities for which this object is considered a response.
+	InReplyTo Item `jsonld:"inReplyTo,omitempty"`
+	// Location indicates one or more physical or logical locations associated with the object.
+	Location Item `jsonld:"location,omitempty"`
+	// Preview identifies an entity that provides a preview of this object.
+	Preview Item `jsonld:"preview,omitempty"`
+	// Published the date and time at which the object was published
+	Published time.Time `jsonld:"published,omitempty"`
+	// Replies identifies a Collection containing objects considered to be responses to this object.
+	Replies Item `jsonld:"replies,omitempty"`
+	// StartTime represents the date and time describing the actual or expected starting time of the object.
+	// When used with an Activity object, for instance, the StartTime property specifies
+	// the moment the activity began or is scheduled to begin.
+	StartTime time.Time `jsonld:"startTime,omitempty"`
+	// Summary represents a natural language summarization of the object encoded as HTML.
+	// Multiple language tagged summaries MAY be provided.
+	Summary NaturalLanguageValues `jsonld:"summary,omitempty,collapsible"`
+	// Tag identifies one or more "tags" that have been associated with an objects. A tag can be any kind of Object.
+	// The key difference between attachment and tag is that the former implies association by inclusion,
+	// while the latter implies associated by reference.
+	Tag Item `jsonld:"tag,omitempty"`
+	// Updated represents the date and time at which the object was updated
+	Updated time.Time `jsonld:"updated,omitempty"`
+	// URL identifies one or more links to representations of the object
+	URL Item `jsonld:"url,omitempty"`
+	// To identifies an entity considered to be part of the public primary audience of an Object
+	To ItemCollection `jsonld:"to,omitempty"`
+	// Bto identifies an Object that is part of the private primary audience of this Object.
+	Bto ItemCollection `jsonld:"bto,omitempty"`
+	// CC identifies an Object that is part of the public secondary audience of this Object.
+	CC ItemCollection `jsonld:"cc,omitempty"`
+	// BCC identifies one or more Objects that are part of the private secondary audience of this Object.
+	BCC ItemCollection `jsonld:"bcc,omitempty"`
+	// Duration indicates the object's approximate duration when the Object describes a time-bound resource,
+	// such as an Audio or Video, a meeting, etc,
+	// The value must be expressed as an xsd:duration as defined by [xmlschema11-2],
+	// section 3.3.6 (e.g. a period of 5 seconds is represented as "PT5S").
+	Duration time.Duration `jsonld:"duration,omitempty"`
+	// Likes identifies the collection containing a list of all Like activities with this object as the object property, added as a side effect.
+	// The likes collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Likes Item `jsonld:"likes,omitempty"`
+	// Shares identifies the collection containing a list of all Announce activities with this object as the object property, added as a side effect.
+	// The shares collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Shares Item `jsonld:"shares,omitempty"`
+	// Source property is intended to convey some sort of source from which the content markup was derived,
+	// as a form of provenance, or to support future editing by clients.
+	// In general, clients do the conversion from source to content, not the other way around.
+	Source Source `jsonld:"source,omitempty"`
+	// Current in a paged Collection indicates the page that contains the most recently updated member items.
+	Current Item `jsonld:"current,omitempty"`
+	// First in a paged Collection indicates the furthest preceding page of items in the Collection.
+	First Item `jsonld:"first,omitempty"`
+	// Last in a paged Collection indicates the furthest proceeding page of the Collection.
+	Last Item `jsonld:"last,omitempty"`
+	// TotalItems is a non-negative integer specifying the total number of objects contained by the logical view
+	// of the Collection.
+	// This number might not reflect the actual number of items serialized within the Collection object instance.
+	TotalItems uint `jsonld:"totalItems,omitempty"`
+	// Items identifies the items contained in a Collection. The items might be ordered or unordered.
+	Items ItemCollection `jsonld:"items,omitempty"`
+}
+
+type (
+	// FollowersCollection is a collection of followers
+	FollowersCollection = Collection
+
+	// FollowingCollection is a list of everybody that the actor has followed, added as a side effect.
+	// The following collection MUST be either an OrderedCollection or a Collection and MAY
+	// be filtered on privileges of an authenticated user or as appropriate when no authentication is given.
+	FollowingCollection = Collection
+)
+
+// GetID returns the ID corresponding to the Collection object
+func (c Collection) GetID() ID {
+	return c.ID
+}
+
+// GetType returns the Collection's type
+func (c Collection) GetType() Typer {
+	return c.Type
+}
+
+// GetLink returns the IRI corresponding to the Collection object
+func (c Collection) GetLink() IRI {
+	return IRI(c.ID)
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (c Collection) Match(tt ...ActivityVocabularyType) bool {
+	return ActivityVocabularyTypes(tt).Match(c.Type)
+}
+
+// Collection returns the Collection's items
+func (c Collection) Collection() ItemCollection {
+	return c.Items
+}
+
+// Append adds items to a Collection
+func (c *Collection) Append(it ...Item) error {
+	l := len(c.Items)
+	_ = c.Items.Append(it...)
+	c.TotalItems += uint(len(c.Items) - l)
+	return nil
+}
+
+// Remove removes items from a Collection
+func (c *Collection) Remove(it ...Item) {
+	l := len(c.Items)
+	c.Items.Remove(it...)
+	c.TotalItems += uint(len(c.Items) - l)
+}
+
+// Count returns the maximum between the length of Items in collection and its TotalItems property
+func (c *Collection) Count() uint {
+	if c == nil {
+		return 0
+	}
+	return uint(len(c.Items))
+}
+
+// Contains verifies if Collection array contains the received one
+func (c Collection) Contains(r Item) bool {
+	if len(c.Items) == 0 {
+		return false
+	}
+	for _, it := range c.Items {
+		if ItemsEqual(it, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (c *Collection) UnmarshalJSON(data []byte) error {
+	par := fastjson.Parser{}
+	val, err := par.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	return JSONLoadCollection(val, c)
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (c Collection) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	notEmpty := false
+	JSONWrite(&b, '{')
+
+	_ = OnObject(c, func(o *Object) error {
+		notEmpty = JSONWriteObjectValue(&b, *o)
+		return nil
+	})
+	if c.Current != nil {
+		notEmpty = JSONWriteItemProp(&b, "current", c.Current, notEmpty) || notEmpty
+	}
+	if c.First != nil {
+		notEmpty = JSONWriteItemProp(&b, "first", c.First, notEmpty) || notEmpty
+	}
+	if c.Last != nil {
+		notEmpty = JSONWriteItemProp(&b, "last", c.Last, notEmpty) || notEmpty
+	}
+	if c.TotalItems > 0 {
+		notEmpty = JSONWriteIntProp(&b, "totalItems", int64(c.TotalItems), notEmpty) || notEmpty
+	}
+	if c.Items != nil {
+		notEmpty = JSONWriteItemCollectionProp(&b, "items", c.Items, false, notEmpty) || notEmpty
+	}
+	if !notEmpty {
+		return nil, nil
+	}
+	JSONWrite(&b, '}')
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (c *Collection) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (c Collection) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+func (c Collection) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 's', 'v':
+		_, _ = fmt.Fprintf(s, "%T[%s] { totalItems: %d }", c, c.Type, c.TotalItems)
+	}
+}
+
+// ToCollection
+func ToCollection(it LinkOrIRI) (*Collection, error) {
+	switch i := it.(type) {
+	case *Collection:
+		return i, nil
+	case Collection:
+		return &i, nil
+	case *CollectionPage:
+		return (*Collection)(unsafe.Pointer(i)), nil
+	case CollectionPage:
+		return (*Collection)(unsafe.Pointer(&i)), nil
+	// NOTE(marius): let's try again to convert OrderedCollection -> Collection, as they have the same
+	// shape in memory.
+	case *OrderedCollection:
+		return (*Collection)(unsafe.Pointer(i)), nil
+	case OrderedCollection:
+		return (*Collection)(unsafe.Pointer(&i)), nil
+	case *OrderedCollectionPage:
+		return (*Collection)(unsafe.Pointer(i)), nil
+	case OrderedCollectionPage:
+		return (*Collection)(unsafe.Pointer(&i)), nil
+	default:
+		return reflectItemToType[Collection](it)
+	}
+}
+
+// ItemsMatch
+func (c Collection) ItemsMatch(col ...Item) bool {
+	if len(col) == 0 {
+		return false
+	}
+	for _, it := range col {
+		if match := c.Contains(it); !match {
+			return false
+		}
+	}
+	return true
+}
+
+// Equals verifies if our receiver Collection is equals with the "with" Item
+func (c Collection) Equals(with Item) bool {
+	withCollection, err := ToCollection(with)
+	if err != nil {
+		return false
+	}
+	return c.equal(*withCollection)
+}
+
+// equal verifies if our receiver Collection is equals with the "with" Collection
+func (c Collection) equal(with Collection) bool {
+	result := true
+	_ = OnObject(with, func(wo *Object) error {
+		result = wo.Equals(c)
+		return nil
+	})
+	if !result {
+		return false
+	}
+	if with.TotalItems != c.TotalItems {
+		return false
+	}
+	if !ItemsEqual(c.Current, with.Current) {
+		return false
+	}
+	if !ItemsEqual(c.First, with.First) {
+		return false
+	}
+	if !ItemsEqual(c.Last, with.Last) {
+		return false
+	}
+	if !ItemsEqual(c.Items, with.Items) {
+		return false
+	}
+	return true
+}
+
+func (c *Collection) Recipients() ItemCollection {
+	aud := c.Audience
+	return ItemCollectionDeduplication(&c.To, &c.CC, &c.Bto, &c.BCC, &aud)
+}
+
+func cleanCollectionProperties(cc *Collection) {
+	_ = OnObject(cc, func(ob *Object) error {
+		cleanObjectProperties(ob)
+		return nil
+	})
+	cleanItems := func(it ItemCollection) ItemCollection {
+		if it == nil {
+			return it
+		}
+		res := make(ItemCollection, 0)
+		_ = OnItem(it, func(item Item) error {
+			return res.Append(CleanRecipients(item))
+		})
+		return res
+	}
+	cc.Items = cleanItems(cc.Items)
+}
+
+func (c *Collection) Clean() Item {
+	cc := *c
+	cleanCollectionProperties(&cc)
+	return &cc
+}
+
+// WithCollectionFn represents a function type that can be used as a parameter for OnCollection helper function
+type WithCollectionFn func(*Collection) error
+
+// OnCollection calls function fn on it Item if it can be asserted to type *Collection
+//
+// This function should be called if trying to access the Collection specific
+// properties like "totalItems", "items", etc. For the other properties
+// OnObject should be used instead.
+func OnCollection(it Item, fn WithCollectionFn) error {
+	if IsNil(it) {
+		return nil
+	}
+	col, err := ToCollection(it)
+	if err != nil {
+		return err
+	}
+	return fn(col)
+}
+
+func CopyCollectionProperties(to, from *Collection) (*Collection, error) {
+	if to == nil || from == nil {
+		return nil, nil
+	}
+	to.First = replaceIfItem(to.First, from.First)
+	to.Last = replaceIfItem(to.Last, from.Last)
+	to.Current = replaceIfItem(to.Current, from.Current)
+	to.Items = replaceIfItemCollection(to.Items, from.Items)
+	if to.TotalItems == 0 {
+		to.TotalItems = from.TotalItems
+	}
+	oldOb, _ := ToObject(to)
+	newOb, _ := ToObject(from)
+	_, err := CopyObjectProperties(oldOb, newOb)
+	return to, err
+}
+
+// FlattenCollection flattens a Collection's objects to their respective IRIs
+func FlattenCollection(col *Collection) *Collection {
+	if col == nil {
+		return col
+	}
+	col.Items = FlattenItemCollection(col.Items)
+
+	return col
+}

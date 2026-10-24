@@ -1,0 +1,926 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"reflect"
+	"strings"
+	"time"
+	"unsafe"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/valyala/fastjson"
+)
+
+const (
+	IRIType                   ActivityVocabularyType = "IRI"
+	ObjectType                ActivityVocabularyType = "Object"
+	LinkType                  ActivityVocabularyType = "Link"
+	ActivityType              ActivityVocabularyType = "Activity"
+	IntransitiveActivityType  ActivityVocabularyType = "IntransitiveActivity"
+	ActorType                 ActivityVocabularyType = "Actor"
+	CollectionType            ActivityVocabularyType = "Collection"
+	OrderedCollectionType     ActivityVocabularyType = "OrderedCollection"
+	CollectionPageType        ActivityVocabularyType = "CollectionPage"
+	OrderedCollectionPageType ActivityVocabularyType = "OrderedCollectionPage"
+
+	// ActivityPub Object Types
+	ArticleType      ActivityVocabularyType = "Article"
+	AudioType        ActivityVocabularyType = "Audio"
+	DocumentType     ActivityVocabularyType = "Document"
+	EventType        ActivityVocabularyType = "Event"
+	ImageType        ActivityVocabularyType = "Image"
+	NoteType         ActivityVocabularyType = "Note"
+	PageType         ActivityVocabularyType = "Page"
+	PlaceType        ActivityVocabularyType = "Place"
+	ProfileType      ActivityVocabularyType = "Profile"
+	RelationshipType ActivityVocabularyType = "Relationship"
+	TombstoneType    ActivityVocabularyType = "Tombstone"
+	VideoType        ActivityVocabularyType = "Video"
+
+	// MentionType is a link type for @mentions
+	MentionType ActivityVocabularyType = "Mention"
+	NilType     ActivityVocabularyType = ""
+)
+
+var GenericTypes = ActivityVocabularyTypes{
+	ActivityType,
+	IntransitiveActivityType,
+	ObjectType,
+	ActorType,
+}
+
+var ObjectTypes = ActivityVocabularyTypes{
+	ArticleType,
+	AudioType,
+	DocumentType,
+	EventType,
+	ImageType,
+	NoteType,
+	PageType,
+	PlaceType,
+	ProfileType,
+	RelationshipType,
+	TombstoneType,
+	VideoType,
+}
+
+type (
+	// ActivityObject is a subtype of Object that describes some form of action that may happen,
+	// is currently happening, or has already happened
+	ActivityObject interface {
+		// GetID returns the dereferenceable ActivityStreams object id
+		GetID() ID
+		GetType() Typer
+	}
+
+	// LinkOrIRI is an interface that Object and Link structs implement, and at the same time
+	// they are kept disjointed
+	LinkOrIRI interface {
+		// GetLink returns the object id in IRI type
+		GetLink() IRI
+	}
+	// ObjectOrLink describes the requirements of an ActivityStreams object
+	ObjectOrLink interface {
+		ActivityObject
+		LinkOrIRI
+	}
+	// Deprecated
+	deprecated interface {
+		// IsLink shows if current item represents a Link object or an IRI
+		IsLink() bool
+		// IsObject shows if current item represents an ActivityStreams object
+		IsObject() bool
+		// IsCollection shows if the current item represents an ItemCollection
+		IsCollection() bool
+	}
+
+	// Typer interface for ActivityPub items returns one or more ActivityVocabularyTypes
+	// that the Item represent.
+	Typer interface {
+		// AsTypes returns the ActivityVocabularyTypes of the Item
+		AsTypes() ActivityVocabularyTypes
+	}
+
+	// MimeType is the type for representing MIME types in certain ActivityStreams properties
+	MimeType string
+)
+
+type Objects interface {
+	Object | Tombstone | Place | Profile | Relationship | Actors | Activities | IntransitiveActivities | Collections | IRI | ItemCollection | IRIs
+}
+
+// Object describes an ActivityPub object of any kind.
+// The Object type serves as the base type for most of the other kinds of objects defined in the Activity-Vocabulary,
+// including other Core types such as Activity, IntransitiveActivity, Collection and OrderedCollection.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-object
+//
+// The Object is the primary base type for the Activity Streams vocabulary.
+//
+// In addition to having a global identifier (expressed as an absolute IRI using the id property) and an "object type"
+// (expressed using the type property), all instances of the Object type share a common set of properties normatively
+// defined by the Activity-Vocabulary.
+//
+// These include: attachment | attributedTo | audience | content | context | contentMap | name | nameMap | endTime |
+// generator | icon | image | inReplyTo | location | preview | published | replies | startTime | summary | summaryMap |
+// tag | updated | url | to | bto | cc | bcc | mediaType | duration
+//
+// All properties are optional (including the id and type).
+//
+// https://www.w3.org/TR/activitystreams-core/#object
+type Object struct {
+	// ID provides the globally unique identifier for the object.
+	ID ID `jsonld:"id,omitempty"`
+	// Type identifies the Object type. Multiple values may be specified.
+	Type Typer `jsonld:"type,omitempty"`
+	// Name represents a simple, human-readable, plain-text name for the object.
+	// HTML markup MUST NOT be included. The name MAY be expressed using multiple language-tagged values.
+	Name NaturalLanguageValues `jsonld:"name,omitempty,collapsible"`
+	// Attachment identifies a resource attached or related to an object that potentially requires special handling.
+	// The intent is to provide a model that is at least semantically similar to attachments in email.
+	Attachment Item `jsonld:"attachment,omitempty"`
+	// AttributedTo identifies one or more entities to which this object is attributed. The attributed entities might not be Actors.
+	// For instance, an object might be attributed to the completion of another activity.
+	AttributedTo Item `jsonld:"attributedTo,omitempty"`
+	// Audience identifies one or more entities that represent the total population of entities
+	// for which the object can be considered to be relevant.
+	Audience ItemCollection `jsonld:"audience,omitempty"`
+	// Content represents a textual representation of the Object encoded as a JSON string.
+	// By default, the value of content is HTML.
+	// The MediaType property can be used in the object to indicate a different content type.
+	// (The content MAY be expressed using multiple language-tagged values.)
+	Content NaturalLanguageValues `jsonld:"content,omitempty,collapsible"`
+	// Context identifies the context within which the object exists or an activity was performed.
+	// The notion of "context" used is intentionally vague.
+	// The intended function is to serve as a means of grouping objects and activities that share a
+	// common originating context or purpose. An example could be all activities relating to a common project or event.
+	Context Item `jsonld:"context,omitempty"`
+	// MediaType identifies the MIME media type of the value of the Content property.
+	// If not specified, the content property is assumed to contain text/html content.
+	MediaType MimeType `jsonld:"mediaType,omitempty"`
+	// EndTime represents the date and time describing the actual or expected ending time of the object.
+	// When used with an Activity object, for instance, the EndTime property specifies the moment
+	// the activity concluded or is expected to conclude.
+	EndTime time.Time `jsonld:"endTime,omitempty"`
+	// Generator identifies the entity (e.g. an application) that generated the object.
+	Generator Item `jsonld:"generator,omitempty"`
+	// Icon indicates an entity that describes an icon for this object.
+	// The image should have an aspect ratio of one (horizontal) to one (vertical)
+	// and should be suitable for presentation at a small size.
+	Icon Item `jsonld:"icon,omitempty"`
+	// Image indicates an entity that describes an image for this object.
+	// Unlike the icon property, there are no aspect ratio or display size limitations assumed.
+	Image Item `jsonld:"image,omitempty"`
+	// InReplyTo indicates one or more entities for which this object is considered a response.
+	InReplyTo Item `jsonld:"inReplyTo,omitempty"`
+	// Location indicates one or more physical or logical locations associated with the object.
+	Location Item `jsonld:"location,omitempty"`
+	// Preview identifies an entity that provides a preview of this object.
+	Preview Item `jsonld:"preview,omitempty"`
+	// Published the date and time at which the object was published
+	Published time.Time `jsonld:"published,omitempty"`
+	// Replies identifies a Collection containing objects considered to be responses to this object.
+	Replies Item `jsonld:"replies,omitempty"`
+	// StartTime represents the date and time describing the actual or expected starting time of the object.
+	// When used with an Activity object, for instance, the StartTime property specifies
+	// the moment the activity began or is scheduled to begin.
+	StartTime time.Time `jsonld:"startTime,omitempty"`
+	// Summary represents a natural language summarization of the object encoded as HTML.
+	// Multiple language tagged summaries MAY be provided.
+	Summary NaturalLanguageValues `jsonld:"summary,omitempty,collapsible"`
+	// Tag identifies one or more "tags" that have been associated with an objects. A tag can be any kind of Object.
+	// The key difference between attachment and tag is that the former implies association by inclusion,
+	// while the latter implies associated by reference.
+	Tag Item `jsonld:"tag,omitempty"`
+	// Updated represents the date and time at which the object was updated
+	Updated time.Time `jsonld:"updated,omitempty"`
+	// URL identifies one or more links to representations of the object
+	URL Item `jsonld:"url,omitempty"`
+	// To identifies an entity considered to be part of the public primary audience of an Object
+	To ItemCollection `jsonld:"to,omitempty"`
+	// Bto identifies an Object that is part of the private primary audience of this Object.
+	Bto ItemCollection `jsonld:"bto,omitempty"`
+	// CC identifies an Object that is part of the public secondary audience of this Object.
+	CC ItemCollection `jsonld:"cc,omitempty"`
+	// BCC identifies one or more Objects that are part of the private secondary audience of this Object.
+	BCC ItemCollection `jsonld:"bcc,omitempty"`
+	// Duration indicates the object's approximate duration when the Object describes a time-bound resource,
+	// such as an Audio or Video, a meeting, etc,
+	// The value must be expressed as an xsd:duration as defined by [xmlschema11-2],
+	// section 3.3.6 (e.g. a period of 5 seconds is represented as "PT5S").
+	Duration time.Duration `jsonld:"duration,omitempty"`
+	// Likes identifies the collection containing a list of all Like activities with this object as the object property, added as a side effect.
+	// The likes collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Likes Item `jsonld:"likes,omitempty"`
+	// Shares identifies the collection containing a list of all Announce activities with this object as the object property, added as a side effect.
+	// The shares collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Shares Item `jsonld:"shares,omitempty"`
+	// Source property is intended to convey some sort of source from which the content markup was derived,
+	// as a form of provenance, or to support future editing by clients.
+	// In general, clients do the conversion from source to content, not the other way around.
+	Source Source `jsonld:"source,omitempty"`
+}
+
+func types(m Typer) ActivityVocabularyTypes {
+	result := ActivityVocabularyTypes{}
+	if tt, ok := m.(ActivityVocabularyType); ok {
+		result = ActivityVocabularyTypes{tt}
+	}
+	if tt, ok := m.(ActivityVocabularyTypes); ok {
+		result = tt
+	}
+	return result
+}
+
+// GetID returns the ID corresponding to the current Object
+func (o Object) GetID() ID {
+	return o.ID
+}
+
+// GetLink returns the IRI corresponding to the current Object
+func (o Object) GetLink() IRI {
+	return IRI(o.ID)
+}
+
+// GetType returns the type of the current Object
+func (o Object) GetType() Typer {
+	return o.Type
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (o Object) Match(tt ...ActivityVocabularyType) bool {
+	return ActivityVocabularyTypes(tt).Match(o.Type)
+}
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (o *Object) UnmarshalJSON(data []byte) error {
+	p := fastjson.Parser{}
+	val, err := p.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	return JSONLoadObject(val, o)
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (o Object) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	JSONWrite(&b, '{')
+
+	if JSONWriteObjectValue(&b, o) {
+		JSONWrite(&b, '}')
+		return b.Bytes(), nil
+	}
+	return nil, nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (o *Object) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (o Object) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+func fmtObjectProps(w io.Writer, n *int) func(*Object) error {
+	return func(o *Object) error {
+		comma := func() {
+			if *n > 0 {
+				_, _ = io.WriteString(w, ", ")
+			}
+		}
+
+		if len(o.ID) > 0 {
+			*n, _ = fmt.Fprintf(w, "id: %s", o.ID)
+		}
+		if len(o.Name) > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "name", o.Name)
+		}
+		if len(o.Summary) > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "summary", o.Summary)
+		}
+		if len(o.Content) > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "content", o.Content)
+		}
+		if !IsNil(o.Attachment) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "attachment", o.Attachment)
+		}
+		if !IsNil(o.AttributedTo) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "attributedTo", o.AttributedTo)
+		}
+		if !IsNil(o.Audience) && o.Audience.Count() > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "audience", o.Audience)
+		}
+		if !IsNil(o.Context) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "context", o.Context)
+		}
+		if !IsNil(o.Generator) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "generator", o.Generator)
+		}
+		if !IsNil(o.Icon) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "icon", o.Icon)
+		}
+		if !IsNil(o.Image) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "image", o.Image)
+		}
+		if !IsNil(o.InReplyTo) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "inReplyTo", o.InReplyTo)
+		}
+		if !IsNil(o.Location) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "location", o.Location)
+		}
+		if !IsNil(o.Preview) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "preview", o.Preview)
+		}
+		if !IsNil(o.Replies) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "replies", o.Replies)
+		}
+		if !IsNil(o.Tag) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "tag", o.Tag)
+		}
+		if !IsNil(o.URL) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "url", o.URL)
+		}
+		if o.To.Count() > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "to", o.To)
+		}
+		if o.Bto.Count() > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "bto", o.Bto)
+		}
+		if o.CC.Count() > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "cc", o.CC)
+		}
+		if o.BCC.Count() > 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "bcc", o.BCC)
+		}
+		if !o.Published.IsZero() {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "published", o.Published)
+		}
+		if !o.Updated.IsZero() {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "updated", o.Updated)
+		}
+		if !o.StartTime.IsZero() {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "startTime", o.StartTime)
+		}
+		if !o.EndTime.IsZero() {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "endTime", o.EndTime)
+		}
+		if o.Duration != 0 {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "duration", o.Duration)
+		}
+		if !IsNil(o.Likes) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "likes", o.Likes)
+		}
+		if !IsNil(o.Shares) {
+			comma()
+			*n, _ = fmt.Fprintf(w, "%s: %s", "shares", o.Shares)
+		}
+		return nil
+	}
+}
+
+func (o Object) Format(s fmt.State, verb rune) {
+	typ := o.Type
+	switch verb {
+	case 's':
+		iri := o.ID
+		if iri != "" {
+			s.Write([]byte(iri))
+		} else {
+			_, _ = fmt.Fprintf(s, "%T[%v]", o, typ)
+		}
+	case 'v':
+		n := 0
+		if typ != nil {
+			_, _ = fmt.Fprintf(s, "%T[%v] { ", o, typ)
+			_ = fmtObjectProps(s, &n)(&o)
+			_, _ = io.WriteString(s, " }")
+		} else {
+			_, _ = fmt.Fprintf(s, "%T { ", o)
+			_ = fmtObjectProps(s, &n)(&o)
+			_, _ = io.WriteString(s, " }")
+		}
+	}
+}
+
+// Recipients performs recipient de-duplication on the Object's To, Bto, CC and BCC properties
+func (o *Object) Recipients() ItemCollection {
+	aud := o.Audience
+	return ItemCollectionDeduplication(&o.To, &o.CC, &o.Bto, &o.BCC, &aud)
+}
+
+func cleanObjectProperties(oo *Object) {
+	cleanItems := func(it ItemCollection) ItemCollection {
+		if it == nil {
+			return it
+		}
+		res := make(ItemCollection, 0)
+		_ = OnItem(it, func(item Item) error {
+			return res.Append(CleanRecipients(item))
+		})
+		return res
+	}
+	oo.BCC = nil
+	oo.Bto = nil
+	oo.Audience = cleanItems(oo.Audience)
+	oo.Attachment = CleanRecipients(oo.Attachment)
+	oo.Icon = CleanRecipients(oo.Icon)
+	oo.Image = CleanRecipients(oo.Image)
+	oo.Context = CleanRecipients(oo.Context)
+	oo.Generator = CleanRecipients(oo.Generator)
+	oo.AttributedTo = CleanRecipients(oo.AttributedTo)
+	oo.Preview = CleanRecipients(oo.Preview)
+	oo.Tag = CleanRecipients(oo.Tag)
+}
+
+// Clean removes Bto and BCC properties
+func (o *Object) Clean() Item {
+	oo := *o
+	cleanObjectProperties(&oo)
+	return &oo
+}
+
+type (
+	// Article represents any kind of multi-paragraph written work.
+	Article = Object
+	// Audio represents an audio document of any kind.
+	Audio = Document
+	// Document represents a document of any kind.
+	Document = Object
+	// Event represents any kind of event.
+	Event = Object
+	// Image An image document of any kind
+	Image = Document
+	// Note represents a short written work typically less than a single paragraph in length.
+	Note = Object
+	// Page represents a Web Page.
+	Page = Document
+	// Video represents a video document of any kind
+	Video = Document
+)
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (m *MimeType) UnmarshalJSON(data []byte) error {
+	*m = MimeType(strings.Trim(string(data), "\""))
+	return nil
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (m MimeType) MarshalJSON() ([]byte, error) {
+	if len(m) == 0 {
+		return nil, nil
+	}
+	b := bytes.Buffer{}
+	JSONWriteStringValue(&b, string(m))
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (m *MimeType) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (m MimeType) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// ToObject returns an Object pointer to the data in the current Item
+// It relies on the fact that all the types in this package have a data layout compatible with Object.
+func ToObject(it LinkOrIRI) (*Object, error) {
+	switch i := it.(type) {
+	case *Object:
+		return i, nil
+	case Object:
+		return &i, nil
+	case *Place:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Place:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *Profile:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Profile:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *Relationship:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Relationship:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *Tombstone:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Tombstone:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *Actor:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Actor:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *Activity:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Activity:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *IntransitiveActivity:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case IntransitiveActivity:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *Question:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Question:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *Collection:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case Collection:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *CollectionPage:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case CollectionPage:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *OrderedCollection:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case OrderedCollection:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	case *OrderedCollectionPage:
+		return (*Object)(unsafe.Pointer(i)), nil
+	case OrderedCollectionPage:
+		return (*Object)(unsafe.Pointer(&i)), nil
+	default:
+		return reflectItemToType[Object](it)
+	}
+}
+
+func reflectItemToType[T Objects | Links](it LinkOrIRI) (*T, error) {
+	if IsNil(it) {
+		return nil, nil
+	}
+	tTyp := reflect.TypeFor[*T]()
+	if !reflect.TypeOf(it).ConvertibleTo(tTyp) {
+		return nil, ErrorInvalidType[T](it)
+	}
+
+	iVal := reflect.ValueOf(it)
+	if !iVal.IsValid() {
+		return nil, ErrorInvalidType[T](it)
+	}
+	if i, ok := iVal.Convert(tTyp).Interface().(*T); ok {
+		return i, nil
+	}
+	return nil, ErrorInvalidType[T](it)
+}
+
+// Source is intended to convey some sort of source from which the content markup was derived,
+// as a form of provenance, or to support future editing by clients.
+type Source struct {
+	// Content
+	Content NaturalLanguageValues `jsonld:"content"`
+	// MediaType
+	MediaType MimeType `jsonld:"mediaType"`
+}
+
+// GetAPSource
+func GetAPSource(val *fastjson.Value) Source {
+	s := Source{}
+	if val == nil {
+		return s
+	}
+
+	if val.Exists("source", "content") {
+		if contBytes := val.Get("source", "content").String(); len(contBytes) > 0 {
+			s.Content = make(NaturalLanguageValues)
+			_ = s.Content.UnmarshalJSON([]byte(contBytes))
+		}
+	}
+	if val.Exists("source", "mediaType") {
+		if mimeBytes := val.Get("source", "mediaType").GetStringBytes(); len(mimeBytes) > 0 {
+			_ = s.MediaType.UnmarshalJSON(mimeBytes)
+		}
+	}
+
+	return s
+}
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (s *Source) UnmarshalJSON(data []byte) error {
+	p := fastjson.Parser{}
+	val, err := p.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	*s = GetAPSource(val)
+	return nil
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (s *Source) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	notEmpty := false
+	JSONWrite(&b, '{')
+	if len(s.MediaType) > 0 {
+		if v, err := s.MediaType.MarshalJSON(); err == nil && len(v) > 0 {
+			notEmpty = JSONWriteProp(&b, "mediaType", v, false)
+		}
+	}
+	if len(s.Content) > 0 {
+		notEmpty = JSONWriteNaturalLanguageProp(&b, "content", s.Content, notEmpty)
+	}
+	if !notEmpty {
+		return nil, nil
+	}
+	JSONWrite(&b, '}')
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (s *Source) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (s *Source) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// Equals verifies if our receiver Object is equals with the "with" Item
+func (o Object) Equals(with Item) bool {
+	if IsItemCollection(with) {
+		return false
+	}
+	withObject, err := ToObject(with)
+	if err != nil {
+		return false
+	}
+	if !o.ID.Equal(withObject.ID) {
+		return false
+	}
+	if !TypesEqual(o.Type, withObject.Type) {
+		return false
+	}
+	if !with.GetLink().Equal(o.GetLink()) {
+		return false
+	}
+	return o.equal(*withObject)
+}
+
+// equal verifies if our receiver Object is equals with the "with" Object
+func (o Object) equal(with Object) bool {
+	result := true
+	if !with.Name.Equal(o.Name) {
+		return false
+	}
+	if !with.Summary.Equal(o.Summary) {
+		return false
+	}
+	if !with.Content.Equal(o.Content) {
+		return false
+	}
+	if !ItemsEqual(o.Attachment, with.Attachment) {
+		return false
+	}
+	if !ItemsEqual(o.AttributedTo, with.AttributedTo) {
+		return false
+	}
+	if !ItemsEqual(o.Audience, with.Audience) {
+		return false
+	}
+	if !ItemsEqual(o.Context, with.Context) {
+		return false
+	}
+	if !ItemsEqual(o.Generator, with.Generator) {
+		return false
+	}
+	if !ItemsEqual(o.Icon, with.Icon) {
+		return false
+	}
+	if !ItemsEqual(o.Image, with.Image) {
+		return false
+	}
+	if !ItemsEqual(o.InReplyTo, with.InReplyTo) {
+		return false
+	}
+	if !ItemsEqual(o.Location, with.Location) {
+		return false
+	}
+	if !ItemsEqual(o.Preview, with.Preview) {
+		return false
+	}
+	if !ItemsEqual(o.Replies, with.Replies) {
+		return false
+	}
+	if !ItemsEqual(o.Tag, with.Tag) {
+		return false
+	}
+	if !ItemsEqual(o.URL, with.URL) {
+		return false
+	}
+	if !ItemsEqual(o.To, with.To) {
+		return false
+	}
+	if !ItemsEqual(o.Bto, with.Bto) {
+		return false
+	}
+	if !ItemsEqual(o.CC, with.CC) {
+		return false
+	}
+	if !ItemsEqual(o.BCC, with.BCC) {
+		return false
+	}
+	if !with.Published.Equal(o.Published) {
+		return false
+	}
+	if !with.Updated.Equal(o.Updated) {
+		return false
+	}
+	if !with.StartTime.Equal(o.StartTime) {
+		return false
+	}
+	if !with.EndTime.Equal(o.EndTime) {
+		return false
+	}
+	if with.Duration != o.Duration {
+		return false
+	}
+	if !ItemsEqual(o.Likes, with.Likes) {
+		return false
+	}
+	if !ItemsEqual(o.Shares, with.Shares) {
+		return false
+	}
+	return result
+}
+
+// WithObjectFn represents a function type that can be used as a parameter for OnObject helper function
+type WithObjectFn func(*Object) error
+
+// OnObject calls function fn on it Item if it can be asserted to type *Object
+//
+// This function should be safe to be called for all types with a structure compatible
+// to the Object type.
+func OnObject(it LinkOrIRI, fn WithObjectFn) error {
+	if IsNil(it) {
+		return nil
+	}
+	obFn := func(it LinkOrIRI) error {
+		ob, err := ToObject(it)
+		if err != nil {
+			return err
+		}
+		return fn(ob)
+	}
+
+	if !IsItemCollection(it) {
+		return obFn(it)
+	}
+	return OnItemCollection(it, func(col *ItemCollection) error {
+		for _, ob := range *col {
+			if err := obFn(ob); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func notEmptyObject(o *Object) bool {
+	if o == nil {
+		return false
+	}
+	return len(o.ID) > 0 ||
+		HasTypes(o) ||
+		ActivityTypes.Match(o.GetType()) ||
+		o.Attachment != nil ||
+		o.AttributedTo != nil ||
+		o.Audience != nil ||
+		o.BCC != nil ||
+		o.Bto != nil ||
+		o.CC != nil ||
+		o.Context != nil ||
+		o.Duration > 0 ||
+		!o.EndTime.IsZero() ||
+		o.Generator != nil ||
+		o.Icon != nil ||
+		o.Image != nil ||
+		o.InReplyTo != nil ||
+		o.Likes != nil ||
+		o.Location != nil ||
+		len(o.MediaType) > 0 ||
+		len(o.Name) > 0 ||
+		len(o.Content) > 0 ||
+		len(o.Summary) > 0 ||
+		o.Preview != nil ||
+		!o.Published.IsZero() ||
+		o.Replies != nil ||
+		o.Shares != nil ||
+		o.Source.MediaType != "" ||
+		len(o.Source.Content) > 0 ||
+		!o.StartTime.IsZero() ||
+		o.Tag != nil ||
+		o.To != nil ||
+		!o.Updated.IsZero() ||
+		o.URL != nil
+}
+
+// CopyObjectProperties updates the "old" object properties with the "new's"
+// Including ID and Type
+func CopyObjectProperties(to, from *Object) (*Object, error) {
+	to.ID = from.ID
+	to.Type = from.Type
+	to.Audience = replaceIfItemCollection(to.Audience, from.Audience)
+	to.Name = replaceIfNaturalLanguageValues(to.Name, from.Name)
+	to.Summary = replaceIfNaturalLanguageValues(to.Summary, from.Summary)
+	to.Content = replaceIfNaturalLanguageValues(to.Content, from.Content)
+	to.Source = replaceIfSource(to.Source, from.Source)
+	to.AttributedTo = replaceIfItem(to.AttributedTo, from.AttributedTo)
+	to.Context = replaceIfItem(to.Context, from.Context)
+	to.Generator = replaceIfItem(to.Generator, from.Generator)
+	to.Icon = replaceIfItem(to.Icon, from.Icon)
+	to.Image = replaceIfItem(to.Image, from.Image)
+	to.InReplyTo = replaceIfItem(to.InReplyTo, from.InReplyTo)
+	to.Location = replaceIfItem(to.Location, from.Location)
+	to.Preview = replaceIfItem(to.Preview, from.Preview)
+	to.Replies = replaceIfItem(to.Replies, from.Replies)
+	to.Likes = replaceIfItem(to.Likes, from.Likes)
+	to.Shares = replaceIfItem(to.Shares, from.Shares)
+	to.URL = replaceIfItem(to.URL, from.URL)
+	to.Attachment = replaceIfItem(to.Attachment, from.Attachment)
+	to.Tag = replaceIfItem(to.Tag, from.Tag)
+	to.To = replaceIfItemCollection(to.To, from.To)
+	to.Bto = replaceIfItemCollection(to.Bto, from.Bto)
+	to.CC = replaceIfItemCollection(to.CC, from.CC)
+	to.BCC = replaceIfItemCollection(to.BCC, from.BCC)
+	if len(from.MediaType) > 0 {
+		to.MediaType = from.MediaType
+	}
+	if !from.Published.IsZero() {
+		to.Published = from.Published
+	}
+	if !from.Updated.IsZero() {
+		to.Updated = from.Updated
+	}
+	if !from.StartTime.IsZero() {
+		to.StartTime = from.StartTime
+	}
+	if !from.EndTime.IsZero() {
+		to.EndTime = from.EndTime
+	}
+	if from.Duration == 0 {
+		to.Duration = from.Duration
+	}
+	return to, nil
+}
+
+// FlattenObjectProperties flattens the Object's properties from Object types to IRI
+func FlattenObjectProperties(o *Object) *Object {
+	if o == nil {
+		return nil
+	}
+	o.Replies = Flatten(o.Replies)
+	o.Shares = Flatten(o.Shares)
+	o.Likes = Flatten(o.Likes)
+	o.AttributedTo = Flatten(o.AttributedTo)
+	o.InReplyTo = Flatten(o.InReplyTo)
+	o.To = FlattenItemCollection(o.To)
+	o.Bto = FlattenItemCollection(o.Bto)
+	o.CC = FlattenItemCollection(o.CC)
+	o.BCC = FlattenItemCollection(o.BCC)
+	o.Audience = FlattenItemCollection(o.Audience)
+	o.Tag = Flatten(o.Tag) // NOTE(marius): we originally had tags not normalized and kept inline
+	o.Attachment = Flatten(o.Attachment)
+	return o
+}
+
+func replaceIfSource(to, from Source) Source {
+	if from.MediaType != to.MediaType {
+		return from
+	}
+	to.Content = replaceIfNaturalLanguageValues(to.Content, from.Content)
+	return to
+}

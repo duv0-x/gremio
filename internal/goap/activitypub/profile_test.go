@@ -1,0 +1,408 @@
+package activitypub
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/google/go-cmp/cmp"
+)
+
+func TestProfile_Recipients(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestToProfile(t *testing.T) {
+	tests := []struct {
+		name    string
+		it      LinkOrIRI
+		want    *Profile
+		wantErr error
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name: "Valid Profile",
+			it:   Profile{ID: "test", Type: ProfileType},
+			want: &Profile{ID: "test", Type: ProfileType},
+		},
+		{
+			name: "Valid *Profile",
+			it:   &Profile{ID: "test", Type: ProfileType},
+			want: &Profile{ID: "test", Type: ProfileType},
+		},
+		{
+			name:    "IRI",
+			it:      IRI("https://example.com"),
+			wantErr: ErrorInvalidType[Profile](IRI("")),
+		},
+		{
+			name:    "IRIs",
+			it:      IRIs{IRI("https://example.com")},
+			wantErr: ErrorInvalidType[Profile](IRIs{}),
+		},
+		{
+			name:    "ItemCollection",
+			it:      ItemCollection{},
+			wantErr: ErrorInvalidType[Profile](ItemCollection{}),
+		},
+		{
+			name:    "Object",
+			it:      &Object{ID: "test", Type: ArticleType},
+			wantErr: ErrorInvalidType[Profile](&Object{}),
+		},
+		{
+			name:    "Activity",
+			it:      &Activity{ID: "test", Type: CreateType},
+			wantErr: ErrorInvalidType[Profile](&Activity{}),
+		},
+		{
+			name:    "IntransitiveActivity",
+			it:      &IntransitiveActivity{ID: "test", Type: ArriveType},
+			wantErr: ErrorInvalidType[Profile](&IntransitiveActivity{}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToProfile(tt.it)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("ToProfile() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("ToProfile() got = %s", cmp.Diff(tt.want, got))
+			}
+			if got != nil && !got.Match(ProfileType) {
+				t.Errorf("ToProfile() expected to match Profile type, got = %v", got.GetType())
+			}
+		})
+	}
+}
+
+func TestProfile_GetID(t *testing.T) {
+	tests := []struct {
+		name string
+		ID   ID
+		want ID
+	}{
+		{
+			name: "empty",
+			ID:   "",
+			want: "",
+		},
+		{
+			name: "not empty",
+			ID:   "http://example.com",
+			want: "http://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Profile{ID: tt.ID}
+			if got := l.GetID(); got != tt.want {
+				t.Errorf("GetID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProfile_GetLink(t *testing.T) {
+	tests := []struct {
+		name string
+		IRI  IRI
+		want IRI
+	}{
+		{
+			name: "empty",
+			IRI:  "",
+			want: "",
+		},
+		{
+			name: "not empty",
+			IRI:  "http://example.com",
+			want: "http://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Profile{ID: tt.IRI}
+			if got := l.GetLink(); got != tt.want {
+				t.Errorf("GetLink() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProfile_GetType(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestProfile_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     Profile
+		want    []byte
+		wantErr error
+	}{
+		{
+			name: "nil",
+			sub:  Profile{},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalJSON()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("MarshalJSON() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestProfile_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Profile
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			wantErr: fmt.Errorf(`cannot parse JSON: cannot parse empty string; unparsed tail: ""`),
+		},
+		{
+			name: "just with ID",
+			data: []byte(`{"id":"https://example.com/profile-1"}`),
+			want: Profile{ID: "https://example.com/profile-1"},
+		},
+		{
+			name: "a mocked profile",
+			data: []byte(`{"id":"https://example.com/~root/profile/1","type":"Profile","attributedTo":"https://example.com/~root","audience":"https://www.w3.org/ns/activitystreams#Public","published":"2000-01-04T22:23:22.000Z","likes":"https://example.com/~root/profile/1/likes"}`),
+			want: Profile{
+				ID:           "https://example.com/~root/profile/1",
+				Type:         ProfileType,
+				AttributedTo: IRI("https://example.com/~root"),
+				Audience:     ItemCollection{IRI("https://www.w3.org/ns/activitystreams#Public")},
+				Published:    time.Date(2000, time.January, 4, 22, 23, 22, 0, time.UTC),
+				Likes:        IRI("https://example.com/~root/profile/1/likes"),
+			},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Profile{}
+			if err := l.UnmarshalJSON(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %s", cmp.Diff(tt.want, l))
+			}
+		})
+	}
+}
+
+func TestProfile_Clean(t *testing.T) {
+	tests := []struct {
+		name string
+		a    Profile
+		want Item
+	}{
+		{
+			name: "empty",
+			a:    Profile{},
+			want: &Profile{},
+		},
+		{
+			name: "has Bto",
+			a:    Profile{Type: ProfileType, Bto: ItemCollection{IRI("http://example.com")}},
+			want: &Profile{Type: ProfileType},
+		},
+		{
+			name: "has BCC",
+			a:    Profile{Type: ProfileType, BCC: ItemCollection{IRI("http://example.com")}},
+			want: &Profile{Type: ProfileType},
+		},
+		{
+			name: "audience has BCC",
+			a:    Profile{Type: ProfileType, Audience: ItemCollection{&Object{BCC: ItemCollection{IRI("http://example.com")}}}},
+			want: &Profile{Type: ProfileType, Audience: ItemCollection{&Object{}}},
+		},
+		{
+			name: "attachment has BCC",
+			a:    Profile{Type: ProfileType, Attachment: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Profile{Type: ProfileType, Attachment: &Object{}},
+		},
+		{
+			name: "icon has BCC",
+			a:    Profile{Type: ProfileType, Icon: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Profile{Type: ProfileType, Icon: &Object{}},
+		},
+		{
+			name: "image has BCC",
+			a:    Profile{Type: ProfileType, Image: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Profile{Type: ProfileType, Image: &Object{}},
+		},
+		{
+			name: "context has BCC",
+			a:    Profile{Type: ProfileType, Context: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Profile{Type: ProfileType, Context: &Object{}},
+		},
+		{
+			name: "generator has BCC",
+			a:    Profile{Type: ProfileType, Generator: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Profile{Type: ProfileType, Generator: &Object{}},
+		},
+		{
+			name: "attributedTo has BCC",
+			a:    Profile{Type: ProfileType, AttributedTo: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Profile{Type: ProfileType, AttributedTo: &Object{}},
+		},
+		{
+			name: "preview has BCC",
+			a:    Profile{Type: ProfileType, Preview: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Profile{Type: ProfileType, Preview: &Object{}},
+		},
+		{
+			name: "tag has BCC",
+			a:    Profile{Type: ProfileType, Tag: ItemCollection{&Object{BCC: ItemCollection{IRI("http://example.com")}}}},
+			want: &Profile{Type: ProfileType, Tag: ItemCollection{&Object{}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.a.Clean(); !cmp.Equal(got, tt.want, EquateItems) {
+				t.Errorf("Clean() = %s", cmp.Diff(tt.want, got, EquateItems))
+			}
+		})
+	}
+}
+
+func TestOnProfile(t *testing.T) {
+	type args struct {
+		it Item
+		fn func(*testing.T) WithProfileFn
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr error
+	}{
+		{
+			name: "single",
+			args: args{
+				it: Profile{ID: "https://example.com"},
+				fn: func(t *testing.T) WithProfileFn {
+					return func(p *Profile) error {
+						return nil
+					}
+				},
+			},
+		},
+		{
+			name: "single fails",
+			args: args{
+				it: &Profile{ID: "https://not-equal"},
+				fn: func(t *testing.T) WithProfileFn {
+					return func(p *Profile) error {
+						return fmt.Errorf("test")
+					}
+				},
+			},
+			wantErr: fmt.Errorf("test"),
+		},
+		{
+			name: "collection of profiles",
+			args: args{
+				it: ItemCollection{Profile{ID: "https://example.com/p1"}, Profile{ID: "https://example.com/p2"}},
+				fn: func(t *testing.T) WithProfileFn {
+					return func(p *Profile) error {
+						return nil
+					}
+				},
+			},
+		},
+		{
+			name: "collection of profiles fails",
+			args: args{
+				it: ItemCollection{Profile{ID: "https://example.com"}, &Profile{ID: "not-equal"}},
+				fn: func(t *testing.T) WithProfileFn {
+					return func(p *Profile) error {
+						return fmt.Errorf("test")
+					}
+				},
+			},
+			wantErr: fmt.Errorf("test"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := OnProfile(tt.args.it, tt.args.fn(t))
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("OnProfile() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+		})
+	}
+}
+
+func TestProfile_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Profile
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Profile{}
+			if err := l.UnmarshalBinary(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalBinary() got = %s", cmp.Diff(tt.want, l))
+			}
+		})
+	}
+}
+
+func TestProfile_MarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     Profile
+		want    []byte
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			sub:     Profile{},
+			want:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalBinary()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("MarshalBinary() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}

@@ -1,0 +1,391 @@
+package activitypub
+
+import (
+	"bytes"
+	"fmt"
+	"time"
+	"unsafe"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/valyala/fastjson"
+)
+
+// OrderedCollectionPage is used to represent ordered subsets of items from an OrderedCollection.
+// Refer to the Activity Streams 2.0 Core for a complete description of the OrderedCollectionPage object.
+//
+// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage
+//
+// OrderedCollectionPage type extends from both CollectionPage and OrderedCollection.
+// In addition to the properties inherited from each of those, the OrderedCollectionPage
+// may contain an additional startIndex property whose value indicates the relative index position
+// of the first item contained by the page within the OrderedCollection to which the page belongs.
+//
+// https://www.w3.org/TR/activitystreams-core/#dfn-orderedcollectionpage
+type OrderedCollectionPage struct {
+	// ID provides the globally unique identifier for the object.
+	ID ID `jsonld:"id,omitempty"`
+	// Type identifies the Object type. Multiple values may be specified.
+	Type Typer `jsonld:"type,omitempty"`
+	// Name represents a simple, human-readable, plain-text name for the object.
+	// HTML markup MUST NOT be included. The name MAY be expressed using multiple language-tagged values.
+	Name NaturalLanguageValues `jsonld:"name,omitempty,collapsible"`
+	// Attachment identifies a resource attached or related to an object that potentially requires special handling.
+	// The intent is to provide a model that is at least semantically similar to attachments in email.
+	Attachment Item `jsonld:"attachment,omitempty"`
+	// AttributedTo identifies one or more entities to which this object is attributed. The attributed entities might not be Actors.
+	// For instance, an object might be attributed to the completion of another activity.
+	AttributedTo Item `jsonld:"attributedTo,omitempty"`
+	// Audience identifies one or more entities that represent the total population of entities
+	// for which the object can be considered to be relevant.
+	Audience ItemCollection `jsonld:"audience,omitempty"`
+	// Content represents a textual representation of the Object encoded as a JSON string.
+	// By default, the value of content is HTML.
+	// The MediaType property can be used in the object to indicate a different content type.
+	// (The content MAY be expressed using multiple language-tagged values.)
+	Content NaturalLanguageValues `jsonld:"content,omitempty,collapsible"`
+	// Context identifies the context within which the object exists or an activity was performed.
+	// The notion of "context" used is intentionally vague.
+	// The intended function is to serve as a means of grouping objects and activities that share a
+	// common originating context or purpose. An example could be all activities relating to a common project or event.
+	Context Item `jsonld:"context,omitempty"`
+	// MediaType identifies the MIME media type of the value of the Content property.
+	// If not specified, the content property is assumed to contain text/html content.
+	MediaType MimeType `jsonld:"mediaType,omitempty"`
+	// EndTime represents the date and time describing the actual or expected ending time of the object.
+	// When used with an Activity object, for instance, the EndTime property specifies the moment
+	// the activity concluded or is expected to conclude.
+	EndTime time.Time `jsonld:"endTime,omitempty"`
+	// Generator identifies the entity (e.g. an application) that generated the object.
+	Generator Item `jsonld:"generator,omitempty"`
+	// Icon indicates an entity that describes an icon for this object.
+	// The image should have an aspect ratio of one (horizontal) to one (vertical)
+	// and should be suitable for presentation at a small size.
+	Icon Item `jsonld:"icon,omitempty"`
+	// Image indicates an entity that describes an image for this object.
+	// Unlike the icon property, there are no aspect ratio or display size limitations assumed.
+	Image Item `jsonld:"image,omitempty"`
+	// InReplyTo indicates one or more entities for which this object is considered a response.
+	InReplyTo Item `jsonld:"inReplyTo,omitempty"`
+	// Location indicates one or more physical or logical locations associated with the object.
+	Location Item `jsonld:"location,omitempty"`
+	// Preview identifies an entity that provides a preview of this object.
+	Preview Item `jsonld:"preview,omitempty"`
+	// Published the date and time at which the object was published
+	Published time.Time `jsonld:"published,omitempty"`
+	// Replies identifies a Collection containing objects considered to be responses to this object.
+	Replies Item `jsonld:"replies,omitempty"`
+	// StartTime represents the date and time describing the actual or expected starting time of the object.
+	// When used with an Activity object, for instance, the StartTime property specifies
+	// the moment the activity began or is scheduled to begin.
+	StartTime time.Time `jsonld:"startTime,omitempty"`
+	// Summary represents a natural language summarization of the object encoded as HTML.
+	// Multiple language tagged summaries MAY be provided.
+	Summary NaturalLanguageValues `jsonld:"summary,omitempty,collapsible"`
+	// Tag identifies one or more "tags" that have been associated with an objects. A tag can be any kind of Object.
+	// The key difference between attachment and tag is that the former implies association by inclusion,
+	// while the latter implies associated by reference.
+	Tag Item `jsonld:"tag,omitempty"`
+	// Updated represents the date and time at which the object was updated
+	Updated time.Time `jsonld:"updated,omitempty"`
+	// URL identifies one or more links to representations of the object
+	URL Item `jsonld:"url,omitempty"`
+	// To identifies an entity considered to be part of the public primary audience of an Object
+	To ItemCollection `jsonld:"to,omitempty"`
+	// Bto identifies an Object that is part of the private primary audience of this Object.
+	Bto ItemCollection `jsonld:"bto,omitempty"`
+	// CC identifies an Object that is part of the public secondary audience of this Object.
+	CC ItemCollection `jsonld:"cc,omitempty"`
+	// BCC identifies one or more Objects that are part of the private secondary audience of this Object.
+	BCC ItemCollection `jsonld:"bcc,omitempty"`
+	// Duration indicates the object's approximate duration when the Object describes a time-bound resource,
+	// such as an Audio or Video, a meeting, etc,
+	// The value must be expressed as an xsd:duration as defined by [xmlschema11-2],
+	// section 3.3.6 (e.g. a period of 5 seconds is represented as "PT5S").
+	Duration time.Duration `jsonld:"duration,omitempty"`
+	// Likes identifies the collection containing a list of all Like activities with this object as the object property, added as a side effect.
+	// The likes collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Likes Item `jsonld:"likes,omitempty"`
+	// Shares identifies the collection containing a list of all Announce activities with this object as the object property, added as a side effect.
+	// The shares collection MUST be either an OrderedCollection or a Collection and MAY be filtered on privileges
+	// of an authenticated user or as appropriate when no authentication is given.
+	Shares Item `jsonld:"shares,omitempty"`
+	// Source property is intended to convey some sort of source from which the content markup was derived,
+	// as a form of provenance, or to support future editing by clients.
+	// In general, clients do the conversion from source to content, not the other way around.
+	Source Source `jsonld:"source,omitempty"`
+	// Current in a paged OrderedCollection indicates the page that contains the most recently updated member items.
+	Current Item `jsonld:"current,omitempty"`
+	// First in a paged OrderedCollection indicates the furthest preceding page of items in the collection.
+	First Item `jsonld:"first,omitempty"`
+	// Last in a paged OrderedCollection indicates the furthest proceeding page of the collection.
+	Last Item `jsonld:"last,omitempty"`
+	// TotalItems is a non-negative integer specifying the total number of objects contained by the
+	// logical view of the OrderedCollection.
+	// This number might not reflect the actual number of items serialized within the OrderedCollection object instance.
+	TotalItems uint `jsonld:"totalItems,omitempty"`
+	// OrderedItems identifies the items contained in a OrderedCollection. The items might be ordered or unordered.
+	OrderedItems ItemCollection `jsonld:"orderedItems,omitempty"`
+	// PartOf identifies the OrderedCollection to which an OrderedCollectionPage objects items belong.
+	PartOf Item `jsonld:"partOf,omitempty"`
+	// Next in a OrderedCollectionPage indicates the next page of items.
+	Next Item `jsonld:"next,omitempty"`
+	// Prev in a OrderedCollectionPage, identifies the previous page of items.
+	Prev Item `jsonld:"prev,omitempty"`
+	// StartIndex is a non-negative integer value identifying the relative position within
+	// the logical view of a strictly OrderedCollectionPage.
+	StartIndex uint `jsonld:"startIndex,omitempty"`
+}
+
+// GetID returns the ID corresponding to the OrderedCollectionPage object
+func (o OrderedCollectionPage) GetID() ID {
+	return o.ID
+}
+
+// GetType returns the OrderedCollectionPage's type
+func (o OrderedCollectionPage) GetType() Typer {
+	return o.Type
+}
+
+// GetLink returns the IRI corresponding to the OrderedCollectionPage object
+func (o OrderedCollectionPage) GetLink() IRI {
+	return IRI(o.ID)
+}
+
+// Collection returns the underlying Collection type
+func (o OrderedCollectionPage) Collection() ItemCollection {
+	return o.OrderedItems
+}
+
+// Match returns whether the receiver matches the ActivityVocabularyType arguments.
+func (o OrderedCollectionPage) Match(tt ...ActivityVocabularyType) bool {
+	return ActivityVocabularyTypes(tt).Match(o.Type)
+}
+
+// Count returns the maximum between the length of Items in the collection page and its TotalItems property
+func (o *OrderedCollectionPage) Count() uint {
+	if o == nil {
+		return 0
+	}
+	return uint(len(o.OrderedItems))
+}
+
+// Append adds an element to an OrderedCollectionPage
+func (o *OrderedCollectionPage) Append(it ...Item) error {
+	l := len(o.OrderedItems)
+	_ = o.OrderedItems.Append(it...)
+	o.TotalItems += uint(len(o.OrderedItems) - l)
+	return nil
+}
+
+// Remove removes items from an OrderedCollectionPage
+func (o *OrderedCollectionPage) Remove(it ...Item) {
+	l := len(o.OrderedItems)
+	o.OrderedItems.Remove(it...)
+	o.TotalItems += uint(len(o.OrderedItems) - l)
+}
+
+// Contains verifies if OrderedCollectionPage array contains the received one
+func (o OrderedCollectionPage) Contains(it Item) bool {
+	if len(o.OrderedItems) == 0 {
+		return false
+	}
+	return o.OrderedItems.Contains(it)
+}
+
+// UnmarshalJSON decodes an incoming JSON document into the receiver object.
+func (o *OrderedCollectionPage) UnmarshalJSON(data []byte) error {
+	p := fastjson.Parser{}
+	val, err := p.ParseBytes(data)
+	if err != nil {
+		return err
+	}
+	return JSONLoadOrderedCollectionPage(val, o)
+}
+
+// MarshalJSON encodes the receiver object to a JSON document.
+func (o OrderedCollectionPage) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	notEmpty := false
+	JSONWrite(&b, '{')
+
+	_ = OnObject(o, func(o *Object) error {
+		notEmpty = JSONWriteObjectValue(&b, *o)
+		return nil
+	})
+	if o.PartOf != nil {
+		notEmpty = JSONWriteItemProp(&b, "partOf", o.PartOf, notEmpty) || notEmpty
+	}
+	if o.Current != nil {
+		notEmpty = JSONWriteItemProp(&b, "current", o.Current, notEmpty) || notEmpty
+	}
+	if o.First != nil {
+		notEmpty = JSONWriteItemProp(&b, "first", o.First, notEmpty) || notEmpty
+	}
+	if o.Last != nil {
+		notEmpty = JSONWriteItemProp(&b, "last", o.Last, notEmpty) || notEmpty
+	}
+	if o.Next != nil {
+		notEmpty = JSONWriteItemProp(&b, "next", o.Next, notEmpty) || notEmpty
+	}
+	if o.Prev != nil {
+		notEmpty = JSONWriteItemProp(&b, "prev", o.Prev, notEmpty) || notEmpty
+	}
+	if o.TotalItems > 0 {
+		notEmpty = JSONWriteIntProp(&b, "totalItems", int64(o.TotalItems), notEmpty) || notEmpty
+	}
+	if o.OrderedItems != nil {
+		notEmpty = JSONWriteItemCollectionProp(&b, "orderedItems", o.OrderedItems, false, notEmpty) || notEmpty
+	}
+	if !notEmpty {
+		return nil, nil
+	}
+	JSONWrite(&b, '}')
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (o *OrderedCollectionPage) UnmarshalBinary(data []byte) error {
+	return errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (o OrderedCollectionPage) MarshalBinary() ([]byte, error) {
+	return nil, errors.NotImplementedf("Binary functionality not implemented")
+}
+
+// ToOrderedCollectionPage
+func ToOrderedCollectionPage(it LinkOrIRI) (*OrderedCollectionPage, error) {
+	switch i := it.(type) {
+	case *OrderedCollectionPage:
+		return i, nil
+	case OrderedCollectionPage:
+		return &i, nil
+	// NOTE(marius): let's try again to convert CollectionPage -> OrderedCollectionPage, as they have the same
+	// shape in memory.
+	case *CollectionPage:
+		return (*OrderedCollectionPage)(unsafe.Pointer(i)), nil
+	case CollectionPage:
+		return (*OrderedCollectionPage)(unsafe.Pointer(&i)), nil
+	default:
+		return reflectItemToType[OrderedCollectionPage](it)
+	}
+}
+
+// ItemsMatch
+func (o OrderedCollectionPage) ItemsMatch(col ...Item) bool {
+	if len(col) == 0 {
+		return false
+	}
+	for _, it := range col {
+		if match := o.Contains(it); !match {
+			return false
+		}
+	}
+	return true
+}
+
+// Equals verifies if our receiver OrderedCollectionPage is equals with the "with" Item
+func (o OrderedCollectionPage) Equals(with Item) bool {
+	withPage, err := ToOrderedCollectionPage(with)
+	if err != nil {
+		return false
+	}
+	if withPage == nil {
+		return false
+	}
+	return o.equal(*withPage)
+}
+
+// equal verifies if our receiver OrderedCollectionPage is equals with the "with" OrderedCollectionPage
+func (o OrderedCollectionPage) equal(with OrderedCollectionPage) bool {
+	result := true
+
+	_ = OnOrderedCollection(with, func(wo *OrderedCollection) error {
+		if !wo.Equals(o) {
+			result = false
+		}
+		return nil
+	})
+	if !ItemsEqual(o.PartOf, with.PartOf) {
+		result = false
+	}
+	if !ItemsEqual(o.Current, with.Current) {
+		result = false
+	}
+	if !ItemsEqual(o.First, with.First) {
+		result = false
+	}
+	if !ItemsEqual(o.Last, with.Last) {
+		result = false
+	}
+	if !ItemsEqual(o.Next, with.Next) {
+		result = false
+	}
+	if !ItemsEqual(o.Prev, with.Prev) {
+		result = false
+	}
+	return result
+}
+
+func (o OrderedCollectionPage) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 's', 'v':
+		_, _ = fmt.Fprintf(s, "%T[%s] { totalItems: %d }", o, o.GetType(), o.TotalItems)
+	}
+}
+
+func (o *OrderedCollectionPage) Recipients() ItemCollection {
+	aud := o.Audience
+	return ItemCollectionDeduplication(&o.To, &o.CC, &o.Bto, &o.BCC, &aud)
+}
+
+func cleanOrderedCollectionPageProperties(cc *OrderedCollectionPage) {
+	_ = OnOrderedCollection(cc, func(c *OrderedCollection) error {
+		cleanOrderedCollectionProperties(c)
+		return nil
+	})
+}
+
+func (o *OrderedCollectionPage) Clean() Item {
+	cc := *o
+	cleanOrderedCollectionPageProperties(&cc)
+	return &cc
+}
+
+// WithOrderedCollectionPageFn represents a function type that can be used as a parameter for OnOrderedCollectionPage helper function
+type WithOrderedCollectionPageFn func(*OrderedCollectionPage) error
+
+// OnOrderedCollectionPage calls function fn on it Item if it can be asserted
+// to type *OrderedCollectionPage
+//
+// This function should be called if trying to access the OrderedCollectionPage specific
+// properties like "partOf", "next", "perv". For the other properties
+// OnObject or OnOrderedCollection should be used instead.
+func OnOrderedCollectionPage(it Item, fn WithOrderedCollectionPageFn) error {
+	if IsNil(it) {
+		return nil
+	}
+	col, err := ToOrderedCollectionPage(it)
+	if err != nil {
+		return err
+	}
+	return fn(col)
+}
+
+func CopyOrderedCollectionPageProperties(to, from *OrderedCollectionPage) (*OrderedCollectionPage, error) {
+	if to == nil || from == nil {
+		return nil, nil
+	}
+	to.PartOf = replaceIfItem(to.PartOf, from.PartOf)
+	to.Next = replaceIfItem(to.Next, from.Next)
+	to.Prev = replaceIfItem(to.Prev, from.Prev)
+	to.StartIndex = from.StartIndex
+	oldCol, _ := ToOrderedCollection(to)
+	newCol, _ := ToOrderedCollection(from)
+	_, err := CopyOrderedCollectionProperties(oldCol, newCol)
+	if err != nil {
+		return to, err
+	}
+	return to, nil
+}

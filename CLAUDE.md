@@ -4,7 +4,7 @@ El dueño es Duván Ballén (Senior Platform Engineer, aprendiendo Go). Comuníc
 
 ## Estado: fase de decisiones
 
-No hay código. Antes de construir, cada decisión de diseño, arquitectura o stack se documenta como ADR en `docs/adr/ADR-NNN-titulo.md`. No escribas código ni crees issues hasta que Duván lo pida.
+El único código es `internal/goap/`: copia propia del núcleo de go-ap (MIT) que mantenemos nosotros; ver su `README.md` y no borrar sus `LICENSE`. Antes de construir, cada decisión de diseño, arquitectura o stack se documenta como ADR en `docs/adr/ADR-NNN-titulo.md`. No escribas código ni crees issues hasta que Duván lo pida.
 
 ## Contexto completo
 
@@ -23,11 +23,15 @@ Toda la conversación de diseño vive en la KB, no aquí:
 
 ## Arquitectura tentativa (sin ADR todavía)
 
-Go, un binario con frontend embebido (`embed`), SQLite por defecto y Postgres opcional, Docker + Helm. Código idiomático y explicado: Duván aprende Go con este proyecto. Referencia local de Go + ActivityPub: el fork de GoToSocial en `/Users/lx-duv0-x/Documents/Repositories/echo.duv0-x.cloud` (AGPL: no copiar código sin decidir antes la licencia).
+Go, un binario con frontend embebido (`embed`), SQLite por defecto y Postgres opcional, Docker + Helm. La prioridad es una plataforma descentralizada y robusta (por eso Go), con código idiomático. Referencia local de Go + ActivityPub: el fork de GoToSocial en `/Users/lx-duv0-x/Documents/Repositories/echo.duv0-x.cloud` (AGPL: no copiar código sin decidir antes la licencia).
+
+## Go
+
+Módulo `github.com/duv0-x/reverse-mini-ats`, Go 1.26. En esta Mac el `go` de `/usr/local/go` es 1.23: usar el de brew con `export PATH=/opt/homebrew/bin:$PATH`. Verificar con `go vet ./... && go test ./...`.
 
 ## Decisiones pendientes (candidatas a ADR)
 
-1. Modelo de instancia y qué se federa por ActivityPub.
+1. ~~Modelo de instancia y qué se federa por ActivityPub~~ → `docs/adr/ADR-001-instancia-y-federacion.md` (aceptado).
 2. Modelo Proyecto (enunciado compartido) vs. Ejecución (trabajo de cada usuario).
 3. Modelo de perfil para el v1: capacidades con evidencia o algo cercano a JSON Resume.
 4. Licencia: AGPL (inclinación) vs. MIT.

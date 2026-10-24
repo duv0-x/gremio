@@ -1,0 +1,1392 @@
+package activitypub
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/google/go-cmp/cmp"
+)
+
+var (
+	fnA = func(_ *Activity) error { return nil }
+
+	maybeActivity Item = new(Activity)
+)
+
+func Benchmark_ToActivity(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ToActivity(maybeActivity)
+	}
+}
+
+func Benchmark_OnActivity(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		OnActivity(maybeActivity, fnA)
+	}
+}
+
+func TestActivityRecipients(t *testing.T) {
+	bob := &Person{Type: PersonType, ID: "bob"}
+	alice := &Person{Type: PersonType, ID: "alice"}
+	foo := &Organization{Type: OrganizationType, ID: "foo"}
+	bar := &Group{Type: GroupType, ID: "bar"}
+
+	a := &Question{Type: ActivityVocabularyType("t"), ID: "test"}
+
+	_ = a.To.Append(bob)
+	_ = a.To.Append(alice)
+	_ = a.To.Append(foo)
+	_ = a.To.Append(bar)
+	if len(a.To) != 4 {
+		t.Errorf("%T.To should have exactly 4(four) elements, not %d", a, len(a.To))
+	}
+
+	_ = a.To.Append(bar)
+	_ = a.To.Append(alice)
+	_ = a.To.Append(foo)
+	_ = a.To.Append(bob)
+	if len(a.To) != 4 {
+		t.Errorf("%T.To should still have exactly 4(eight) elements, not %d", a, len(a.To))
+	}
+
+	a.Recipients()
+	if len(a.To) != 4 {
+		t.Errorf("%T.To should have exactly 4(four) elements, not %d", a, len(a.To))
+	}
+
+	b := &Question{Type: ActivityVocabularyType("t"), ID: "test"}
+
+	_ = b.To.Append(bar)
+	_ = b.To.Append(alice)
+	_ = b.To.Append(foo)
+	_ = b.To.Append(bob)
+	_ = b.Bto.Append(bar)
+	_ = b.Bto.Append(alice)
+	_ = b.Bto.Append(foo)
+	_ = b.Bto.Append(bob)
+	_ = b.CC.Append(bar)
+	_ = b.CC.Append(alice)
+	_ = b.CC.Append(foo)
+	_ = b.CC.Append(bob)
+	_ = b.BCC.Append(bar)
+	_ = b.BCC.Append(alice)
+	_ = b.BCC.Append(foo)
+	_ = b.BCC.Append(bob)
+
+	b.Recipients()
+	if len(b.To) != 4 {
+		t.Errorf("%T.To should have exactly 4(four) elements, not %d", b, len(b.To))
+	}
+	if len(b.Bto) != 0 {
+		t.Errorf("%T.Bto should have exactly 0(zero) elements, not %d", b, len(b.Bto))
+	}
+	if len(b.CC) != 0 {
+		t.Errorf("%T.CC should have exactly 0(zero) elements, not %d", b, len(b.CC))
+	}
+	if len(b.BCC) != 0 {
+		t.Errorf("%T.BCC should have exactly 0(zero) elements, not %d", b, len(b.BCC))
+	}
+}
+
+func TestBlockRecipients(t *testing.T) {
+	bob := &Person{Type: PersonType, ID: "bob"}
+	alice := &Person{Type: PersonType, ID: "alice"}
+	foo := &Organization{Type: OrganizationType, ID: "foo"}
+	bar := &Group{Type: GroupType, ID: "bar"}
+
+	a := &Block{Type: BlockType, ID: "bbb", Object: bob}
+
+	_ = a.To.Append(bob)
+	_ = a.To.Append(alice)
+	_ = a.To.Append(foo)
+	_ = a.To.Append(bar)
+	if len(a.To) != 4 {
+		t.Errorf("%T.To should have exactly 4(four) elements, not %d", a, len(a.To))
+	}
+
+	_ = a.To.Append(bar)
+	_ = a.To.Append(alice)
+	_ = a.To.Append(foo)
+	_ = a.To.Append(bob)
+	if len(a.To) != 4 {
+		t.Errorf("%T.To should still have exactly 4(eight) elements, not %d", a, len(a.To))
+	}
+
+	a.Recipients()
+	if len(a.To) != 3 {
+		t.Errorf("%T.To should have exactly 3(three) elements, not %d", a, len(a.To))
+	}
+
+	b := &Block{Type: BlockType, ID: "t", Object: bob}
+
+	_ = b.To.Append(bar)
+	_ = b.To.Append(alice)
+	_ = b.To.Append(foo)
+	_ = b.To.Append(bob)
+	_ = b.Bto.Append(bar)
+	_ = b.Bto.Append(alice)
+	_ = b.Bto.Append(foo)
+	_ = b.Bto.Append(bob)
+	_ = b.CC.Append(bar)
+	_ = b.CC.Append(alice)
+	_ = b.CC.Append(foo)
+	_ = b.CC.Append(bob)
+	_ = b.BCC.Append(bar)
+	_ = b.BCC.Append(alice)
+	_ = b.BCC.Append(foo)
+	_ = b.BCC.Append(bob)
+
+	b.Recipients()
+	if len(b.To) != 3 {
+		t.Errorf("%T.To should have exactly 3(three) elements, not %d", b, len(b.To))
+	}
+	if len(b.Bto) != 0 {
+		t.Errorf("%T.Bto should have exactly 0(zero) elements, not %d", b, len(b.Bto))
+	}
+	if len(b.CC) != 0 {
+		t.Errorf("%T.CC should have exactly 0(zero) elements, not %d", b, len(b.CC))
+	}
+	if len(b.BCC) != 0 {
+		t.Errorf("%T.BCC should have exactly 0(zero) elements, not %d", b, len(b.BCC))
+	}
+	var err error
+	recIds := make([]ID, 0)
+	err = checkDedup(b.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(b.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(b.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(b.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestCreate_Recipients(t *testing.T) {
+	to := &Person{Type: PersonType, ID: "bob"}
+	o := &Object{Type: ArticleType}
+	cc := &Person{Type: PersonType, ID: "alice"}
+
+	o.ID = "something"
+
+	c := &Create{Type: CreateType, ID: "act", Object: o}
+	_ = c.To.Append(to)
+	_ = c.CC.Append(cc)
+	_ = c.BCC.Append(cc)
+
+	c.Recipients()
+
+	var err error
+	recIds := make([]ID, 0)
+	err = checkDedup(c.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDislike_Recipients(t *testing.T) {
+	to := &Person{Type: PersonType, ID: "bob"}
+	o := Object{Type: ArticleType}
+	cc := &Person{Type: PersonType, ID: "alice"}
+
+	o.ID = "something"
+
+	d := &Dislike{Type: DislikeType, ID: "act", Object: o}
+	_ = d.To.Append(to)
+	_ = d.CC.Append(cc)
+	_ = d.BCC.Append(cc)
+
+	d.Recipients()
+
+	var err error
+	recIds := make([]ID, 0)
+	err = checkDedup(d.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(d.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(d.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(d.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestLike_Recipients(t *testing.T) {
+	to := &Person{Type: PersonType, ID: "bob"}
+	o := Object{Type: ArticleType}
+	cc := &Person{Type: PersonType, ID: "alice"}
+
+	o.ID = "something"
+
+	l := &Like{Type: LikeType, ID: "act", Object: o}
+	_ = l.To.Append(to)
+	_ = l.CC.Append(cc)
+	_ = l.BCC.Append(cc)
+
+	l.Recipients()
+
+	var err error
+	recIds := make([]ID, 0)
+	err = checkDedup(l.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(l.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(l.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(l.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestUpdate_Recipients(t *testing.T) {
+	to := &Person{Type: PersonType, ID: "bob"}
+	o := Object{Type: ArticleType}
+	cc := &Person{Type: PersonType, ID: "alice"}
+
+	o.ID = "something"
+
+	u := &Update{Type: UpdateType, ID: "act", Object: o}
+	_ = u.To.Append(to)
+	_ = u.CC.Append(cc)
+	_ = u.BCC.Append(cc)
+
+	u.Recipients()
+
+	var err error
+	recIds := make([]ID, 0)
+	err = checkDedup(u.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(u.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(u.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(u.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestActivity_GetID(t *testing.T) {
+	tests := []struct {
+		name string
+		ID   ID
+		want ID
+	}{
+		{
+			name: "empty",
+			ID:   "",
+			want: "",
+		},
+		{
+			name: "not empty",
+			ID:   "http://example.com",
+			want: "http://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Activity{ID: tt.ID}
+			if got := l.GetID(); got != tt.want {
+				t.Errorf("GetID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func checkDedup(list ItemCollection, recIds *[]ID) error {
+	for _, rec := range list {
+		for _, id := range *recIds {
+			if rec.GetLink() == id {
+				return fmt.Errorf("%T[%s] already stored in recipients list, Deduplication faild", rec, id)
+			}
+		}
+		*recIds = append(*recIds, rec.GetLink())
+	}
+	return nil
+}
+
+func TestActivity_Recipients(t *testing.T) {
+	to := &Person{Type: PersonType, ID: "bob"}
+	o := Object{Type: ArticleType}
+	cc := &Person{Type: PersonType, ID: "alice"}
+
+	o.ID = "something"
+
+	c := &Activity{Type: ActivityType, ID: "act", Object: o}
+	_ = c.To.Append(to)
+	_ = c.CC.Append(cc)
+	_ = c.BCC.Append(cc)
+
+	c.Recipients()
+
+	var err error
+	recIds := make([]ID, 0)
+	err = checkDedup(c.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(c.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestBlock_Recipients(t *testing.T) {
+	to := &Person{Type: PersonType, ID: "bob"}
+	o := Object{Type: ArticleType}
+	cc := &Person{Type: PersonType, ID: "alice"}
+
+	o.ID = "something"
+
+	b := &Block{Type: BlockType, ID: "act", Object: o}
+	_ = b.To.Append(to)
+	_ = b.CC.Append(cc)
+	_ = b.BCC.Append(cc)
+
+	b.Recipients()
+
+	var err error
+	recIds := make([]ID, 0)
+	err = checkDedup(b.To, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(b.Bto, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(b.CC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+	err = checkDedup(b.BCC, &recIds)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestCreate_UnmarshalJSON(t *testing.T) {
+	c := Create{}
+
+	dataEmpty := []byte("{}")
+	_ = c.UnmarshalJSON(dataEmpty)
+	if c.ID != "" {
+		t.Errorf("Unmarshaled object %T should have empty ID, received %q", c, c.ID)
+	}
+	if HasTypes(c) {
+		t.Errorf("Unmarshaled object %T should have empty Type, received %q", c, c.GetType())
+	}
+	if c.AttributedTo != nil {
+		t.Errorf("Unmarshaled object %T should have empty AttributedTo, received %q", c, c.AttributedTo)
+	}
+	if len(c.Name) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Name, received %q", c, c.Name)
+	}
+	if len(c.Summary) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Summary, received %q", c, c.Summary)
+	}
+	if len(c.Content) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Content, received %q", c, c.Content)
+	}
+	if c.URL != nil {
+		t.Errorf("Unmarshaled object %T should have empty URL, received %v", c, c.URL)
+	}
+	if !c.Published.IsZero() {
+		t.Errorf("Unmarshaled object %T should have empty Published, received %q", c, c.Published)
+	}
+	if !c.StartTime.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty StartTime, received %q", c, c.StartTime)
+	}
+	if !c.Updated.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty Updated, received %q", c, c.Updated)
+	}
+}
+
+func TestDislike_UnmarshalJSON(t *testing.T) {
+	d := Dislike{}
+
+	dataEmpty := []byte("{}")
+	_ = d.UnmarshalJSON(dataEmpty)
+	if d.ID != "" {
+		t.Errorf("Unmarshaled object %T should have empty ID, received %q", d, d.ID)
+	}
+	if HasTypes(d) {
+		t.Errorf("Unmarshaled object %T should have empty Type, received %q", d, d.GetType())
+	}
+	if d.AttributedTo != nil {
+		t.Errorf("Unmarshaled object %T should have empty AttributedTo, received %q", d, d.AttributedTo)
+	}
+	if len(d.Name) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Name, received %q", d, d.Name)
+	}
+	if len(d.Summary) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Summary, received %q", d, d.Summary)
+	}
+	if len(d.Content) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Content, received %q", d, d.Content)
+	}
+	if d.URL != nil {
+		t.Errorf("Unmarshaled object %T should have empty URL, received %v", d, d.URL)
+	}
+	if !d.Published.IsZero() {
+		t.Errorf("Unmarshaled object %T should have empty Published, received %q", d, d.Published)
+	}
+	if !d.StartTime.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty StartTime, received %q", d, d.StartTime)
+	}
+	if !d.Updated.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty Updated, received %q", d, d.Updated)
+	}
+}
+
+func TestLike_UnmarshalJSON(t *testing.T) {
+	l := Like{}
+
+	dataEmpty := []byte("{}")
+	err := l.UnmarshalJSON(dataEmpty)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if l.ID != "" {
+		t.Errorf("Unmarshaled object %T should have empty ID, received %q", l, l.ID)
+	}
+	if HasTypes(l) {
+		t.Errorf("Unmarshaled object %T should have empty Type, received %q", l, l.GetType())
+	}
+	if l.AttributedTo != nil {
+		t.Errorf("Unmarshaled object %T should have empty AttributedTo, received %q", l, l.AttributedTo)
+	}
+	if len(l.Name) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Name, received %q", l, l.Name)
+	}
+	if len(l.Summary) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Summary, received %q", l, l.Summary)
+	}
+	if len(l.Content) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Content, received %q", l, l.Content)
+	}
+	if l.URL != nil {
+		t.Errorf("Unmarshaled object %T should have empty URL, received %v", l, l.URL)
+	}
+	if !l.Published.IsZero() {
+		t.Errorf("Unmarshaled object %T should have empty Published, received %q", l, l.Published)
+	}
+	if !l.StartTime.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty StartTime, received %q", l, l.StartTime)
+	}
+	if !l.Updated.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty Updated, received %q", l, l.Updated)
+	}
+}
+
+func TestUpdate_UnmarshalJSON(t *testing.T) {
+	u := Update{}
+
+	dataEmpty := []byte("{}")
+	u.UnmarshalJSON(dataEmpty)
+	if u.ID != "" {
+		t.Errorf("Unmarshaled object %T should have empty ID, received %q", u, u.ID)
+	}
+	if HasTypes(u) {
+		t.Errorf("Unmarshaled object %T should have empty Type, received %q", u, u.GetType())
+	}
+	if u.AttributedTo != nil {
+		t.Errorf("Unmarshaled object %T should have empty AttributedTo, received %q", u, u.AttributedTo)
+	}
+	if len(u.Name) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Name, received %q", u, u.Name)
+	}
+	if len(u.Summary) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Summary, received %q", u, u.Summary)
+	}
+	if len(u.Content) != 0 {
+		t.Errorf("Unmarshaled object %T should have empty Content, received %q", u, u.Content)
+	}
+	if u.URL != nil {
+		t.Errorf("Unmarshaled object %T should have empty URL, received %v", u, u.URL)
+	}
+	if !u.Published.IsZero() {
+		t.Errorf("Unmarshaled object %T should have empty Published, received %q", u, u.Published)
+	}
+	if !u.StartTime.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty StartTime, received %q", u, u.StartTime)
+	}
+	if !u.Updated.IsZero() {
+		t.Errorf("Unmarshaled object %T  should have empty Updated, received %q", u, u.Updated)
+	}
+}
+
+func TestToActivity(t *testing.T) {
+	tests := []struct {
+		name    string
+		it      LinkOrIRI
+		want    *Activity
+		wantErr error
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name: "Valid Activity",
+			it:   Activity{ID: "test", Type: UpdateType},
+			want: &Activity{ID: "test", Type: UpdateType},
+		},
+		{
+			name: "Valid *Activity",
+			it:   &Activity{ID: "test", Type: CreateType},
+			want: &Activity{ID: "test", Type: CreateType},
+		},
+		{
+			name:    "IRI",
+			it:      IRI("https://example.com"),
+			wantErr: ErrorInvalidType[Activity](IRI("")),
+		},
+		{
+			name:    "IRIs",
+			it:      IRIs{IRI("https://example.com")},
+			wantErr: ErrorInvalidType[Activity](IRIs{}),
+		},
+		{
+			name:    "ItemCollection",
+			it:      ItemCollection{},
+			wantErr: ErrorInvalidType[Activity](ItemCollection{}),
+		},
+		{
+			name:    "IntransitiveActivity",
+			it:      &IntransitiveActivity{ID: "test", Type: ArriveType},
+			wantErr: ErrorInvalidType[Activity](&IntransitiveActivity{}),
+		},
+		{
+			name:    "Object",
+			it:      &Object{ID: "test", Type: ArticleType},
+			wantErr: ErrorInvalidType[Activity](&Object{}),
+		},
+		{
+			name:    "Actor",
+			it:      &Actor{ID: "test", Type: PersonType},
+			wantErr: ErrorInvalidType[Activity](&Person{}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToActivity(tt.it)
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("ToActivity() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("ToActivity() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestValidEventRSVPActivityType(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestValidGroupManagementActivityType(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestActivity_Clean(t *testing.T) {
+	tests := []struct {
+		name string
+		i    Activity
+		want Item
+	}{
+		{
+			name: "empty",
+			i:    Activity{},
+			want: &Activity{},
+		},
+		{
+			name: "has Bto",
+			i:    Activity{Type: UpdateType, Bto: ItemCollection{IRI("http://example.com")}},
+			want: &Activity{Type: UpdateType},
+		},
+		{
+			name: "has BCC",
+			i:    Activity{Type: UpdateType, BCC: ItemCollection{IRI("http://example.com")}},
+			want: &Activity{Type: UpdateType},
+		},
+		{
+			name: "audience has BCC",
+			i:    Activity{Type: UpdateType, Audience: ItemCollection{&Object{BCC: ItemCollection{IRI("http://example.com")}}}},
+			want: &Activity{Type: UpdateType, Audience: ItemCollection{&Object{}}},
+		},
+		{
+			name: "attachment has BCC",
+			i:    Activity{Type: UpdateType, Attachment: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: UpdateType, Attachment: &Object{}},
+		},
+		{
+			name: "icon has BCC",
+			i:    Activity{Type: LikeType, Icon: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: LikeType, Icon: &Object{}},
+		},
+		{
+			name: "image has BCC",
+			i:    Activity{Type: LikeType, Image: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: LikeType, Image: &Object{}},
+		},
+		{
+			name: "context has BCC",
+			i:    Activity{Type: LikeType, Context: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: LikeType, Context: &Object{}},
+		},
+		{
+			name: "generator has BCC",
+			i:    Activity{Type: UpdateType, Generator: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: UpdateType, Generator: &Object{}},
+		},
+		{
+			name: "attributedTo has BCC",
+			i:    Activity{Type: UpdateType, AttributedTo: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: UpdateType, AttributedTo: &Object{}},
+		},
+		{
+			name: "preview has BCC",
+			i:    Activity{Type: UpdateType, Preview: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: UpdateType, Preview: &Object{}},
+		},
+		{
+			name: "tag has BCC",
+			i:    Activity{Type: CreateType, Tag: ItemCollection{&Object{BCC: ItemCollection{IRI("http://example.com")}}}},
+			want: &Activity{Type: CreateType, Tag: ItemCollection{&Object{}}},
+		},
+		{
+			name: "actor has BCC",
+			i:    Activity{Type: CreateType, Actor: &Person{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: CreateType, Actor: &Person{}},
+		},
+		{
+			name: "actor has BCC",
+			i:    Activity{Type: CreateType, Actor: &Person{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: CreateType, Actor: &Person{}},
+		},
+		{
+			name: "origin has BCC",
+			i:    Activity{Type: CreateType, Origin: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: CreateType, Origin: &Object{}},
+		},
+		{
+			name: "target has BCC",
+			i:    Activity{Type: CreateType, Target: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: CreateType, Target: &Object{}},
+		},
+		{
+			name: "instrument has BCC",
+			i:    Activity{Type: CreateType, Instrument: &Object{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: CreateType, Instrument: &Object{}},
+		},
+		{
+			name: "object has BCC",
+			i:    Activity{Type: CreateType, Instrument: &Person{BCC: ItemCollection{IRI("http://example.com")}}},
+			want: &Activity{Type: CreateType, Instrument: &Person{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.i.Clean(); !cmp.Equal(got, tt.want, EquateItems) {
+				t.Errorf("Clean() = %s", cmp.Diff(tt.want, got, EquateItems))
+			}
+		})
+	}
+}
+
+func TestActivity_GetLink(t *testing.T) {
+	tests := []struct {
+		name string
+		IRI  IRI
+		want IRI
+	}{
+		{
+			name: "empty",
+			IRI:  "",
+			want: "",
+		},
+		{
+			name: "not empty",
+			IRI:  "http://example.com",
+			want: "http://example.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Activity{ID: tt.IRI}
+			if got := l.GetLink(); got != tt.want {
+				t.Errorf("GetLink() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestActivity_GetType(t *testing.T) {
+	t.Skipf("TODO")
+}
+
+func TestActivity_Equals(t *testing.T) {
+	type fields struct {
+		ID           ID
+		Type         Typer
+		Name         NaturalLanguageValues
+		Attachment   Item
+		AttributedTo Item
+		Audience     ItemCollection
+		Content      NaturalLanguageValues
+		Context      Item
+		MediaType    MimeType
+		EndTime      time.Time
+		Generator    Item
+		Icon         Item
+		Image        Item
+		InReplyTo    Item
+		Location     Item
+		Preview      Item
+		Published    time.Time
+		Replies      Item
+		StartTime    time.Time
+		Summary      NaturalLanguageValues
+		Tag          ItemCollection
+		Updated      time.Time
+		URL          Item
+		To           ItemCollection
+		Bto          ItemCollection
+		CC           ItemCollection
+		BCC          ItemCollection
+		Duration     time.Duration
+		Likes        Item
+		Shares       Item
+		Source       Source
+		Actor        Item
+		Target       Item
+		Result       Item
+		Origin       Item
+		Instrument   Item
+		Object       Item
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		arg    Item
+		want   bool
+	}{
+		{
+			name:   "equal-empty-activity",
+			fields: fields{},
+			arg:    Activity{},
+			want:   true,
+		},
+		{
+			name:   "equal-activity-just-id",
+			fields: fields{ID: "test"},
+			arg:    Activity{ID: "test"},
+			want:   true,
+		},
+		{
+			name:   "equal-activity-id",
+			fields: fields{ID: "test", URL: IRI("example.com")},
+			arg:    Activity{ID: "test"},
+			want:   false,
+		},
+		{
+			name:   "equal-false-with-id-and-url",
+			fields: fields{ID: "test"},
+			arg:    Activity{ID: "test", URL: IRI("example.com")},
+			want:   false,
+		},
+		{
+			name:   "not a valid activity",
+			fields: fields{ID: "http://example.com"},
+			arg:    Link{ID: "http://example.com"},
+			want:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := Activity{
+				ID:           tt.fields.ID,
+				Type:         tt.fields.Type,
+				Name:         tt.fields.Name,
+				Attachment:   tt.fields.Attachment,
+				AttributedTo: tt.fields.AttributedTo,
+				Audience:     tt.fields.Audience,
+				Content:      tt.fields.Content,
+				Context:      tt.fields.Context,
+				MediaType:    tt.fields.MediaType,
+				EndTime:      tt.fields.EndTime,
+				Generator:    tt.fields.Generator,
+				Icon:         tt.fields.Icon,
+				Image:        tt.fields.Image,
+				InReplyTo:    tt.fields.InReplyTo,
+				Location:     tt.fields.Location,
+				Preview:      tt.fields.Preview,
+				Published:    tt.fields.Published,
+				Replies:      tt.fields.Replies,
+				StartTime:    tt.fields.StartTime,
+				Summary:      tt.fields.Summary,
+				Tag:          tt.fields.Tag,
+				Updated:      tt.fields.Updated,
+				URL:          tt.fields.URL,
+				To:           tt.fields.To,
+				Bto:          tt.fields.Bto,
+				CC:           tt.fields.CC,
+				BCC:          tt.fields.BCC,
+				Duration:     tt.fields.Duration,
+				Likes:        tt.fields.Likes,
+				Shares:       tt.fields.Shares,
+				Source:       tt.fields.Source,
+				Actor:        tt.fields.Actor,
+				Target:       tt.fields.Target,
+				Result:       tt.fields.Result,
+				Origin:       tt.fields.Origin,
+				Instrument:   tt.fields.Instrument,
+				Object:       tt.fields.Object,
+			}
+			if got := a.Equals(tt.arg); got != tt.want {
+				t.Errorf("Equal() = %v, want %v, have: %v, target: %v", got, tt.want, a, tt.arg)
+			}
+		})
+	}
+}
+
+func TestCleanRecipients(t *testing.T) {
+	tests := []struct {
+		name string
+		it   Item
+		want Item
+	}{
+		{
+			name: "nil",
+			it:   nil,
+		},
+		{
+			name: "empty Object",
+			it:   &Object{},
+			want: &Object{},
+		},
+		{
+			name: "Object with Bto",
+			it:   &Object{Bto: ItemCollection{IRI("https://example.com")}},
+			want: &Object{},
+		},
+		{
+			name: "Object with BCC",
+			it:   &Object{BCC: ItemCollection{IRI("https://example.com")}},
+			want: &Object{},
+		},
+		{
+			name: "Object with Bto/BCC",
+			it: &Object{
+				Bto: ItemCollection{IRI("https://example.com/1")},
+				BCC: ItemCollection{IRI("https://example.com/2")},
+			},
+			want: &Object{},
+		},
+		{
+			name: "empty Actor",
+			it:   &Actor{},
+			want: &Actor{},
+		},
+		{
+			name: "Actor with Bto",
+			it:   &Actor{Bto: ItemCollection{IRI("https://example.com")}},
+			want: &Actor{},
+		},
+		{
+			name: "Actor with BCC",
+			it:   &Actor{BCC: ItemCollection{IRI("https://example.com")}},
+			want: &Actor{},
+		},
+		{
+			name: "Actor with Bto/BCC",
+			it: &Actor{
+				Bto: ItemCollection{IRI("https://example.com/1")},
+				BCC: ItemCollection{IRI("https://example.com/2")},
+			},
+			want: &Actor{},
+		},
+		{
+			name: "empty Activity",
+			it:   &Activity{},
+			want: &Activity{},
+		},
+		{
+			name: "Activity with Bto",
+			it:   &Activity{Bto: ItemCollection{IRI("https://example.com")}},
+			want: &Activity{},
+		},
+		{
+			name: "Activity with BCC",
+			it:   &Activity{BCC: ItemCollection{IRI("https://example.com")}},
+			want: &Activity{},
+		},
+		{
+			name: "Activity with Bto/BCC",
+			it: &Activity{
+				Bto: ItemCollection{IRI("https://example.com/1")},
+				BCC: ItemCollection{IRI("https://example.com/2")},
+			},
+			want: &Activity{},
+		},
+		{
+			name: "empty IntransitiveActivity",
+			it:   &IntransitiveActivity{},
+			want: &IntransitiveActivity{},
+		},
+		{
+			name: "IntransitiveActivity with Bto",
+			it:   &IntransitiveActivity{Bto: ItemCollection{IRI("https://example.com")}},
+			want: &IntransitiveActivity{},
+		},
+		{
+			name: "IntransitiveActivity with BCC",
+			it:   &IntransitiveActivity{BCC: ItemCollection{IRI("https://example.com")}},
+			want: &IntransitiveActivity{},
+		},
+		{
+			name: "IntransitiveActivity with Bto/BCC",
+			it: &IntransitiveActivity{
+				Bto: ItemCollection{IRI("https://example.com/1")},
+				BCC: ItemCollection{IRI("https://example.com/2")},
+			},
+			want: &IntransitiveActivity{},
+		},
+		{
+			name: "empty Collection",
+			it:   &Collection{},
+			want: &Collection{},
+		},
+		{
+			name: "Collection with Bto",
+			it:   &Collection{Bto: ItemCollection{IRI("https://example.com")}},
+			want: &Collection{},
+		},
+		{
+			name: "Collection with BCC",
+			it:   &Collection{BCC: ItemCollection{IRI("https://example.com")}},
+			want: &Collection{},
+		},
+		{
+			name: "Collection with Bto/BCC",
+			it: &Collection{
+				Bto: ItemCollection{IRI("https://example.com/1")},
+				BCC: ItemCollection{IRI("https://example.com/2")},
+			},
+			want: &Collection{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CleanRecipients(tt.it)
+			if !cmp.Equal(got, tt.want, EquateItems) {
+				t.Errorf("CleanRecipients() = %s", cmp.Diff(tt.want, got, EquateItems))
+			}
+			_ = OnObject(got, func(o *Object) error {
+				if len(o.Bto) > 0 {
+					t.Errorf("CleanRecipients(): Bto failed to be cleaned: %v", o.Bto)
+				}
+				if len(o.BCC) > 0 {
+					t.Errorf("CleanRecipients(): BCC failed to be cleaned: %v", o.BCC)
+				}
+				return nil
+			})
+		})
+	}
+}
+
+func ExampleActivity_initialization() {
+	// activity1 is a struct literal which can be operated on directly.
+	// For example, we can set the Object:
+	activity1 := Activity{ID: "http://example.com/1"}
+	activity1.Object = IRI("http://example.com/thing")
+	fmt.Printf("Activity1: %v\n", activity1)
+
+	// activity2 is wrapped in an Item interface.
+	// It is probably the most common way of interacting with objects in the library,
+	// because usually they get unmarshaled from an HTTP request, or another representation.
+	var activity2 Item = &Activity{Type: ActivityType}
+
+	// That means we can't set any properties directly, so
+	// if you uncomment the next line you will get a compiler error.
+	// activity2.Actor = IRI("http://example.com/~jdoe")
+
+	_ = OnActivity(activity2, func(activity *Activity) error {
+		// In order to operate on it, we must wrap it in a call to OnActivity
+		activity.Actor = IRI("http://example.com/~jdoe")
+		return nil
+	})
+	fmt.Printf("Activity2: %v\n", activity2)
+
+	// Output:
+	// Activity1: activitypub.Activity { id: http://example.com/1, object: http://example.com/thing }
+	// Activity2: activitypub.Activity[Activity] { actor: http://example.com/~jdoe }
+}
+
+func ExampleToActivity() {
+	// Activity types represent a large number of the Activity Vocabulary objects that the
+	// library handles. This is most visible in module for the ActivityPub state machine, where
+	// we make use of the ToActivity() and ToIntransitiveActivity() quite a lot.
+
+	// We can see here an initialization for the Announce type which,
+	// unlike the disjoint Place type that we've seen before, is an alias for Activity.
+	// It makes no difference on a semantic level, but it can provide more context about the
+	// intention to other developers.
+	// There are additional aliases for all Activity types: Create, Update, Delete, Like, etc.
+	//
+	// However, there is no mechanism to coerce the Type property to the correct
+	// Vocabulary Type value corresponding to the used alias, so it must be set manually.
+	var activity1 Item = &Announce{Type: AnnounceType}
+
+	// As we've seen in previous examples, we can't operate on activity1 as it's an Item instance,
+	// so uncommenting the following line will trigger a compiler error:
+	//activity1.Actor = IRI("http://example.com/~jdoe")
+
+	a1, _ := ToActivity(activity1)
+	a1.Actor = IRI("http://example.com/~jdoe")
+	fmt.Printf("Activity1: %v\n\n", activity1)
+
+	// Another consideration is that the hierarchy of types that can be converted is unidirectional.
+	// As an example, an IntransitiveActivity type can't be converted to an Activity type,
+	// and trying to do so results in an error.
+	var notWhatWeWant Item = &IntransitiveActivity{Type: TravelType}
+	na, err := ToActivity(notWhatWeWant)
+	fmt.Printf("NotWhatWeWant: %v\n", notWhatWeWant)
+	fmt.Printf("             : %v\n", na)
+	fmt.Printf("Error        : %v\n\n", err)
+
+	// Output:
+	// Activity1: activitypub.Activity[Announce] { actor: http://example.com/~jdoe }
+	//
+	// NotWhatWeWant: activitypub.IntransitiveActivity[Travel] {  }
+	//              : <nil>
+	// Error        : unable to convert *activitypub.IntransitiveActivity to *activitypub.Activity
+}
+
+func ExampleOnActivity() {
+	// In the ToActivity() example function, we saw how we can convert data types
+	// to Activity pointer values and be allowed to use their properties in that way.
+	//
+	// Here we can see how this mechanism can be used to build specific logic when dealing
+	// with opaque Item interface values.
+
+	// As we've seen, you can not access this Activity's properties
+	// because it's wrapped in the Item interface.
+	var activity1 Item = &Activity{Type: LikeType}
+	// Uncommenting this line will trigger a compiler error.
+	//activity1.Actor = IRI("http://example.com/~jdoe")
+
+	_ = OnActivity(activity1, func(a *Activity) error {
+		// Instead we can wrap it in an OnActivity() call in which
+		// we can modify it, and the changes will be visible outside its scope.
+		a.Actor = IRI("http://example.com/~jdoe")
+
+		// Similarly, as we've seen in the ExampleToActivity(), we can also modify
+		// the properties in common with the Object type, without needing
+		// a call to OnIntransitiveActivity(),
+		a.Object = IRI("http://example.com/ys")
+		// or OnObject().
+		a.Summary = DefaultLangValue("I like it here!")
+		return nil
+	})
+	fmt.Printf("Activity1: %v\n", activity1)
+
+	// Output:
+	// Activity1: activitypub.Activity[Like] { summary: I like it here!, actor: http://example.com/~jdoe, object: http://example.com/ys }
+}
+
+func TestFlattenActivityProperties(t *testing.T) {
+	tests := []struct {
+		name string
+		act  *Activity
+		want *Activity
+	}{
+		{
+			name: "blank",
+			act:  &Activity{},
+			want: &Activity{},
+		},
+		{
+			name: "flatten-actor",
+			act:  &Activity{Actor: &Actor{ID: "example-actor-iri"}},
+			want: &Activity{Actor: IRI("example-actor-iri")},
+		},
+		{
+			name: "flatten-object",
+			act:  &Activity{Object: &Object{ID: "example-actor-iri"}},
+			want: &Activity{Object: IRI("example-actor-iri")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := FlattenActivityProperties(tt.act); !cmp.Equal(got, tt.want) {
+				t.Errorf("FlattenActivityProperties() = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestActivity_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Activity
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Activity{}
+			if err := l.UnmarshalBinary(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalBinary() got = %s", cmp.Diff(tt.want, l))
+			}
+		})
+	}
+}
+
+func TestActivity_MarshalBinary(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     Activity
+		want    []byte
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			sub:     Activity{},
+			want:    nil,
+			wantErr: errors.NotImplementedf("Binary functionality not implemented"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalBinary()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalBinary() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Errorf("MarshalBinary() got = %s", cmp.Diff(tt.want, got))
+			}
+		})
+	}
+}
+
+func TestActivity_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    []byte
+		want    Activity
+		wantErr error
+	}{
+		{
+			name:    "nil",
+			data:    nil,
+			wantErr: fmt.Errorf(`cannot parse JSON: cannot parse empty string; unparsed tail: ""`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := Activity{}
+			if err := l.UnmarshalJSON(tt.data); !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("UnmarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+			}
+			if !cmp.Equal(l, tt.want) {
+				t.Errorf("UnmarshalJSON() got = %s", cmp.Diff(tt.want, l))
+			}
+		})
+	}
+}
+
+func TestActivity_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		sub     Activity
+		want    []byte
+		wantErr error
+	}{
+		{
+			name: "nil",
+			sub:  Activity{},
+			want: nil,
+		},
+		{
+			name: "JustID",
+			sub: Activity{
+				ID: ID("example.com"),
+			},
+			want: []byte(`{"id":"example.com"}`),
+		},
+		{
+			name: "JustType",
+			sub: Activity{
+				Type: ActivityVocabularyType("myType"),
+			},
+			want: []byte(`{"type":"myType"}`),
+		},
+		{
+			name: "JustOneName",
+			sub: Activity{
+				Name: NaturalLanguageValues{
+					NilLangRef: Content("ana"),
+				},
+			},
+			want: []byte(`{"name":"ana"}`),
+		},
+		{
+			name: "JustOneSummary",
+			sub: Activity{
+				Summary: NaturalLanguageValues{
+					NilLangRef: Content("test summary"),
+				},
+			},
+			want: []byte(`{"summary":"test summary"}`),
+		},
+		{
+			name: "JustOneContent",
+			sub: Activity{
+				Content: NaturalLanguageValues{
+					NilLangRef: Content("test content"),
+				},
+			},
+			want: []byte(`{"content":"test content"}`),
+		},
+		{
+			name: "MediaType",
+			sub: Activity{
+				MediaType: MimeType("text/stupid"),
+			},
+			want: []byte(`{"mediaType":"text/stupid"}`),
+		},
+		{
+			name: "Attachment",
+			sub: Activity{
+				Attachment: &Object{
+					ID:   "some example",
+					Type: VideoType,
+				},
+			},
+			want: []byte(`{"attachment":{"id":"some example","type":"Video"}}`),
+		},
+		{
+			name: "AttributedTo",
+			sub: Activity{
+				AttributedTo: &Actor{
+					ID:   "http://example.com/ana",
+					Type: PersonType,
+				},
+			},
+			want: []byte(`{"attributedTo":{"id":"http://example.com/ana","type":"Person"}}`),
+		},
+		{
+			name: "AttributedToDouble",
+			sub: Activity{
+				AttributedTo: ItemCollection{
+					&Actor{
+						ID:   "http://example.com/ana",
+						Type: PersonType,
+					},
+					&Actor{
+						ID:   "http://example.com/GGG",
+						Type: GroupType,
+					},
+				},
+			},
+			want: []byte(`{"attributedTo":[{"id":"http://example.com/ana","type":"Person"},{"id":"http://example.com/GGG","type":"Group"}]}`),
+		},
+		{
+			name: "Source",
+			sub: Activity{
+				Source: Source{
+					MediaType: MimeType("text/plain"),
+					Content:   NaturalLanguageValues{},
+				},
+			},
+			want: []byte(`{"source":{"mediaType":"text/plain"}}`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.sub.MarshalJSON()
+			if !cmp.Equal(err, tt.wantErr, EquateWeakErrors) {
+				t.Errorf("MarshalJSON() error = %s", cmp.Diff(tt.wantErr, err, EquateWeakErrors))
+				return
+			}
+			if !cmp.Equal(got, tt.want, EquateItems) {
+				t.Errorf("MarshalJSON() got = %s", cmp.Diff(tt.want, got, EquateItems))
+			}
+		})
+	}
+}
+
+func areNaturalLanguageValues(a, b any) bool {
+	_, ok1 := a.(NaturalLanguageValues)
+	_, ok2 := b.(NaturalLanguageValues)
+	return ok1 && ok2
+}
+
+func compareNaturalLanguageValues(x, y any) bool {
+	xe := x.(NaturalLanguageValues)
+	ye := y.(NaturalLanguageValues)
+	return xe.Equal(ye)
+}
+
+var EquateNaturalLanguageValues = cmp.FilterValues(areNaturalLanguageValues, cmp.Comparer(compareNaturalLanguageValues))
