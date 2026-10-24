@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	pub "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+	pub "github.com/duv0-x/gremio/internal/goap/activitypub"
 	"github.com/google/go-cmp/cmp"
 
-	j "github.com/duv0-x/reverse-mini-ats/internal/goap/jsonld"
+	j "github.com/duv0-x/gremio/internal/goap/jsonld"
 )
 
 const dir = "./mocks"

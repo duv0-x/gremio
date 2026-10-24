@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	j "github.com/duv0-x/reverse-mini-ats/internal/goap/jsonld"
+	j "github.com/duv0-x/gremio/internal/goap/jsonld"
 
-	pub "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+	pub "github.com/duv0-x/gremio/internal/goap/activitypub"
 )
 
 func TestAcceptSerialization(t *testing.T) {

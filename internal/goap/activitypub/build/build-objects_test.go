@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	vocab "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+	vocab "github.com/duv0-x/gremio/internal/goap/activitypub"
 	"github.com/google/go-cmp/cmp"
 )
 

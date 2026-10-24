@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/duv0-x/reverse-mini-ats/internal/goap/jsonld"
-	"github.com/duv0-x/reverse-mini-ats/internal/goap/xsd"
+	"github.com/duv0-x/gremio/internal/goap/jsonld"
+	"github.com/duv0-x/gremio/internal/goap/xsd"
 )
 
 func JSONWriteComma(b *bytes.Buffer) {

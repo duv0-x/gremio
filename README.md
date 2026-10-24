@@ -1,4 +1,4 @@
-# reverse-mini-ats
+# Gremio
 
 Plataforma open source y self-hosted de perfiles profesionales para gente de tecnología: el LinkedIn descentralizado, compatible con ActivityPub.
 
@@ -16,7 +16,7 @@ Fase siguiente: armar equipos para proyectos complejos.
 ## Estructura
 
 - `docs/mockups/`: mockups de referencia (formato `.dc.html` del lienzo de diseño; no son HTML ejecutable).
-- `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-004).
+- `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-005).
 - `internal/goap/`: núcleo de go-ap (ActivityPub) mantenido por nosotros.
 
 ## Licencia

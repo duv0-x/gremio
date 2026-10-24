@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	pub "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+	pub "github.com/duv0-x/gremio/internal/goap/activitypub"
 )
 
 // S2S Server: Activities requiring the object property

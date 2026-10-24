@@ -6,10 +6,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/duv0-x/reverse-mini-ats/internal/goap/jsonld"
+	"github.com/duv0-x/gremio/internal/goap/jsonld"
 )
 
-const errorsPackageName = "github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+const errorsPackageName = "github.com/duv0-x/gremio/internal/goap/errors"
 const runtimeDebugPackageName = "runtime/debug"
 
 type Error interface {

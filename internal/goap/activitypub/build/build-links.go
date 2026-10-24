@@ -1,6 +1,6 @@
 package build
 
-import vocab "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+import vocab "github.com/duv0-x/gremio/internal/goap/activitypub"
 
 func setLinkPropsFromObject(lnk *vocab.Link, ob vocab.Object) {
 	if ob.ID != "" {

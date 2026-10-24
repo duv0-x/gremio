@@ -17,7 +17,7 @@ Todo el código de esta carpeta es **MIT**. Cada paquete conserva su `LICENSE` o
 
 ## Cambios respecto a upstream
 
-- Imports reescritos de `github.com/go-ap/*` y `git.sr.ht/~mariusor/go-xsd-duration` a `github.com/duv0-x/reverse-mini-ats/internal/goap/*`.
+- Imports reescritos de `github.com/go-ap/*` y `git.sr.ht/~mariusor/go-xsd-duration` a `github.com/duv0-x/gremio/internal/goap/*`.
 - Se quitaron `go.mod`, `go.sum` y `Makefile`: los paquetes son parte del módulo del proyecto.
 - `activitypub/decoding_json_test.go`: el test de `JSONGetInt` esperaba `int64`, pero la función devuelve `int` (upstream no compilaba tras `73e07f9`).
 - `errors/errors_test.go`: el nombre del archivo de ensamblador ya no está fijado a `asm_amd64.s`, sino que se arma con `runtime.GOARCH` (upstream fallaba en arm64).

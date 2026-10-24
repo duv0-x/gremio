@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	vocab "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+	vocab "github.com/duv0-x/gremio/internal/goap/activitypub"
 )
 
 func Actor(initFn ...InitFn) *vocab.Actor {

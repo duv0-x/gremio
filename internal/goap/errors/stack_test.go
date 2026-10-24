@@ -56,7 +56,7 @@ func TestFrameFormat(t *testing.T) {
 	}, {
 		initpc,
 		"%+s",
-		"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.init\n" +
+		"github.com/duv0-x/gremio/internal/goap/errors.init\n" +
 			"\t.+/errors/stack_test.go",
 	}, {
 		0,
@@ -103,7 +103,7 @@ func TestFrameFormat(t *testing.T) {
 	}, {
 		initpc,
 		"%+v",
-		"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.init\n" +
+		"github.com/duv0-x/gremio/internal/goap/errors.init\n" +
 			"\t.+/errors/stack_test.go:11",
 	}, {
 		0,
@@ -122,7 +122,7 @@ func TestFuncname(t *testing.T) {
 	}{
 		{"", ""},
 		{"runtime.main", "main"},
-		{"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.funcname", "funcname"},
+		{"github.com/duv0-x/gremio/internal/goap/errors.funcname", "funcname"},
 		{"funcname", "funcname"},
 		{"io.copyBuffer", "copyBuffer"},
 		{"main.(*R).Write", "(*R).Write"},
@@ -143,19 +143,19 @@ func TestStackTrace(t *testing.T) {
 		want []string
 	}{{
 		Newf("ooh"), []string{
-			"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.TestStackTrace\n" +
+			"github.com/duv0-x/gremio/internal/goap/errors.TestStackTrace\n" +
 				"\t.+/errors/stack_test.go:145",
 		},
 	}, {
 		wrap(Newf("ooh"), "ahh"), []string{
-			"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.TestStackTrace\n" +
+			"github.com/duv0-x/gremio/internal/goap/errors.TestStackTrace\n" +
 				"\t.+/errors/stack_test.go:150", // this is the stack of Wrap, not New
 		},
 	}, {
 		func() error { return Newf("ooh") }(), []string{
-			`github.com/duv0-x/reverse-mini-ats/internal/goap/errors.TestStackTrace.func1` +
+			`github.com/duv0-x/gremio/internal/goap/errors.TestStackTrace.func1` +
 				"\n\t.+/errors/stack_test.go:155", // this is the stack of New
-			"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.TestStackTrace\n" +
+			"github.com/duv0-x/gremio/internal/goap/errors.TestStackTrace\n" +
 				"\t.+/errors/stack_test.go:155", // this is the stack of New's caller
 		},
 	}}
@@ -236,9 +236,9 @@ func TestStackTraceFormat(t *testing.T) {
 		stackTrace().StackTrace()[:2],
 		"%+v",
 		"\n" +
-			"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.stackTrace\n" +
+			"github.com/duv0-x/gremio/internal/goap/errors.stackTrace\n" +
 			"\t.+/errors/stack_test.go:183\n" +
-			"github.com/duv0-x/reverse-mini-ats/internal/goap/errors.TestStackTraceFormat\n" +
+			"github.com/duv0-x/gremio/internal/goap/errors.TestStackTraceFormat\n" +
 			"\t.+/errors/stack_test.go:234",
 	}, {
 		stackTrace().StackTrace()[:2],

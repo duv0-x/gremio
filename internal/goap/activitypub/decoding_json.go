@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
-	"github.com/duv0-x/reverse-mini-ats/internal/goap/xsd"
+	"github.com/duv0-x/gremio/internal/goap/errors"
+	"github.com/duv0-x/gremio/internal/goap/xsd"
 	"github.com/valyala/fastjson"
 )
 

@@ -7,7 +7,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/duv0-x/gremio/internal/goap/errors"
 	"github.com/valyala/fastjson"
 )
 

@@ -3,7 +3,7 @@ package build
 import (
 	"time"
 
-	vocab "github.com/duv0-x/reverse-mini-ats/internal/goap/activitypub"
+	vocab "github.com/duv0-x/gremio/internal/goap/activitypub"
 )
 
 type InitFn = any

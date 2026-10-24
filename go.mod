@@ -1,4 +1,4 @@
-module github.com/duv0-x/reverse-mini-ats
+module github.com/duv0-x/gremio
 
 go 1.26.3
 

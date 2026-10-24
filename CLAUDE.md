@@ -1,4 +1,4 @@
-# CLAUDE.md — reverse-mini-ats
+# CLAUDE.md — Gremio
 
 El dueño es Duván Ballén (Senior Platform Engineer, aprendiendo Go). Comunícate en español, con términos técnicos en inglés.
 
@@ -27,7 +27,7 @@ Go, un binario con frontend embebido (`embed`), SQLite por defecto y Postgres op
 
 ## Go
 
-Módulo `github.com/duv0-x/reverse-mini-ats`, Go 1.26. En esta Mac el `go` de `/usr/local/go` es 1.23: usar el de brew con `export PATH=/opt/homebrew/bin:$PATH`. Verificar con `go vet ./... && go test ./...`.
+Módulo `github.com/duv0-x/gremio`, Go 1.26. En esta Mac el `go` de `/usr/local/go` es 1.23: usar el de brew con `export PATH=/opt/homebrew/bin:$PATH`. Verificar con `go vet ./... && go test ./...`.
 
 ## Decisiones pendientes (candidatas a ADR)
 
@@ -35,6 +35,10 @@ Módulo `github.com/duv0-x/reverse-mini-ats`, Go 1.26. En esta Mac el `go` de `/
 2. ~~Modelo Proyecto vs. Ejecución~~ → `docs/adr/ADR-002-proyecto-y-ejecucion.md` (aceptado).
 3. ~~Modelo de perfil v1~~ → `docs/adr/ADR-003-perfil-v1.md` (aceptado).
 4. ~~Licencia~~ → `docs/adr/ADR-004-licencia.md` (aceptado): AGPL-3.0-or-later, `internal/goap/` MIT, spec CC0, contribuciones con DCO (`git commit -s`).
+
+## Nombre y vocabulario
+
+El proyecto se llama **Gremio** (antes `reverse-mini-ats`). El contexto JSON-LD propio es `https://w3id.org/gremio/ns/v1` y no puede cambiar nunca. Ver `docs/adr/ADR-005-nombre-y-contexto-json-ld.md` (aceptado).
 
 ## Mockups
 

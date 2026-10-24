@@ -1,7 +1,7 @@
 package activitypub
 
 import (
-	"github.com/duv0-x/reverse-mini-ats/internal/goap/errors"
+	"github.com/duv0-x/gremio/internal/goap/errors"
 	"github.com/google/go-cmp/cmp"
 )
 
