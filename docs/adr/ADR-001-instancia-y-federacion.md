@@ -39,7 +39,7 @@ El objetivo es una plataforma descentralizada y robusta, así que se prefiere un
 
 - Se procesan `Follow` (aceptado automáticamente con `Accept`; `manuallyApprovesFollowers` configurable), `Undo{Follow}` y `Delete` del Actor remoto (se borra el seguidor).
 - Todo lo demás (`Like`, `Announce`, replies, `Create` entrantes) se responde con `202 Accepted` y se descarta sin persistir.
-- Todo POST al inbox exige una HTTP Signature válida.
+- Todo POST al inbox exige una HTTP Signature válida y un `Digest` que coincida con el cuerpo; el Actor de la actividad debe ser el dueño de la llave que firma.
 
 ### 5. Implementación
 
@@ -47,7 +47,21 @@ El objetivo es una plataforma descentralizada y robusta, así que se prefiere un
 - La lógica del protocolo (inbox, outbox, entrega) se escribe en el proyecto; no se copian `processing` ni `client` de go-ap.
 - **`code.superseriousbusiness.org/httpsig`** (BSD-3, el que usa GoToSocial contra Mastodon) para firmar y verificar las HTTP Signatures, como dependencia normal.
 - El envío a los seguidores (fan-out a `sharedInbox` cuando exista) se hace con reintentos, a través de una cola persistida en la base de datos. Así una caída no pierde entregas.
+- **Todos los GETs salientes a otras instancias van firmados** (`(request-target)`, `host`, `date`): GoToSocial firma los suyos y exige firma para entregar un Actor.
+- La entrega usa el `sharedInbox` si el Actor remoto lo publica y, si no, su inbox personal (GoToSocial no publica `sharedInbox`).
+- El dueño de una llave se toma de `publicKey.owner`: GoToSocial usa `keyId` con ruta (`/users/x/main-key`) y Mastodon con fragmento (`#main-key`).
 - Las pruebas de interoperabilidad se hacen contra `echo.duv0-x.cloud` (GoToSocial propio) y contra una cuenta de Mastodon.
+
+## Validación: spike gremio#1 (2026-10-24)
+
+Una instancia mínima (`spike/federation/`, estado en memoria, expuesta con un quick tunnel de Cloudflare) federó con `echo.duv0-x.cloud` (GoToSocial 0.22.2) usando `internal/goap` y `code.superseriousbusiness.org/httpsig`:
+
+- `@root@duv0-x.cloud` encontró al Actor por WebFinger y lo siguió; el spike verificó firma y `Digest` y GoToSocial aceptó el `Accept` firmado.
+- Un `Create{Note}` firmado apareció en el timeline de inicio de `@root`.
+- El `Undo{Follow}` eliminó al seguidor.
+- Antes de seguir, GoToSocial recorre el Actor completo con GETs firmados: Actor, `followers`, `following` y `outbox`. Las tres colecciones deben existir aunque estén vacías.
+- GoToSocial acepta dominios `*.trycloudflare.com`.
+- Pendiente: repetir la prueba contra Mastodon.
 
 ## Consecuencias positivas
 
