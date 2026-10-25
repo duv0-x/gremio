@@ -173,10 +173,10 @@ type View struct {
 	Code       string             `json:"code,omitempty"` // posición: PLE, SRE…
 	Name       string             `json:"name"`
 	Weights    map[string]float64 `json:"weights,omitempty"`
-	Summary    string   `json:"summary,omitempty"`
-	Work       []string `json:"work,omitempty"`
-	Highlights []string `json:"highlights,omitempty"`
-	Skills     []string `json:"skills,omitempty"`
+	Summary    string             `json:"summary,omitempty"`
+	Work       []string           `json:"work,omitempty"`
+	Highlights []string           `json:"highlights,omitempty"`
+	Skills     []string           `json:"skills,omitempty"`
 }
 
 // Overall es el OVR de la vista: el promedio de los atributos ponderado por sus pesos (ADR-010 §3).
