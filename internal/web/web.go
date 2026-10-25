@@ -43,6 +43,18 @@ func (s *Server) Register(mux *http.ServeMux) {
 		files.ServeHTTP(w, r)
 	})))
 	mux.HandleFunc("GET /{handle}", s.getProfile)
+	mux.HandleFunc("GET /{$}", s.getRoot)
+}
+
+// getRoot lleva al perfil: la instancia es de un solo usuario (ADR-001).
+func (s *Server) getRoot(w http.ResponseWriter, r *http.Request) {
+	inst, err := instance.Load(r.Context(), s.st.Read)
+	if err != nil {
+		slog.Error("instancia", "err", err)
+		http.Error(w, "instancia no disponible", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/@"+inst.Username, http.StatusFound)
 }
 
 func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {

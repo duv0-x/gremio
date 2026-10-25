@@ -94,6 +94,14 @@ func TestEmailPublicoSeMuestraYTelefonoNunca(t *testing.T) {
 	}
 }
 
+func TestRaizRedirigeAlPerfil(t *testing.T) {
+	ts := newTestServer(t, doc)
+	resp, body := get(t, ts.URL+"/")
+	if resp.StatusCode != http.StatusOK || resp.Request.URL.Path != "/@alice" || !strings.Contains(body, "Alice Ejemplo") {
+		t.Fatalf("HTTP %d en %s", resp.StatusCode, resp.Request.URL.Path)
+	}
+}
+
 func TestRutasDesconocidasYEstaticos(t *testing.T) {
 	ts := newTestServer(t, doc)
 	for _, path := range []string{"/@bob", "/alice", "/@alice/../etc"} {
