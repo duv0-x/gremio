@@ -1,0 +1,283 @@
+package web
+
+import "github.com/duv0-x/gremio/internal/profile"
+
+// Clases compartidas (DESIGN.md: tarjetas, eyebrow, chips de dato y botones de 44 px).
+const (
+	card       = "rounded-lg border border-line bg-surface p-6"
+	eyebrow    = "font-mono text-[13px] font-medium uppercase tracking-[0.08em] text-faint"
+	dataChip   = "rounded-sm bg-surface-2 px-2 py-0.5 font-mono text-[13px] text-muted"
+	btnPrimary = "inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-[18px] text-[15px] font-semibold text-on-accent no-underline hover:bg-accent-hover hover:text-on-accent"
+	section    = "mx-auto max-w-[1200px] px-4 py-10 sm:px-6 sm:py-14"
+)
+
+templ layout(p Page, title string) {
+	<!DOCTYPE html>
+	<html lang="es">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title }</title>
+			if p.Resume.Basics.Summary != "" {
+				<meta name="description" content={ p.Resume.Basics.Summary }/>
+			}
+			<link rel="stylesheet" href={ "/static/app.css?v=" + p.Version }/>
+			<link rel="alternate" type="application/activity+json" href={ p.Actor }/>
+		</head>
+		<body>
+			<a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-md focus:bg-surface focus:p-3">Saltar al contenido</a>
+			<header class="border-b border-line">
+				<nav aria-label="Principal" class="mx-auto flex min-h-16 max-w-[1200px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-2 sm:px-6">
+					<a href="#" class="flex min-h-11 items-center gap-3 text-ink no-underline hover:text-ink">
+						<span class="font-display text-lg font-bold">{ p.Resume.Basics.Name }</span>
+						<span class={ dataChip, "hidden sm:inline" }>{ p.Handle }</span>
+					</a>
+					<ul class="flex flex-wrap gap-x-5 font-mono text-[13px] uppercase tracking-[0.08em]">
+						if len(p.Resume.Work) > 0 {
+							<li><a class="inline-flex min-h-11 items-center text-muted no-underline hover:text-ink" href="#experiencia">Experiencia</a></li>
+						}
+						if len(p.Resume.Skills) > 0 {
+							<li><a class="inline-flex min-h-11 items-center text-muted no-underline hover:text-ink" href="#skills">Skills</a></li>
+						}
+						<li><a class="inline-flex min-h-11 items-center text-muted no-underline hover:text-ink" href="#contacto">Contacto</a></li>
+					</ul>
+				</nav>
+			</header>
+			<main id="contenido">
+				{ children... }
+			</main>
+			<footer class="border-t border-line">
+				<div class="mx-auto flex max-w-[1200px] flex-wrap justify-between gap-2 px-4 py-6 text-sm text-faint sm:px-6">
+					<p>
+						Gremio <span class="font-mono">{ p.Version }</span> · AGPL-3.0 · <a href={ templ.SafeURL(p.SourceURL()) }>Source</a>
+					</p>
+					<p class="font-mono">{ p.Handle }</p>
+				</div>
+			</footer>
+		</body>
+	</html>
+}
+
+templ ProfilePage(p Page) {
+	@layout(p, p.Resume.Basics.Name+" · "+p.Resume.Basics.Label) {
+		@profileHeader(p)
+		if len(p.Resume.Work) > 0 {
+			@experience(p.Resume.Work)
+		}
+		if len(p.Resume.Skills) > 0 {
+			@skills(p.Resume.Skills)
+		}
+		if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
+			@formation(p.Resume)
+		}
+		@contact(p)
+	}
+}
+
+templ profileHeader(p Page) {
+	<section class={ section } aria-labelledby="nombre">
+		<div class={ card, "flex flex-col-reverse gap-8 sm:flex-row sm:items-start sm:justify-between sm:p-10" }>
+			<div class="max-w-[720px]">
+				<h1 id="nombre" class="font-display text-[40px] leading-[1.02] font-bold tracking-[-0.02em] sm:text-[64px]">{ p.Resume.Basics.Name }</h1>
+				if p.Resume.Basics.Label != "" {
+					<p class="mt-4 font-display text-xl font-semibold text-accent">{ p.Resume.Basics.Label }</p>
+				}
+				if loc := p.Location(); loc != "" {
+					<p class="mt-2 font-mono text-sm text-muted">{ loc }</p>
+				}
+				if about := p.About(); about != "" {
+					<p class="mt-6 text-lg leading-relaxed text-muted">{ about }</p>
+				}
+				<p class="mt-8 flex flex-col gap-3 sm:flex-row">
+					<a class={ btnPrimary } href="#contacto">Contacto</a>
+				</p>
+				<p class="mt-4 text-sm text-muted">
+					Síguelo desde Mastodon o cualquier instancia del fediverso: <span class="font-mono text-ink select-all">{ p.Handle }</span>
+				</p>
+			</div>
+			if img := p.Resume.Basics.Image; img != "" {
+				<img src={ img } alt="" width="128" height="128" class="size-24 shrink-0 rounded-full border border-line object-cover sm:size-32"/>
+			} else {
+				<span aria-hidden="true" class="flex size-24 shrink-0 items-center justify-center rounded-full border border-line font-display text-2xl font-bold sm:size-32">{ initials(p.Resume.Basics.Name) }</span>
+			}
+		</div>
+	</section>
+}
+
+templ experience(work []profile.Work) {
+	<section id="experiencia" class={ section } aria-labelledby="experiencia-titulo">
+		<p class={ eyebrow }>01 · Trayectoria</p>
+		<h2 id="experiencia-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Experiencia</h2>
+		<ol class="mt-8 flex flex-col gap-4">
+			for _, w := range work {
+				<li class={ card }>
+					<article>
+						<header class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+							<h3 class="font-display text-xl font-semibold">
+								{ w.Name }
+								if w.Position != "" {
+									<span class="text-accent">· { w.Position }</span>
+								}
+							</h3>
+							if r := dateRange(w.StartDate, w.EndDate); r != "" {
+								<p class={ dataChip }>{ r }</p>
+							}
+						</header>
+						if w.Location != "" {
+							<p class="mt-1 text-sm text-faint">{ w.Location }</p>
+						}
+						if w.Summary != "" {
+							<p class="mt-3 text-muted">{ w.Summary }</p>
+						}
+						if len(w.Highlights) > 0 {
+							<ul class="mt-4 flex max-w-[80ch] flex-col gap-2 border-t border-line pt-4">
+								for _, h := range w.Highlights {
+									<li class="flex gap-3 leading-relaxed">
+										<span aria-hidden="true" class="mt-[0.6em] size-1.5 shrink-0 rounded-sm bg-accent"></span>
+										<span>
+											{ h.Text }
+											for i, e := range h.Evidence {
+												<a class="ml-2 font-mono text-[13px] whitespace-nowrap" href={ templ.SafeURL(e) } rel="noopener">
+													[evidencia{ evidenceSuffix(i, len(h.Evidence)) } ↗]
+												</a>
+											}
+										</span>
+									</li>
+								}
+							</ul>
+						}
+					</article>
+				</li>
+			}
+		</ol>
+	</section>
+}
+
+templ skills(list []profile.Skill) {
+	<section id="skills" class={ section } aria-labelledby="skills-titulo">
+		<p class={ eyebrow }>02 · Capacidades</p>
+		<h2 id="skills-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Skills</h2>
+		<ul class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			for _, s := range list {
+				<li class={ card, "flex flex-col gap-4" }>
+					<div class="flex items-baseline justify-between gap-3">
+						<h3 class="font-display text-lg font-semibold">{ s.Name }</h3>
+						if l := levelLabel(s.Level); l != "" {
+							<p class="font-mono text-[13px] text-muted">{ l }</p>
+						}
+					</div>
+					if s.Level != "" {
+						<div class="h-1.5 rounded-full bg-surface-2" aria-hidden="true">
+							<div class={ "h-1.5 rounded-full", levelBar(s.Level) }></div>
+						</div>
+					}
+					if len(s.Keywords) > 0 {
+						<ul class="flex flex-wrap gap-2" aria-label={ "Tecnologías de " + s.Name }>
+							for _, k := range s.Keywords {
+								<li class="rounded-full border border-line px-3 py-1 text-sm">{ k }</li>
+							}
+						</ul>
+					}
+					if len(s.Evidence) > 0 {
+						<ul class="flex flex-wrap gap-2">
+							for i, e := range s.Evidence {
+								<li>
+									<a class="inline-flex min-h-11 items-center rounded-full bg-accent-soft px-3 text-sm font-semibold text-accent-hover no-underline" href={ templ.SafeURL(e) } rel="noopener">
+										Evidencia{ evidenceSuffix(i, len(s.Evidence)) } ↗
+									</a>
+								</li>
+							}
+						</ul>
+					}
+				</li>
+			}
+		</ul>
+		<p class="mt-6 text-sm text-faint">
+			Niveles: <strong class="font-semibold text-muted">Experto</strong> (barra llena), <strong class="font-semibold text-muted">Sólido</strong> y <strong class="font-semibold text-muted">Aprendiendo</strong> (barra punteada).
+		</p>
+	</section>
+}
+
+templ formation(r *profile.Resume) {
+	<section class={ section } aria-labelledby="formacion-titulo">
+		<p class={ eyebrow }>03 · Formación</p>
+		<h2 id="formacion-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Estudios, certificados e idiomas</h2>
+		<div class="mt-8 grid gap-4 lg:grid-cols-3">
+			if len(r.Education) > 0 {
+				<div class={ card }>
+					<h3 class="font-display text-lg font-semibold">Estudios</h3>
+					<ul class="mt-4 flex flex-col gap-4">
+						for _, e := range r.Education {
+							<li>
+								<p class="font-semibold">{ e.Area }</p>
+								<p class="text-sm text-muted">{ e.Institution }</p>
+								if e.StudyType != "" {
+									<p class="font-mono text-[13px] text-faint">{ e.StudyType }</p>
+								}
+							</li>
+						}
+					</ul>
+				</div>
+			}
+			if len(r.Certificates) > 0 {
+				<div class={ card }>
+					<h3 class="font-display text-lg font-semibold">Certificados</h3>
+					<ul class="mt-4 flex flex-col gap-3">
+						for _, c := range r.Certificates {
+							<li>
+								if c.URL != "" {
+									<a href={ templ.SafeURL(c.URL) } rel="noopener">{ c.Name }</a>
+								} else {
+									{ c.Name }
+								}
+								if c.Issuer != "" {
+									<span class="text-sm text-faint">· { c.Issuer }</span>
+								}
+							</li>
+						}
+					</ul>
+				</div>
+			}
+			if len(r.Languages) > 0 {
+				<div class={ card }>
+					<h3 class="font-display text-lg font-semibold">Idiomas</h3>
+					<dl class="mt-4 flex flex-col gap-2">
+						for _, l := range r.Languages {
+							<div class="flex justify-between gap-4">
+								<dt>{ l.Language }</dt>
+								<dd class="font-mono text-sm text-muted">{ l.Fluency }</dd>
+							</div>
+						}
+					</dl>
+				</div>
+			}
+		</div>
+	</section>
+}
+
+templ contact(p Page) {
+	<section id="contacto" class={ section } aria-labelledby="contacto-titulo">
+		<div class={ card }>
+			<h2 id="contacto-titulo" class="font-display text-[28px] font-bold tracking-[-0.01em]">Contacto</h2>
+			if email := p.Email(); email != "" {
+				<p class="mt-2"><a href={ templ.SafeURL("mailto:" + email) }>{ email }</a></p>
+			} else {
+				<p class="mt-2 text-muted">El email y el teléfono no son públicos. Escribe por cualquiera de estos canales.</p>
+			}
+			<ul class="mt-6 grid gap-3 sm:grid-cols-3">
+				<li class="rounded-md bg-surface-2 p-4">
+					<p class={ eyebrow }>Fediverso</p>
+					<p class="mt-1 flex min-h-11 items-center font-mono text-sm break-all select-all">{ p.Handle }</p>
+				</li>
+				for _, s := range p.Resume.Basics.Profiles {
+					if s.URL != "" {
+						<li class="rounded-md bg-surface-2 p-4">
+							<p class={ eyebrow }>{ s.Network }</p>
+							<a class="mt-1 inline-flex min-h-11 items-center font-mono text-sm break-all" href={ templ.SafeURL(s.URL) } rel="me noopener">{ s.Username }</a>
+						</li>
+					}
+				}
+			</ul>
+		</div>
+	</section>
+}

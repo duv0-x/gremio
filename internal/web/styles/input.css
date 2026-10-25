@@ -1,0 +1,142 @@
+/* Entrada de Tailwind (ADR-008). Los tokens son los de docs/design/DESIGN.md; el CSS generado es static/app.css. */
+@import "tailwindcss" source(none);
+@source "../*.templ";
+@source "../format.go";
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/static/fonts/space-grotesk-latin-wght-normal.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/static/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/static/fonts/ibm-plex-sans-latin-400-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/static/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/static/fonts/ibm-plex-sans-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/static/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/static/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --surface-2: #ecede9;
+  --ink: #16181b;
+  --muted: #4d525a;
+  --faint: #6b7078;
+  --line: #dadcd6;
+  --control: #7a8088;
+  --accent: #0f6e61;
+  --accent-hover: #0a4f46;
+  --accent-soft: #ddefea;
+  --on-accent: #ffffff;
+  --success: #1e6b34;
+  --warning: #9a4a06;
+  --danger: #b42318;
+  --focus: #1d4ed8;
+  /* Banda invertida del selector de vistas. */
+  --band: #16181b;
+  --on-band: #f3f4f1;
+  --band-line: #767b83;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111315;
+    --surface: #1a1d20;
+    --surface-2: #22262a;
+    --ink: #ecede9;
+    --muted: #a9aeb5;
+    --faint: #878c94;
+    --line: #2e3237;
+    --control: #767b83;
+    --accent: #4fb8a6;
+    --accent-hover: #7ccdbf;
+    --accent-soft: #16312c;
+    --on-accent: #0b1f1c;
+    --success: #6cc287;
+    --warning: #e0a256;
+    --danger: #f08a7e;
+    --focus: #8ab4f8;
+    --band: #22262a;
+    --on-band: #ecede9;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-control: var(--control);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-focus: var(--focus);
+  --color-band: var(--band);
+  --color-on-band: var(--on-band);
+  --color-band-line: var(--band-line);
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+}
+
+@layer base {
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  a {
+    @apply text-accent underline underline-offset-3 hover:text-accent-hover;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

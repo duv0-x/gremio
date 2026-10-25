@@ -112,6 +112,12 @@ func (s *Server) userAgent() string {
 	return "gremio/" + s.opts.Version + " (+" + s.inst.Host.String + ")"
 }
 
+// wantsHTML dice si el cliente es un navegador: pide text/html y no un tipo de ActivityPub.
+func wantsHTML(accept string) bool {
+	return strings.Contains(accept, "text/html") &&
+		!strings.Contains(accept, "application/activity+json") && !strings.Contains(accept, "application/ld+json")
+}
+
 // writeAP serializa con los @context de ActivityStreams y security, que exige la llave pública.
 func writeAP(w http.ResponseWriter, it any) {
 	b, err := jsonld.WithContext(jsonld.IRI(ap.ActivityBaseURI), jsonld.IRI(ap.SecurityContextURI)).Marshal(it)
@@ -204,7 +210,7 @@ func (s *Server) actorFrom(doc string) (*ap.Actor, error) {
 		Type:              ap.PersonType,
 		PreferredUsername: ap.DefaultLangValue(s.inst.Username),
 		Name:              ap.DefaultLangValue(p.Basics.Name),
-		URL:               id, // shortcut: sin página HTML del perfil todavía; cambia con el módulo Perfil (ADR-008)
+		URL:               ap.IRI(s.profileURL()),
 		Inbox:             id + "/inbox",
 		Outbox:            id + "/outbox",
 		Followers:         id + "/followers",
@@ -221,7 +227,15 @@ func (s *Server) actorFrom(doc string) (*ap.Actor, error) {
 	return a, nil
 }
 
+func (s *Server) profileURL() string { return s.inst.Host.String + "/@" + s.inst.Username }
+
 func (s *Server) getActor(w http.ResponseWriter, r *http.Request) {
+	// La misma URL sirve al navegador y a las instancias (ADR-008): a un navegador lo lleva a la página.
+	w.Header().Set("Vary", "Accept")
+	if wantsHTML(r.Header.Get("Accept")) {
+		http.Redirect(w, r, s.profileURL(), http.StatusSeeOther)
+		return
+	}
 	a, err := s.actor(r.Context())
 	if err != nil {
 		slog.Error("actor", "err", err)
