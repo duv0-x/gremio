@@ -131,6 +131,13 @@
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
+  /* Siglas con su significado al pasar el mouse. */
+  abbr[title] {
+    cursor: help;
+    text-decoration: underline dotted;
+    text-decoration-color: var(--faint);
+    text-underline-offset: 3px;
+  }
   a {
     @apply text-accent underline underline-offset-3 hover:text-accent-hover;
   }

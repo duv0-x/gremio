@@ -114,9 +114,12 @@ func TestFichaDeJugador(t *testing.T) {
 	for _, want := range []string{
 		`aria-label="Índice general 77"`, // SRE: (2·70 + 91) / 3
 		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
-		"Bajó el MTTR 23 %", "respaldado por 1 logro", "SRE ×2", "PLE ×2",
+		"Bajó el MTTR 23 %", "respaldado por 1 logro", `<abbr title="SRE">SRE</abbr> ×2`, `<abbr title="Platform Engineer">PLE</abbr> ×2`,
 		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
 		`id="cv"`, "Presentación larga", "<polygon",
+		// Toda sigla explica su significado al pasar el mouse.
+		`<abbr title="Platform Engineer"`, `<abbr title="Contenedores"`, "<title>CNT: Contenedores</title>",
+		`<abbr title="OVR (overall)`, "<title>OVR (overall)",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("falta %q", want)

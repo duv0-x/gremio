@@ -22,6 +22,7 @@ type radarLabel struct {
 	X, Y   string
 	Anchor string
 	Code   string
+	Name   string
 	Score  int
 }
 
@@ -64,7 +65,7 @@ func radarLabels(attrs []profile.Attribute) []radarLabel {
 		case x > radarC+8:
 			anchor = "start"
 		}
-		out[i] = radarLabel{X: fmt.Sprintf("%.1f", x), Y: fmt.Sprintf("%.1f", y+4), Anchor: anchor, Code: a.Code, Score: a.Score()}
+		out[i] = radarLabel{X: fmt.Sprintf("%.1f", x), Y: fmt.Sprintf("%.1f", y+4), Anchor: anchor, Code: a.Code, Name: a.Name, Score: a.Score()}
 	}
 	return out
 }
@@ -118,6 +119,9 @@ func barClass(s profile.Sub) string {
 	return "fill-ink"
 }
 
+// ovrTitle explica la sigla OVR (ADR-010 §3).
+const ovrTitle = "OVR (overall): índice general del rol, el promedio de los atributos ponderado por su peso en ese rol"
+
 func attrAnchor(code string) string { return "atributo-" + strings.ToLower(code) }
 
 func itoa(n int) string { return strconv.Itoa(n) }
@@ -140,6 +144,7 @@ func viewCode(v profile.View) string {
 
 type weightedView struct {
 	Code   string
+	Name   string
 	Weight string
 }
 
@@ -152,7 +157,7 @@ func weightsFor(r *profile.Resume, code string) []weightedView {
 			w = v.Weights[code]
 		}
 		if w > 0 {
-			out = append(out, weightedView{viewCode(v), strconv.FormatFloat(w, 'g', 3, 64)})
+			out = append(out, weightedView{viewCode(v), v.Name, strconv.FormatFloat(w, 'g', 3, 64)})
 		}
 	}
 	return out
