@@ -2,9 +2,9 @@
 
 El dueño es Duván Ballén (Senior Platform Engineer, aprendiendo Go). Comunícate en español, con términos técnicos en inglés.
 
-## Estado: fase de decisiones
+## Estado
 
-El único código es `internal/goap/`: copia propia del núcleo de go-ap (MIT) que mantenemos nosotros; ver su `README.md` y no borrar sus `LICENSE`. Antes de construir, cada decisión de diseño, arquitectura o stack se documenta como ADR en `docs/adr/ADR-NNN-titulo.md`. No escribas código ni crees issues hasta que Duván lo pida.
+El esqueleto del binario está en construcción (issues gremio#5 a gremio#7): `cmd/gremio`, `internal/store`, `internal/instance` e `internal/federation`. `internal/goap/` es una copia propia del núcleo de go-ap (MIT) que mantenemos nosotros: ver su `README.md` y no borrar sus `LICENSE`. Cada decisión de diseño, arquitectura o stack se documenta antes como ADR en `docs/adr/ADR-NNN-titulo.md`.
 
 ## Contexto completo
 

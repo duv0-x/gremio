@@ -3,9 +3,12 @@ package store
 import (
 	"context"
 	"database/sql"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/pressly/goose/v3"
 )
 
 func open(t *testing.T, dir string) *Store {
@@ -121,5 +124,39 @@ func TestBackupNoSobrescribe(t *testing.T) {
 	var user string
 	if err := bk.QueryRow(`SELECT username FROM instance`).Scan(&user); err != nil || user != "ana" {
 		t.Errorf("copia: username = %q, %v", user, err)
+	}
+}
+
+// Una base creada con la migración 1 (dueño ya inicializado) recibe su perfil mínimo al aplicar la 2.
+func TestMigracion2CreaElPerfilDeUnaInstanciaExistente(t *testing.T) {
+	dir := t.TempDir()
+	ctx := context.Background()
+	db, err := sql.Open("sqlite3", dsn(filepath.Join(dir, FileName), ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fsys, _ := fs.Sub(migrations, "migrations")
+	p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.UpTo(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO instance (id, username, private_key_pem, public_key_pem) VALUES (1, 'ana', 'priv', 'pub')`); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+
+	s := open(t, dir)
+	doc, err := s.Read.GetProfile(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc != `{"basics":{"name":"ana"}}` {
+		t.Errorf("perfil = %s", doc)
+	}
+	if n := len(backups(t, dir)); n != 1 {
+		t.Errorf("respaldos previos a migrar = %d, quería 1", n)
 	}
 }

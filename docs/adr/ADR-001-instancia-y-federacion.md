@@ -54,7 +54,7 @@ El objetivo es una plataforma descentralizada y robusta, así que se prefiere un
 
 ## Validación: spike gremio#1 (2026-10-24)
 
-Una instancia mínima (`spike/federation/`, estado en memoria, expuesta con un quick tunnel de Cloudflare) federó con `echo.duv0-x.cloud` (GoToSocial 0.22.2) usando `internal/goap` y `code.superseriousbusiness.org/httpsig`:
+Una instancia mínima (`spike/federation/`, retirada en gremio#6 cuando su código pasó a `internal/federation/`; estado en memoria, expuesta con un quick tunnel de Cloudflare) federó con `echo.duv0-x.cloud` (GoToSocial 0.22.2) usando `internal/goap` y `code.superseriousbusiness.org/httpsig`:
 
 - `@root@duv0-x.cloud` encontró al Actor por WebFinger y lo siguió; el spike verificó firma y `Digest` y GoToSocial aceptó el `Accept` firmado.
 - Un `Create{Note}` firmado apareció en el timeline de inicio de `@root`.
@@ -103,7 +103,7 @@ Y contra `mastodon.social` (Mastodon 5.0.0-nightly, gremio#3), con `@duv0_x@mast
 
 ## Pendiente de resolver en implementación
 
-- Verificar con un spike que las HTTP Signatures de `httpsig` y los tipos de go-ap interoperan con Mastodon y GoToSocial.
+- ~~Verificar con un spike que las HTTP Signatures de `httpsig` y los tipos de go-ap interoperan con Mastodon y GoToSocial.~~ Hecho en gremio#1 y gremio#3.
 - Política de reintentos de la cola de entrega (backoff, cuándo dar por muerta una instancia).
 
 ## Links relacionados

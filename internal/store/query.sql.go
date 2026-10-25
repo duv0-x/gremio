@@ -7,7 +7,36 @@ package store
 
 import (
 	"context"
+	"database/sql"
 )
+
+const bindInstanceHost = `-- name: BindInstanceHost :execrows
+UPDATE instance SET host = ?, account_domain = ? WHERE id = 1 AND host IS NULL
+`
+
+type BindInstanceHostParams struct {
+	Host          sql.NullString
+	AccountDomain sql.NullString
+}
+
+func (q *Queries) BindInstanceHost(ctx context.Context, arg BindInstanceHostParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, bindInstanceHost, arg.Host, arg.AccountDomain)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const countFollowers = `-- name: CountFollowers :one
+SELECT count(*) FROM followers
+`
+
+func (q *Queries) CountFollowers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countFollowers)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const createInstance = `-- name: CreateInstance :exec
 INSERT INTO instance (id, username, private_key_pem, public_key_pem)
@@ -25,8 +54,46 @@ func (q *Queries) CreateInstance(ctx context.Context, arg CreateInstanceParams) 
 	return err
 }
 
+const createProfile = `-- name: CreateProfile :exec
+INSERT INTO profile (id, document) VALUES (1, ?)
+`
+
+func (q *Queries) CreateProfile(ctx context.Context, document string) error {
+	_, err := q.db.ExecContext(ctx, createProfile, document)
+	return err
+}
+
+const deleteFollower = `-- name: DeleteFollower :execrows
+DELETE FROM followers WHERE actor_iri = ?
+`
+
+func (q *Queries) DeleteFollower(ctx context.Context, actorIri string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteFollower, actorIri)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const getFollower = `-- name: GetFollower :one
+SELECT actor_iri, inbox, shared_inbox, follow_iri, created_at FROM followers WHERE actor_iri = ?
+`
+
+func (q *Queries) GetFollower(ctx context.Context, actorIri string) (Follower, error) {
+	row := q.db.QueryRowContext(ctx, getFollower, actorIri)
+	var i Follower
+	err := row.Scan(
+		&i.ActorIri,
+		&i.Inbox,
+		&i.SharedInbox,
+		&i.FollowIri,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getInstance = `-- name: GetInstance :one
-SELECT id, username, private_key_pem, public_key_pem, created_at FROM instance WHERE id = 1
+SELECT id, username, private_key_pem, public_key_pem, created_at, host, account_domain FROM instance WHERE id = 1
 `
 
 func (q *Queries) GetInstance(ctx context.Context) (Instance, error) {
@@ -38,6 +105,45 @@ func (q *Queries) GetInstance(ctx context.Context) (Instance, error) {
 		&i.PrivateKeyPem,
 		&i.PublicKeyPem,
 		&i.CreatedAt,
+		&i.Host,
+		&i.AccountDomain,
 	)
 	return i, err
+}
+
+const getProfile = `-- name: GetProfile :one
+SELECT document FROM profile WHERE id = 1
+`
+
+func (q *Queries) GetProfile(ctx context.Context) (string, error) {
+	row := q.db.QueryRowContext(ctx, getProfile)
+	var document string
+	err := row.Scan(&document)
+	return document, err
+}
+
+const upsertFollower = `-- name: UpsertFollower :exec
+INSERT INTO followers (actor_iri, inbox, shared_inbox, follow_iri)
+VALUES (?, ?, ?, ?)
+ON CONFLICT (actor_iri) DO UPDATE SET
+    inbox = excluded.inbox,
+    shared_inbox = excluded.shared_inbox,
+    follow_iri = excluded.follow_iri
+`
+
+type UpsertFollowerParams struct {
+	ActorIri    string
+	Inbox       string
+	SharedInbox sql.NullString
+	FollowIri   string
+}
+
+func (q *Queries) UpsertFollower(ctx context.Context, arg UpsertFollowerParams) error {
+	_, err := q.db.ExecContext(ctx, upsertFollower,
+		arg.ActorIri,
+		arg.Inbox,
+		arg.SharedInbox,
+		arg.FollowIri,
+	)
+	return err
 }
