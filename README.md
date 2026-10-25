@@ -17,10 +17,10 @@ Fase siguiente: armar equipos para proyectos complejos.
 
 - `docs/mockups/`: mockups de referencia (formato `.dc.html` del lienzo de diseño; no son HTML ejecutable).
 - `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-008).
-- `cmd/gremio/`: el binario (`serve`, `admin init`, `backup`).
+- `cmd/gremio/`: el binario (`serve`, `admin init`, `admin note`, `backup`).
 - `internal/store/`: SQLite, migraciones y consultas (sqlc).
 - `internal/instance/`: dueño, llaves y host de la instancia.
-- `internal/federation/`: WebFinger, host-meta, NodeInfo, Actor, colecciones e inbox.
+- `internal/federation/`: WebFinger, host-meta, NodeInfo, Actor, colecciones, inbox, Notes y cola de entrega con reintentos.
 - `internal/goap/`: núcleo de go-ap (ActivityPub) mantenido por nosotros.
 
 ## Uso
@@ -29,6 +29,7 @@ Fase siguiente: armar equipos para proyectos complejos.
 go build ./cmd/gremio                         # Go 1.26, sin cgo
 ./gremio admin init --username <usuario>      # crea la base, al dueño y su par de llaves
 ./gremio serve --host https://<tu-dominio>    # escucha en 127.0.0.1:8080 y federa como @<usuario>@<tu-dominio>
+./gremio admin note --text "hola fediverso"   # publica un Note para los seguidores (lo entrega serve)
 ./gremio backup                               # copia consistente en data/backups/
 ```
 

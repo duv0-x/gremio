@@ -25,7 +25,22 @@ type testInstance struct {
 	dir     string
 	url     string
 	inboxes atomic.Int32 // POSTs recibidos en el inbox personal
+	shared  atomic.Int32 // POSTs recibidos en el sharedInbox
 	gone    atomic.Bool  // simula una cuenta borrada: el Actor responde 410
+	status  atomic.Int32 // si no es 0, los inboxes responden este código (instancia caída o que rechaza)
+	stop    context.CancelFunc
+}
+
+var fastOpts = Options{AllowPrivateNetworks: true, RetryBase: 20 * time.Millisecond, PollInterval: 20 * time.Millisecond}
+
+// runWorker arranca el worker de entregas de s y devuelve cómo detenerlo.
+func runWorker(t *testing.T, s *Server) context.CancelFunc {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { s.RunDeliveries(ctx); close(done) }()
+	stop := func() { cancel(); <-done }
+	t.Cleanup(stop)
+	return stop
 }
 
 func newTestInstance(t *testing.T, user string) *testInstance {
@@ -34,8 +49,16 @@ func newTestInstance(t *testing.T, user string) *testInstance {
 	ti := &testInstance{dir: t.TempDir()}
 	var mux http.Handler
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost && r.URL.Path == "/users/"+user+"/inbox" {
-			ti.inboxes.Add(1)
+		if r.Method == http.MethodPost && (r.URL.Path == "/users/"+user+"/inbox" || r.URL.Path == "/inbox") {
+			if code := ti.status.Load(); code != 0 {
+				http.Error(w, "simulado", int(code))
+				return
+			}
+			if r.URL.Path == "/inbox" {
+				ti.shared.Add(1)
+			} else {
+				ti.inboxes.Add(1)
+			}
 		}
 		if ti.gone.Load() && r.Method == http.MethodGet && r.URL.Path == "/users/"+user {
 			http.Error(w, "gone", http.StatusGone)
@@ -58,9 +81,10 @@ func newTestInstance(t *testing.T, user string) *testInstance {
 		t.Fatal(err)
 	}
 	ti.st = st
-	if ti.Server, err = New(ctx, st, Options{AllowPrivateNetworks: true}); err != nil {
+	if ti.Server, err = New(ctx, st, fastOpts); err != nil {
 		t.Fatal(err)
 	}
+	ti.stop = runWorker(t, ti.Server)
 	m := http.NewServeMux()
 	ti.Register(m)
 	mux = m

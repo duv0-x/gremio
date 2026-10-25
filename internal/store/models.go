@@ -8,6 +8,16 @@ import (
 	"database/sql"
 )
 
+type DeliveryQueue struct {
+	ID            int64
+	Inbox         string
+	Activity      string
+	Attempts      int64
+	NextAttemptAt string
+	LastError     sql.NullString
+	CreatedAt     string
+}
+
 type Follower struct {
 	ActorIri    string
 	Inbox       string
@@ -24,6 +34,12 @@ type Instance struct {
 	CreatedAt     string
 	Host          sql.NullString
 	AccountDomain sql.NullString
+}
+
+type Note struct {
+	ID          string
+	Content     string
+	PublishedAt string
 }
 
 type Profile struct {

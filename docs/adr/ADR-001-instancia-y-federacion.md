@@ -47,6 +47,10 @@ El objetivo es una plataforma descentralizada y robusta, así que se prefiere un
 - La lógica del protocolo (inbox, outbox, entrega) se escribe en el proyecto; no se copian `processing` ni `client` de go-ap.
 - **`code.superseriousbusiness.org/httpsig`** (BSD-3, el que usa GoToSocial contra Mastodon) para firmar y verificar las HTTP Signatures, como dependencia normal.
 - El envío a los seguidores (fan-out a `sharedInbox` cuando exista) se hace con reintentos, a través de una cola persistida en la base de datos. Así una caída no pierde entregas.
+  - **Política (gremio#7):** toda actividad saliente, incluido el `Accept`, pasa por la tabla `delivery_queue` y se firma de nuevo en cada intento. Los reintentos usan backoff exponencial desde 30 s (30 s, 1 min, 2 min… hasta 6 h). Tras 12 intentos, unas 14,5 h, la entrega se descarta.
+  - Un 4xx (salvo 408 y 429) se descarta al primer intento; los 5xx, los timeouts y los errores de red se reintentan.
+  - Un `Note` se encola una sola vez por servidor: el `sharedInbox` si el seguidor lo publica.
+  - La cola la vacía un worker dentro de `gremio serve`, que la revisa cada 5 s o al instante cuando el mismo proceso encola. `gremio admin note` solo escribe en la base.
 - **Todos los GETs salientes a otras instancias van firmados** (`(request-target)`, `host`, `date`): GoToSocial firma los suyos y exige firma para entregar un Actor.
 - La entrega usa el `sharedInbox` si el Actor remoto lo publica (Mastodon sí) y, si no, su inbox personal (GoToSocial no publica `sharedInbox`).
 - El dueño de una llave se toma de `publicKey.owner`: GoToSocial usa `keyId` con ruta (`/users/x/main-key`) y Mastodon con fragmento (`#main-key`).
@@ -104,7 +108,7 @@ Y contra `mastodon.social` (Mastodon 5.0.0-nightly, gremio#3), con `@duv0_x@mast
 ## Pendiente de resolver en implementación
 
 - ~~Verificar con un spike que las HTTP Signatures de `httpsig` y los tipos de go-ap interoperan con Mastodon y GoToSocial.~~ Hecho en gremio#1 y gremio#3.
-- Política de reintentos de la cola de entrega (backoff, cuándo dar por muerta una instancia).
+- ~~Política de reintentos de la cola de entrega~~ Resuelto en gremio#7 (ver la sección 5). "Dar por muerta" una instancia es por entrega (12 intentos), no hay un estado por servidor; agregarlo si muchas entregas a un servidor caído empiezan a pesar.
 
 ## Links relacionados
 
