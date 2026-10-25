@@ -2,3 +2,4 @@ data/
 .idea/
 dist/
 third_party_licenses/
+.bin/

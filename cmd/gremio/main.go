@@ -18,6 +18,7 @@ import (
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
+	"github.com/duv0-x/gremio/internal/web"
 )
 
 const usage = `uso: gremio <comando> [flags]
@@ -114,6 +115,7 @@ func serve(ctx context.Context, args []string) error {
 
 	mux := http.NewServeMux()
 	fed.Register(mux)
+	web.New(st, version).Register(mux)
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := st.Ping(r.Context()); err != nil {
 			http.Error(w, "base no disponible", http.StatusServiceUnavailable)

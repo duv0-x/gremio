@@ -139,3 +139,37 @@ func TestReplaceProfileConservaElAvatarYAvisa(t *testing.T) {
 		t.Errorf("actor = %v", actor)
 	}
 }
+
+func TestActorNegociaHTMLOActivityPub(t *testing.T) {
+	a := newTestInstance(t, "alice")
+	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	for accept, wantHTML := range map[string]bool{
+		"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8":      true,  // navegador
+		"application/activity+json, application/ld+json":                       false, // Mastodon
+		`application/ld+json; profile="https://www.w3.org/ns/activitystreams"`: false,
+		"": false,
+	} {
+		req, _ := http.NewRequest(http.MethodGet, string(a.actorID), nil)
+		if accept != "" {
+			req.Header.Set("Accept", accept)
+		}
+		resp, err := noFollow.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.Header.Get("Vary") != "Accept" {
+			t.Errorf("%q: falta Vary: Accept", accept)
+		}
+		if wantHTML {
+			if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != a.url+"/@alice" {
+				t.Errorf("%q: %d → %q", accept, resp.StatusCode, resp.Header.Get("Location"))
+			}
+		} else if resp.StatusCode != http.StatusOK || resp.Header.Get("Content-Type") != apContentType {
+			t.Errorf("%q: %d %s", accept, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+	}
+	if url := getJSON(t, string(a.actorID))["url"]; url != a.url+"/@alice" {
+		t.Errorf("actor.url = %v", url)
+	}
+}

@@ -119,6 +119,9 @@ type Project struct {
 
 // Extension son los datos propios de Gremio, que el JSON Resume estándar no tiene.
 type Extension struct {
+	// About es la presentación larga de la página web; basics.summary queda como bio corta, que es lo que
+	// muestran Mastodon y las demás instancias.
+	About   string  `json:"about,omitempty"`
 	Contact Contact `json:"contact"`
 	Views   []View  `json:"views,omitempty"`
 }
