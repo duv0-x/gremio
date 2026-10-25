@@ -23,6 +23,7 @@ const usage = `uso: gremio <comando> [flags]
 Comandos:
   serve        arranca el servidor
   admin init   crea al dueño de la instancia y su par de llaves
+  admin note   publica un Note público para los seguidores (lo entrega serve)
   backup       copia consistente de la base
 
 Variables de entorno: GREMIO_DATA_DIR (directorio de datos), GREMIO_ADDR (dirección de escucha),
@@ -52,6 +53,8 @@ func run(ctx context.Context, args []string) error {
 		return serve(ctx, args[1:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "init":
 		return adminInit(ctx, args[2:])
+	case args[0] == "admin" && len(args) > 1 && args[1] == "note":
+		return adminNote(ctx, args[2:])
 	case args[0] == "backup":
 		return backup(ctx, args[1:])
 	default:
@@ -109,6 +112,7 @@ func serve(ctx context.Context, args []string) error {
 	})
 	srv := &http.Server{Addr: *addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 
+	go fed.RunDeliveries(ctx)
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
 	slog.Info("escuchando", "addr", *addr, "actor", inst.Host.String+"/users/"+inst.Username,
@@ -142,6 +146,29 @@ func adminInit(ctx context.Context, args []string) error {
 		return err
 	}
 	slog.Info("instancia creada", "usuario", *username)
+	return nil
+}
+
+func adminNote(ctx context.Context, args []string) error {
+	fs, dataDir := newFlags("admin note")
+	text := fs.String("text", "", "texto del Note")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	st, err := store.Open(ctx, *dataDir)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	fed, err := federation.New(ctx, st, federation.Options{Version: version})
+	if err != nil {
+		return fmt.Errorf("%w (arranca `gremio serve --host …` una vez para fijar el host)", err)
+	}
+	id, queued, err := fed.PublishNote(ctx, *text)
+	if err != nil {
+		return err
+	}
+	slog.Info("note publicado", "id", id, "entregas_encoladas", queued, "nota", "las envía `gremio serve`")
 	return nil
 }
 

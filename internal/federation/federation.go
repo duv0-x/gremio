@@ -28,6 +28,10 @@ type Options struct {
 	Version string
 	// AllowPrivateNetworks permite http y destinos privados o de loopback. Solo para tests.
 	AllowPrivateNetworks bool
+	// RetryBase es la espera antes del primer reintento de una entrega (30 s por defecto).
+	RetryBase time.Duration
+	// PollInterval es cada cuánto el worker revisa la cola (5 s por defecto).
+	PollInterval time.Duration
 }
 
 // Server sirve la federación de una instancia ya inicializada y con host fijado.
@@ -40,6 +44,7 @@ type Server struct {
 	mu      sync.Mutex
 	keys    map[string]remoteKey // keyId -> llave remota verificada
 	actorID ap.IRI
+	wakeCh  chan struct{}
 }
 
 // New carga la instancia y su llave. La instancia debe tener host (ver instance.BindHost).
@@ -58,6 +63,12 @@ func New(ctx context.Context, st *store.Store, opts Options) (*Server, error) {
 	if opts.Version == "" {
 		opts.Version = "dev"
 	}
+	if opts.RetryBase == 0 {
+		opts.RetryBase = 30 * time.Second
+	}
+	if opts.PollInterval == 0 {
+		opts.PollInterval = 5 * time.Second
+	}
 	return &Server{
 		st:      st,
 		inst:    inst,
@@ -66,6 +77,7 @@ func New(ctx context.Context, st *store.Store, opts Options) (*Server, error) {
 		client:  newClient(opts.AllowPrivateNetworks),
 		keys:    map[string]remoteKey{},
 		actorID: ap.IRI(inst.Host.String + "/users/" + inst.Username),
+		wakeCh:  make(chan struct{}, 1),
 	}, nil
 }
 
@@ -82,6 +94,7 @@ func (s *Server) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+actor+"/following", s.getFollowing)
 	mux.HandleFunc("POST "+actor+"/inbox", s.postInbox)
 	mux.HandleFunc("POST /inbox", s.postInbox)
+	mux.HandleFunc("GET /notes/{id}", s.getNote)
 }
 
 func (s *Server) keyID() string  { return string(s.actorID) + "#main-key" }
@@ -198,11 +211,6 @@ func (s *Server) getActor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeAP(w, a)
-}
-
-// shortcut: outbox vacío hasta que haya publicaciones (gremio#7).
-func (s *Server) getOutbox(w http.ResponseWriter, _ *http.Request) {
-	writeAP(w, &ap.OrderedCollection{ID: s.actorID + "/outbox", Type: ap.OrderedCollectionType})
 }
 
 // getFollowers publica solo el total: la lista de seguidores no se expone.

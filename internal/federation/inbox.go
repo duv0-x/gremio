@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"time"
 
 	ap "github.com/duv0-x/gremio/internal/goap/activitypub"
 	"github.com/duv0-x/gremio/internal/store"
@@ -112,16 +111,10 @@ func (s *Server) acceptFollow(ctx context.Context, follow *ap.Activity) error {
 		Object: follow,
 		To:     ap.ItemCollection{follower},
 	}
-	// shortcut: entrega directa y sin reintentos; la cola persistente con reintentos llega en gremio#7.
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		if err := s.deliver(ctx, inbox, accept); err != nil {
-			slog.Error("Accept falló", "inbox", inbox, "err", err)
-			return
-		}
-		slog.Info("Accept entregado", "actor", follower)
-	}()
+	if err := s.enqueue(ctx, s.st.Write, []string{inbox}, accept); err != nil {
+		return err
+	}
+	s.wake()
 	return nil
 }
 

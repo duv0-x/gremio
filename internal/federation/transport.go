@@ -75,13 +75,19 @@ func (s *Server) sign(req *http.Request, body []byte, headers []string) error {
 	return signer.SignRequest(s.key, s.keyID(), req, body)
 }
 
-// deliver hace un POST firmado (request-target, host, date, digest), como esperan Mastodon y GoToSocial.
+// deliver serializa y entrega una actividad de inmediato, sin cola.
 func (s *Server) deliver(ctx context.Context, inbox string, act *ap.Activity) error {
-	if _, err := s.checkURL(inbox); err != nil {
-		return err
-	}
 	body, err := jsonld.WithContext(jsonld.IRI(ap.ActivityBaseURI)).Marshal(act)
 	if err != nil {
+		return err
+	}
+	return s.post(ctx, inbox, body)
+}
+
+// post hace un POST firmado (request-target, host, date, digest), como esperan Mastodon y GoToSocial.
+// Una respuesta no exitosa se devuelve como *deliveryError, para distinguir errores definitivos.
+func (s *Server) post(ctx context.Context, inbox string, body []byte) error {
+	if _, err := s.checkURL(inbox); err != nil {
 		return err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, inbox, bytes.NewReader(body))
@@ -99,7 +105,7 @@ func (s *Server) deliver(ctx context.Context, inbox string, act *ap.Activity) er
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, msg)
+		return &deliveryError{status: resp.StatusCode, body: string(msg)}
 	}
 	return nil
 }

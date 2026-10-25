@@ -27,12 +27,34 @@ func (q *Queries) BindInstanceHost(ctx context.Context, arg BindInstanceHostPara
 	return result.RowsAffected()
 }
 
+const countDeliveries = `-- name: CountDeliveries :one
+SELECT count(*) FROM delivery_queue
+`
+
+func (q *Queries) CountDeliveries(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countDeliveries)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countFollowers = `-- name: CountFollowers :one
 SELECT count(*) FROM followers
 `
 
 func (q *Queries) CountFollowers(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countFollowers)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countNotes = `-- name: CountNotes :one
+SELECT count(*) FROM notes
+`
+
+func (q *Queries) CountNotes(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countNotes)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -54,12 +76,36 @@ func (q *Queries) CreateInstance(ctx context.Context, arg CreateInstanceParams) 
 	return err
 }
 
+const createNote = `-- name: CreateNote :exec
+INSERT INTO notes (id, content, published_at) VALUES (?, ?, ?)
+`
+
+type CreateNoteParams struct {
+	ID          string
+	Content     string
+	PublishedAt string
+}
+
+func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) error {
+	_, err := q.db.ExecContext(ctx, createNote, arg.ID, arg.Content, arg.PublishedAt)
+	return err
+}
+
 const createProfile = `-- name: CreateProfile :exec
 INSERT INTO profile (id, document) VALUES (1, ?)
 `
 
 func (q *Queries) CreateProfile(ctx context.Context, document string) error {
 	_, err := q.db.ExecContext(ctx, createProfile, document)
+	return err
+}
+
+const deleteDelivery = `-- name: DeleteDelivery :exec
+DELETE FROM delivery_queue WHERE id = ?
+`
+
+func (q *Queries) DeleteDelivery(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteDelivery, id)
 	return err
 }
 
@@ -73,6 +119,61 @@ func (q *Queries) DeleteFollower(ctx context.Context, actorIri string) (int64, e
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const dueDeliveries = `-- name: DueDeliveries :many
+SELECT id, inbox, activity, attempts, next_attempt_at, last_error, created_at FROM delivery_queue WHERE next_attempt_at <= ? ORDER BY next_attempt_at, id LIMIT ?
+`
+
+type DueDeliveriesParams struct {
+	NextAttemptAt string
+	Limit         int64
+}
+
+func (q *Queries) DueDeliveries(ctx context.Context, arg DueDeliveriesParams) ([]DeliveryQueue, error) {
+	rows, err := q.db.QueryContext(ctx, dueDeliveries, arg.NextAttemptAt, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DeliveryQueue
+	for rows.Next() {
+		var i DeliveryQueue
+		if err := rows.Scan(
+			&i.ID,
+			&i.Inbox,
+			&i.Activity,
+			&i.Attempts,
+			&i.NextAttemptAt,
+			&i.LastError,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const enqueueDelivery = `-- name: EnqueueDelivery :exec
+INSERT INTO delivery_queue (inbox, activity, next_attempt_at) VALUES (?, ?, ?)
+`
+
+type EnqueueDeliveryParams struct {
+	Inbox         string
+	Activity      string
+	NextAttemptAt string
+}
+
+func (q *Queries) EnqueueDelivery(ctx context.Context, arg EnqueueDeliveryParams) error {
+	_, err := q.db.ExecContext(ctx, enqueueDelivery, arg.Inbox, arg.Activity, arg.NextAttemptAt)
+	return err
 }
 
 const getFollower = `-- name: GetFollower :one
@@ -111,6 +212,17 @@ func (q *Queries) GetInstance(ctx context.Context) (Instance, error) {
 	return i, err
 }
 
+const getNote = `-- name: GetNote :one
+SELECT id, content, published_at FROM notes WHERE id = ?
+`
+
+func (q *Queries) GetNote(ctx context.Context, id string) (Note, error) {
+	row := q.db.QueryRowContext(ctx, getNote, id)
+	var i Note
+	err := row.Scan(&i.ID, &i.Content, &i.PublishedAt)
+	return i, err
+}
+
 const getProfile = `-- name: GetProfile :one
 SELECT document FROM profile WHERE id = 1
 `
@@ -120,6 +232,86 @@ func (q *Queries) GetProfile(ctx context.Context) (string, error) {
 	var document string
 	err := row.Scan(&document)
 	return document, err
+}
+
+const listFollowerInboxes = `-- name: ListFollowerInboxes :many
+SELECT inbox, shared_inbox FROM followers
+`
+
+type ListFollowerInboxesRow struct {
+	Inbox       string
+	SharedInbox sql.NullString
+}
+
+func (q *Queries) ListFollowerInboxes(ctx context.Context) ([]ListFollowerInboxesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listFollowerInboxes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFollowerInboxesRow
+	for rows.Next() {
+		var i ListFollowerInboxesRow
+		if err := rows.Scan(&i.Inbox, &i.SharedInbox); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNotes = `-- name: ListNotes :many
+SELECT id, content, published_at FROM notes ORDER BY published_at DESC LIMIT ?
+`
+
+func (q *Queries) ListNotes(ctx context.Context, limit int64) ([]Note, error) {
+	rows, err := q.db.QueryContext(ctx, listNotes, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Note
+	for rows.Next() {
+		var i Note
+		if err := rows.Scan(&i.ID, &i.Content, &i.PublishedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const rescheduleDelivery = `-- name: RescheduleDelivery :exec
+UPDATE delivery_queue SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?
+`
+
+type RescheduleDeliveryParams struct {
+	Attempts      int64
+	NextAttemptAt string
+	LastError     sql.NullString
+	ID            int64
+}
+
+func (q *Queries) RescheduleDelivery(ctx context.Context, arg RescheduleDeliveryParams) error {
+	_, err := q.db.ExecContext(ctx, rescheduleDelivery,
+		arg.Attempts,
+		arg.NextAttemptAt,
+		arg.LastError,
+		arg.ID,
+	)
+	return err
 }
 
 const upsertFollower = `-- name: UpsertFollower :exec

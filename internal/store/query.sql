@@ -30,3 +30,33 @@ DELETE FROM followers WHERE actor_iri = ?;
 
 -- name: CountFollowers :one
 SELECT count(*) FROM followers;
+
+-- name: ListFollowerInboxes :many
+SELECT inbox, shared_inbox FROM followers;
+
+-- name: CreateNote :exec
+INSERT INTO notes (id, content, published_at) VALUES (?, ?, ?);
+
+-- name: GetNote :one
+SELECT * FROM notes WHERE id = ?;
+
+-- name: ListNotes :many
+SELECT * FROM notes ORDER BY published_at DESC LIMIT ?;
+
+-- name: CountNotes :one
+SELECT count(*) FROM notes;
+
+-- name: EnqueueDelivery :exec
+INSERT INTO delivery_queue (inbox, activity, next_attempt_at) VALUES (?, ?, ?);
+
+-- name: DueDeliveries :many
+SELECT * FROM delivery_queue WHERE next_attempt_at <= ? ORDER BY next_attempt_at, id LIMIT ?;
+
+-- name: RescheduleDelivery :exec
+UPDATE delivery_queue SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?;
+
+-- name: DeleteDelivery :exec
+DELETE FROM delivery_queue WHERE id = ?;
+
+-- name: CountDeliveries :one
+SELECT count(*) FROM delivery_queue;
