@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/duv0-x/gremio/internal/federation"
 	"github.com/duv0-x/gremio/internal/instance"
+	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 )
 
@@ -25,6 +27,8 @@ Comandos:
   admin init   crea al dueño de la instancia y su par de llaves
   admin note   publica un Note público para los seguidores (lo entrega serve)
   admin profile cambia nombre, resumen o avatar del perfil (avisa a los seguidores)
+  admin import reemplaza el perfil por un JSON Resume (muestra qué cambia y pide confirmar)
+  admin export escribe el perfil como JSON Resume por stdout
   backup       copia consistente de la base
 
 Variables de entorno: GREMIO_DATA_DIR (directorio de datos), GREMIO_ADDR (dirección de escucha),
@@ -58,6 +62,10 @@ func run(ctx context.Context, args []string) error {
 		return adminNote(ctx, args[2:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "profile":
 		return adminProfile(ctx, args[2:])
+	case args[0] == "admin" && len(args) > 1 && args[1] == "import":
+		return adminImport(ctx, args[2:])
+	case args[0] == "admin" && len(args) > 1 && args[1] == "export":
+		return adminExport(ctx, args[2:])
 	case args[0] == "backup":
 		return backup(ctx, args[1:])
 	default:
@@ -222,6 +230,86 @@ func adminProfile(ctx context.Context, args []string) error {
 	}
 	slog.Info("perfil actualizado", "updates_encolados", queued, "nota", "los envía `gremio serve`")
 	return nil
+}
+
+func adminImport(ctx context.Context, args []string) error {
+	fs, dataDir := newFlags("admin import")
+	yes := fs.Bool("yes", false, "no pedir confirmación")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 1 {
+		return errors.New("uso: gremio admin import [--yes] <perfil.json>")
+	}
+	data, err := os.ReadFile(fs.Arg(0))
+	if err != nil {
+		return err
+	}
+	next, warnings, err := profile.Parse(data)
+	if err != nil {
+		return err
+	}
+	st, err := store.Open(ctx, *dataDir)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	fed, err := federation.New(ctx, st, federation.Options{Version: version})
+	if err != nil {
+		return fmt.Errorf("%w (arranca `gremio serve --host …` una vez para fijar el host)", err)
+	}
+	cur, err := fed.CurrentProfile(ctx)
+	if err != nil {
+		return err
+	}
+	for _, w := range warnings {
+		fmt.Fprintln(os.Stderr, "aviso:", w)
+	}
+	fmt.Fprintln(os.Stderr, "El perfil importado REEMPLAZA al actual (no se mezcla):")
+	for _, line := range profile.Diff(cur, next) {
+		fmt.Fprintln(os.Stderr, "  "+line)
+	}
+	if !*yes {
+		fmt.Fprint(os.Stderr, "¿Reemplazar el perfil? [s/N] ")
+		var answer string
+		_, _ = fmt.Scanln(&answer)
+		if a := strings.ToLower(strings.TrimSpace(answer)); a != "s" && a != "si" && a != "sí" {
+			return errors.New("cancelado: el perfil no cambió")
+		}
+	}
+	queued, err := fed.ReplaceProfile(ctx, next)
+	if err != nil {
+		return err
+	}
+	slog.Info("perfil importado", "updates_encolados", queued, "nota", "los envía `gremio serve`")
+	return nil
+}
+
+func adminExport(ctx context.Context, args []string) error {
+	fs, dataDir := newFlags("admin export")
+	ext := fs.Bool("with-extensions", false, "incluye ids, evidencia, vistas y visibilidad (clave gremio); sin esto sale JSON Resume estándar")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	st, err := store.Open(ctx, *dataDir)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	doc, err := st.Read.GetProfile(ctx)
+	if err != nil {
+		return err
+	}
+	r, err := profile.Load(doc)
+	if err != nil {
+		return err
+	}
+	b, err := r.Export(*ext)
+	if err != nil {
+		return err
+	}
+	_, err = os.Stdout.Write(b)
+	return err
 }
 
 func backup(ctx context.Context, args []string) error {

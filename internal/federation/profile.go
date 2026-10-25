@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	ap "github.com/duv0-x/gremio/internal/goap/activitypub"
+	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 )
 
@@ -38,14 +39,14 @@ func (s *Server) UpdateProfile(ctx context.Context, u ProfileUpdate) (int, error
 	if err != nil {
 		return 0, err
 	}
-	var profile map[string]any
-	if err := json.Unmarshal([]byte(doc), &profile); err != nil {
+	var m map[string]any
+	if err := json.Unmarshal([]byte(doc), &m); err != nil {
 		return 0, err
 	}
-	basics, _ := profile["basics"].(map[string]any)
+	basics, _ := m["basics"].(map[string]any)
 	if basics == nil {
 		basics = map[string]any{}
-		profile["basics"] = basics
+		m["basics"] = basics
 	}
 	if u.Name != nil {
 		basics["name"] = strings.TrimSpace(*u.Name)
@@ -60,13 +61,43 @@ func (s *Server) UpdateProfile(ctx context.Context, u ProfileUpdate) (int, error
 		}
 		basics["image"] = url
 	}
-	b, err := json.Marshal(profile)
+	b, err := json.Marshal(m)
 	if err != nil {
 		return 0, err
 	}
+	return s.saveProfile(ctx, b)
+}
 
+// ReplaceProfile reemplaza el perfil completo por uno importado (ADR-003 §5) y avisa a los seguidores.
+// La foto la gestiona la instancia: si el perfil nuevo no trae basics.image, se conserva la actual.
+func (s *Server) ReplaceProfile(ctx context.Context, r *profile.Resume) (int, error) {
+	if r.Basics.Image == "" {
+		cur, err := s.CurrentProfile(ctx)
+		if err != nil {
+			return 0, err
+		}
+		r.Basics.Image = cur.Basics.Image
+	}
+	b, err := r.Export(true)
+	if err != nil {
+		return 0, err
+	}
+	return s.saveProfile(ctx, b)
+}
+
+// CurrentProfile devuelve el perfil guardado.
+func (s *Server) CurrentProfile(ctx context.Context) (*profile.Resume, error) {
+	doc, err := s.st.Read.GetProfile(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return profile.Load(doc)
+}
+
+// saveProfile guarda el documento y encola un Update{Person} por inbox en la misma transacción.
+func (s *Server) saveProfile(ctx context.Context, b []byte) (int, error) {
 	var queued int
-	err = s.st.Tx(ctx, func(q *store.Queries) error {
+	err := s.st.Tx(ctx, func(q *store.Queries) error {
 		if err := q.UpdateProfile(ctx, string(b)); err != nil {
 			return err
 		}

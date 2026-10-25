@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/duv0-x/gremio/internal/profile"
 )
 
 func testPNG(t *testing.T, c color.Color) []byte {
@@ -108,4 +110,32 @@ func TestUpdateProfileAvisaALosSeguidores(t *testing.T) {
 		t.Fatalf("UpdateProfile = %d, %v", queued, err)
 	}
 	waitFor(t, "Update en el sharedInbox de bob", func() bool { return b.shared.Load() == 1 })
+}
+
+func TestReplaceProfileConservaElAvatarYAvisa(t *testing.T) {
+	a := newTestInstance(t, "alice")
+	ctx := context.Background()
+	if _, err := a.UpdateProfile(ctx, ProfileUpdate{Avatar: testPNG(t, color.RGBA{G: 200, A: 255})}); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := a.CurrentProfile(ctx)
+
+	next, _, err := profile.Parse([]byte(`{"basics":{"name":"Alice Ejemplo","summary":"SRE"},"work":[{"name":"Acme","highlights":["Bajó el MTTR"]}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.ReplaceProfile(ctx, next); err != nil {
+		t.Fatal(err)
+	}
+	after, err := a.CurrentProfile(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Basics.Image == "" || after.Basics.Image != before.Basics.Image || len(after.Work) != 1 || after.Work[0].Highlights[0].ID == "" {
+		t.Errorf("perfil = %+v", after)
+	}
+	actor := getJSON(t, string(a.actorID))
+	if actor["name"] != "Alice Ejemplo" || actor["summary"] != "SRE" || actor["icon"] == nil {
+		t.Errorf("actor = %v", actor)
+	}
 }
