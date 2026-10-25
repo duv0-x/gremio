@@ -113,15 +113,15 @@ func TestFichaDeJugador(t *testing.T) {
 		t.Fatalf("HTTP %d", resp.StatusCode)
 	}
 	for _, want := range []string{
-		`aria-label="Índice general 77"`, // SRE: (2·70 + 91) / 3
+		`aria-label="Índice general 77.`, // SRE: (2·70 + 91) / 3
 		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
-		"Bajó el MTTR 23 %", "respaldado por 1 logro", ">SRE</abbr> ×2", ">PLE</abbr> ×2",
+		"Bajó el MTTR 23 %", "respaldado por 1 logro", "SRE<span class=\"sr-only\">", "PLE<span class=\"sr-only\">",
 		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
-		`id="cv"`, "Presentación larga", "<polygon",
+		`id="cv"`, "Presentación larga", "<polygon", `<details class="group" open>`,
 		// Toda sigla explica su significado al pasar el mouse.
-		`<abbr title="SRE · Site Reliability Engineer: Mantiene`, `<abbr title="Senior"`, "· Senior",
-		`<abbr title="Contenedores"`, "<title>CNT: Contenedores</title>",
-		`<abbr title="OVR (overall)`, "<title>OVR (overall)",
+		`data-tip="SRE · Site Reliability Engineer: Mantiene`, `data-tip="Senior"`, "· Senior",
+		`data-tip="Contenedores"`, `<dt class="font-mono text-accent">CNT</dt>`, `data-tip="OVR (overall)`,
+		`<span class="sr-only"> (Contenedores)</span>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("falta %q", want)
@@ -132,7 +132,7 @@ func TestFichaDeJugador(t *testing.T) {
 	}
 
 	_, body = get(t, ts.URL+"/@alice/platform-engineer")
-	if !strings.Contains(body, `aria-label="Índice general 74"`) { // PLE: (2·91 + 40) / 3
+	if !strings.Contains(body, `aria-label="Índice general 74.`) { // PLE: (2·91 + 40) / 3
 		t.Error("la vista PLE debe mostrar su propio OVR")
 	}
 	for _, path := range []string{"/@alice/sre", "/@alice/nope", "/@bob/sre"} {
