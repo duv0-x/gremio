@@ -42,10 +42,29 @@ go build ./cmd/gremio                         # Go 1.26, sin cgo
 
 **`--host` y `--account-domain` son permanentes**: se graban en la base en el primer `serve` y el binario se niega a arrancar con otros valores, porque las demás instancias cachean el Actor y sus llaves (ADR-001). Si `--account-domain` es distinto del dominio de `--host`, ese dominio tiene que redirigir `/.well-known/webfinger`, `host-meta` y `nodeinfo` al host.
 
+## Instalar con systemd
+
+Cada release (`vX.Y.Z`) publica binarios para linux/amd64, linux/arm64 y darwin/arm64 con sus checksums. El `tar.gz` trae también `deploy/` y los avisos de licencia de las dependencias (`third_party_licenses/`).
+
+```bash
+sudo useradd --system --home /gremio --shell /usr/sbin/nologin gremio
+sudo mkdir -p /gremio/data && sudo chown gremio:gremio /gremio/data && sudo chmod 700 /gremio/data
+sudo install -m 0600 deploy/gremio.env.example /gremio/gremio.env   # edita host, account-domain y puerto
+sudo install -m 0755 deploy/gremio-update /usr/local/bin/gremio-update
+sudo install -m 0644 deploy/gremio.service deploy/gremio-update.service deploy/gremio-update.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo /usr/local/bin/gremio-update                                   # instala el binario
+sudo -u gremio GREMIO_DATA_DIR=/gremio/data /gremio/gremio admin init --username <usuario>
+sudo systemctl enable --now gremio gremio-update.timer
+```
+
+`gremio-update` instala la última release cada 5 minutos, con verificación del checksum, respaldo del binario y la base, y rollback si `/readyz` no responde. Para fijar la versión estilo GitOps, define `GREMIO_VERSION_URL` en `/gremio/gremio-update.env`. Debe apuntar a un archivo con el tag, p. ej. el `gremio.version` del repo de tu instancia.
+
 ## Desarrollo
 
 - `go generate ./...` regenera el código de sqlc (`internal/store`), que se commitea.
-- `go vet ./... && go test ./...` antes de cada commit; CI además compila sin cgo para linux/amd64 y linux/arm64.
+- `go vet ./... && go test ./...` antes de cada commit; CI además compila sin cgo para linux/amd64 y linux/arm64 y prueba el actualizador (`deploy/test/gremio-update_test.sh`).
+- Releases: pushear un tag `vX.Y.Z` corre GoReleaser (`.github/workflows/release.yml`). Para probar localmente: `go run github.com/goreleaser/goreleaser/v2@v2.19.0 release --snapshot --clean`.
 
 ### Probar la federación contra GoToSocial o Mastodon
 

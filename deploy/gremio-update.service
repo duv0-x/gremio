@@ -1,0 +1,9 @@
+[Unit]
+Description=Instala la última release de Gremio
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/gremio/gremio-update.env
+ExecStart=/usr/local/bin/gremio-update

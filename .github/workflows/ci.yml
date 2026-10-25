@@ -29,6 +29,11 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /dev/null ./cmd/gremio
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /dev/null ./cmd/gremio
 
+      - name: actualizador (deploy/gremio-update)
+        run: |
+          sudo useradd --system gremio
+          sudo deploy/test/gremio-update_test.sh
+
       # ADR-007: el código generado se commitea; falla si no está al día.
       - name: código generado al día
         run: |

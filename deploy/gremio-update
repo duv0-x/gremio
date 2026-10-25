@@ -1,0 +1,80 @@
+#!/bin/bash
+# Instala la última release de Gremio si difiere de la instalada, con respaldo y rollback.
+# Lo corre gremio-update.timer como root. Variables opcionales (en /gremio/gremio-update.env):
+#   GREMIO_VERSION_URL  URL de un archivo con el tag a instalar (p. ej. el gremio.version del repo de tu
+#                       instancia): fija la versión estilo GitOps. Sin ella, instala la última release.
+#   GREMIO_REPO, GREMIO_DIR, GREMIO_READY_URL, GREMIO_READY_TRIES, GREMIO_USER.
+set -euo pipefail
+
+REPO=${GREMIO_REPO:-duv0-x/gremio}
+DIR=${GREMIO_DIR:-/gremio}
+READY_URL=${GREMIO_READY_URL:-http://127.0.0.1:8081/readyz}
+READY_TRIES=${GREMIO_READY_TRIES:-60}
+SVC_USER=${GREMIO_USER:-gremio}
+PREV="$DIR/.previous"
+DB="$DIR/data/gremio.db"
+
+case "$(uname -m)" in
+  aarch64|arm64) arch=arm64 ;;
+  x86_64|amd64) arch=amd64 ;;
+  *) echo "arquitectura no soportada: $(uname -m)" >&2; exit 1 ;;
+esac
+
+current=$(cat "$DIR/.release" 2>/dev/null || true)
+if [ -n "${GREMIO_VERSION_URL:-}" ]; then
+  tag=$(curl -fsSL "$GREMIO_VERSION_URL" | tr -d '[:space:]')
+else
+  tag=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')
+fi
+# El tag llega de afuera y termina en URLs y rutas: solo se aceptan versiones semánticas.
+if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "versión inválida: '$tag'" >&2
+  exit 1
+fi
+[ "$tag" = "$current" ] && exit 0
+
+echo "actualizando ${current:-<ninguna>} -> $tag"
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+file="gremio_${tag#v}_linux_${arch}.tar.gz"
+curl -fsSL -o "$tmp/$file" "https://github.com/$REPO/releases/download/$tag/$file"
+curl -fsSL -o "$tmp/checksums.txt" "https://github.com/$REPO/releases/download/$tag/checksums.txt"
+(cd "$tmp" && sha256sum -c --ignore-missing checksums.txt)
+mkdir "$tmp/new"
+tar -xzf "$tmp/$file" -C "$tmp/new"
+
+wait_ready() {
+  for _ in $(seq 1 "$READY_TRIES"); do
+    curl -sf -o /dev/null "$READY_URL" && return 0
+    sleep 2
+  done
+  return 1
+}
+
+systemctl stop gremio
+# Con el servicio detenido, la base queda consistente con el binario que se reemplaza.
+rm -rf "$PREV"
+mkdir -p "$PREV"
+[ -f "$DIR/gremio" ] && cp -a "$DIR/gremio" "$PREV/"
+[ -f "$DB" ] && cp -a "$DB" "$PREV/"
+install -m 0755 -o root -g root "$tmp/new/gremio" "$DIR/gremio"
+systemctl start gremio
+
+if wait_ready; then
+  echo "$tag" > "$DIR/.release"
+  echo "actualizado a $tag"
+  exit 0
+fi
+
+echo "$tag no quedó listo; haciendo rollback" >&2
+systemctl stop gremio
+if [ -f "$PREV/gremio" ]; then
+  install -m 0755 -o root -g root "$PREV/gremio" "$DIR/gremio"
+fi
+if [ -f "$PREV/gremio.db" ]; then
+  rm -f "$DB-wal" "$DB-shm"
+  install -m 0600 -o "$SVC_USER" -g "$SVC_USER" "$PREV/gremio.db" "$DB"
+fi
+systemctl start gremio
+exit 1
