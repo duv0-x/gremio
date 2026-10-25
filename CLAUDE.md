@@ -21,9 +21,9 @@ Toda la conversación de diseño vive en la KB, no aquí:
 - **Módulo Proyectos**: crear, escoger y proponer proyectos; posible generación con IA; la evaluación se estudia después.
 - Fase siguiente: armar equipos.
 
-## Arquitectura tentativa (sin ADR todavía)
+## Arquitectura
 
-Go, un binario con frontend embebido (`embed`), solo SQLite (ncruces + sqlc + goose, ver `docs/adr/ADR-006-almacenamiento.md`, aceptado), Docker + Helm. La prioridad es una plataforma descentralizada y robusta (por eso Go), con código idiomático. Referencia local de Go + ActivityPub: el fork de GoToSocial en `/Users/lx-duv0-x/Documents/Repositories/echo.duv0-x.cloud` (AGPL, compatible con la licencia del proyecto).
+Go puro (`CGO_ENABLED=0`), un binario con todo embebido; binarios + imagen OCI con GoReleaser (`docs/adr/ADR-007-lenguaje-y-distribucion.md`, aceptado). Web renderizada en el servidor con templ + htmx y estilos con Tailwind standalone (`docs/adr/ADR-008-frontend.md`, aceptado). Solo SQLite (ncruces + sqlc + goose, `docs/adr/ADR-006-almacenamiento.md`, aceptado). El código generado (sqlc, templ, CSS) se commitea. La prioridad es una plataforma descentralizada y robusta (por eso Go), con código idiomático. Referencia local de Go + ActivityPub: el fork de GoToSocial en `/Users/lx-duv0-x/Documents/Repositories/echo.duv0-x.cloud` (AGPL, compatible con la licencia del proyecto).
 
 ## Go
 
