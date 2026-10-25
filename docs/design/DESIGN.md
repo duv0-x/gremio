@@ -94,3 +94,61 @@ El código embebe y sirve las tres familias de IBM/Google desde la instancia (si
 - **Grid**: tarjetas en columnas fluidas con gap de 16–24 px; una sola columna por debajo de 640 px.
 - **Objetivo táctil**: todo control mide al menos 44 × 44 px.
 - **Impresión** (`/cv`): A4/Letter, fondo blanco, sin nav ni footer, solo `ink`, `muted` y `line`; el acento se imprime como `ink`.
+
+## Componentes
+
+Pantallas de referencia en Stitch: "Componentes · Gremio Design System" (claro, `screens/5bfea9db99a54704a835eaa2a29f4d5e`) y "Catálogo de Componentes — modo oscuro" (`screens/8c82eaf683814e8591441ef9eb9718f9`). Capturas: [claro](stitch/componentes-claro.png) y [oscuro](stitch/componentes-oscuro.png). Los textos de ejemplo de Stitch son de relleno; los reales salen del perfil. Todos los interactivos tienen foco visible (`focus`, 2 px con 2 px de separación) y miden al menos 44 × 44 px.
+
+### Acciones
+
+| Componente | Anatomía | Estados | Cuándo |
+|------------|----------|---------|--------|
+| Botón primario | 44 px de alto, padding 0 18 px, radio `md`, `label-md`; fondo `accent`, texto `on-accent` | hover `accent-hover`; foco; deshabilitado al 40 % de opacidad y `cursor: not-allowed` | Una sola acción principal por vista ("Enviarme un enlace", "Guardar") |
+| Botón secundario | Igual, fondo transparente, borde 1.5 px `ink`, texto `ink` | hover fondo `surface-2` | Acciones alternativas ("Exportar JSON Resume") |
+| Botón ghost | Sin borde ni fondo, texto `ink` | hover fondo `surface-2` | Acciones de baja jerarquía en barras y tablas |
+| Botón de peligro | Fondo `danger`; texto blanco en claro (6.57:1) y `bg` en oscuro (7.66:1) | hover 10 % más oscuro | Acciones destructivas ("Cerrar todas las sesiones"); siempre con confirmación |
+| Enlace | Texto `accent`, subrayado con offset 3 px | hover `accent-hover` | Navegación y referencias; nunca un botón disfrazado |
+
+Un botón con icono solo lleva `aria-label`. Con htmx, el botón pasa a `aria-busy="true"` y muestra el spinner mientras dura la petición.
+
+### Formularios
+
+- **Etiqueta** siempre visible encima (`label-md`), nunca solo placeholder. **Ayuda** debajo en `body-sm` `faint`, enlazada con `aria-describedby`.
+- **Input, textarea, select**: alto 44 px (textarea desde 96 px), fondo `surface`, borde 1.5 px `control`, radio `md`, padding 0 12 px.
+  - Foco: anillo `focus`.
+  - Error: borde `danger`, mensaje debajo en `danger` con icono, `aria-invalid="true"`; el mensaje dice cómo arreglarlo.
+  - Deshabilitado: fondo `surface-2`, texto `faint`.
+- **Checkbox**: caja de 20 px (borde 1.5 px `control`, radio `sm`) dentro de un área clicable de 44 px que incluye la etiqueta; marcado en `accent`.
+
+### Perfil
+
+- **Chip de skill**: pill (`full`), `body-sm` 600, alto 32 px (área de 44 px si es enlace). El nivel ([ADR-003](../adr/ADR-003-perfil-v1.md)) se ve en una barra de 6 px y en el texto, nunca solo por color:
+  - `expert` "Experto": barra llena `ink`;
+  - `solid` "Sólido": barra al 70 % `control`;
+  - `learning` "Aprendiendo": barra al 35 % con borde punteado `control`.
+  - **Con evidencia** enlazada: fondo `accent-soft`, texto `accent-hover`, icono de enlace; es un `<a>` a la evidencia.
+  - **Sin evidencia**: fondo transparente, borde 1 px `line`, texto `ink`; no es interactivo.
+- **Tarjeta de experiencia**: `surface`, borde `line`, radio `lg`, padding 24 px. Cargo (`title-md`), organización (`body-md` `muted`), fechas en `data-md` (`2022-03 → hoy`), logros en lista con viñeta `accent` y skills relacionadas en chips al pie.
+- **Tarjeta de ejecución**: título (`title-md`) que enlaza al proyecto, estado en chip de dato (mono, radio `sm`), fecha, rol propio y stack en chips de dato. Una ejecución sin resultado publicado no se muestra en el perfil público.
+- **Selector de vistas por rol**: `role="tablist"` con tabs pill de 44 px sobre la banda invertida. Seleccionada: fondo `bg`, texto `ink`; resto: transparente, borde 1.5 px `#767B83` (el `#4A4F56` del mockup daba 2.15:1; este da 4.18:1 en claro y 3.58:1 en oscuro), texto `bg`. Sin JavaScript cada tab es un enlace a `/@usuario/<vista>`; con htmx cambia el contenido sin recargar y actualiza la URL.
+
+### Estructura
+
+- **Nav**: alto 64 px, fondo `bg`, borde inferior `line`. A la izquierda el nombre y el handle en `data-md`; a la derecha los enlaces de sección y, solo con sesión, "Panel".
+- **Footer**: borde superior `line`, `body-sm` `faint`: `Gremio v<versión> · AGPL-3.0 · Source`. **El enlace "Source" al código de la versión desplegada es obligatorio** ([ADR-004](../adr/ADR-004-licencia.md)).
+- **Contenedor**: 1200 px y gutter de 24/16 px; la columna de lectura de 720 px para texto corrido.
+- **Tabla**: encabezado en `eyebrow`, filas de 48 px con borde inferior `line`, hover `surface-2`, números alineados a la derecha en `data-md`. Por debajo de 640 px pasa a tarjetas apiladas.
+- **Alerta**: radio `md`, padding 12 16 px, borde izquierdo de 3 px y fondo suave del color de estado (`success`, `warning`, `danger`, `accent` para info), icono más texto. `role="status"` para éxito e info, `role="alert"` para error.
+
+### Estados
+
+- **Vacío**: icono de trazo, una frase de qué falta y una acción ("Aún no hay ejecuciones publicadas" + "Publicar una").
+- **Error**: alerta `danger` con lo que pasó, en palabras del usuario, y un botón "Reintentar".
+- **Cargando**: esqueletos `surface-2` con la forma del contenido (sin animación si `prefers-reduced-motion`) y spinner de 16 px en botones. Las regiones que actualiza htmx llevan `aria-live="polite"`.
+
+### Revisión de accesibilidad (pantallas de Stitch)
+
+- **Contraste**: todos los pares de texto y de controles cumplen AA en ambos modos (tablas de arriba). El borde de las tabs no seleccionadas pasa de `#4A4F56` (2.15:1) a `#767B83`.
+- **Foco**: visible en botones e inputs de los dos modos (anillo `focus`).
+- **Objetivos de 44 px**: Stitch dibuja las tabs de vistas y los chips de skill más bajos (unos 32 px). En el código las tabs miden 44 px y los chips enlazados tienen un área clicable de 44 px; la pantalla de Stitch no es la referencia de tamaño.
+- **Nivel de skill**: Stitch lo marca con un punto lleno, medio o vacío. El código usa la barra de 6 px y el texto del nivel, para no depender de una forma pequeña.
