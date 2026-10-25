@@ -24,6 +24,7 @@ Comandos:
   serve        arranca el servidor
   admin init   crea al dueño de la instancia y su par de llaves
   admin note   publica un Note público para los seguidores (lo entrega serve)
+  admin profile cambia nombre, resumen o avatar del perfil (avisa a los seguidores)
   backup       copia consistente de la base
 
 Variables de entorno: GREMIO_DATA_DIR (directorio de datos), GREMIO_ADDR (dirección de escucha),
@@ -55,6 +56,8 @@ func run(ctx context.Context, args []string) error {
 		return adminInit(ctx, args[2:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "note":
 		return adminNote(ctx, args[2:])
+	case args[0] == "admin" && len(args) > 1 && args[1] == "profile":
+		return adminProfile(ctx, args[2:])
 	case args[0] == "backup":
 		return backup(ctx, args[1:])
 	default:
@@ -169,6 +172,55 @@ func adminNote(ctx context.Context, args []string) error {
 		return err
 	}
 	slog.Info("note publicado", "id", id, "entregas_encoladas", queued, "nota", "las envía `gremio serve`")
+	return nil
+}
+
+func adminProfile(ctx context.Context, args []string) error {
+	fs, dataDir := newFlags("admin profile")
+	name := fs.String("name", "", "nombre visible (basics.name)")
+	summary := fs.String("summary", "", "resumen o bio (basics.summary)")
+	avatar := fs.String("avatar", "", "archivo PNG, JPEG o WebP de hasta 2 MB")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	var u federation.ProfileUpdate
+	fs.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "name":
+			u.Name = name
+		case "summary":
+			u.Summary = summary
+		}
+	})
+	if *avatar != "" {
+		info, err := os.Stat(*avatar)
+		if err != nil {
+			return err
+		}
+		if info.Size() > federation.MaxAvatarBytes {
+			return fmt.Errorf("el avatar pesa %d bytes; el máximo es %d", info.Size(), federation.MaxAvatarBytes)
+		}
+		if u.Avatar, err = os.ReadFile(*avatar); err != nil {
+			return err
+		}
+	}
+	if u.Name == nil && u.Summary == nil && u.Avatar == nil {
+		return errors.New("nada que cambiar: usa --name, --summary o --avatar")
+	}
+	st, err := store.Open(ctx, *dataDir)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	fed, err := federation.New(ctx, st, federation.Options{Version: version})
+	if err != nil {
+		return fmt.Errorf("%w (arranca `gremio serve --host …` una vez para fijar el host)", err)
+	}
+	queued, err := fed.UpdateProfile(ctx, u)
+	if err != nil {
+		return err
+	}
+	slog.Info("perfil actualizado", "updates_encolados", queued, "nota", "los envía `gremio serve`")
 	return nil
 }
 

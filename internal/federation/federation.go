@@ -103,6 +103,7 @@ func (s *Server) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+actor+"/inbox", s.postInbox)
 	mux.HandleFunc("POST /inbox", s.postInbox)
 	mux.HandleFunc("GET /notes/{id}", s.getNote)
+	mux.HandleFunc("GET /media/{file}", s.getMedia)
 }
 
 func (s *Server) keyID() string  { return string(s.actorID) + "#main-key" }
@@ -179,6 +180,7 @@ type profileBasics struct {
 	Basics struct {
 		Name    string `json:"name"`
 		Summary string `json:"summary"`
+		Image   string `json:"image"`
 	} `json:"basics"`
 }
 
@@ -187,6 +189,11 @@ func (s *Server) actor(ctx context.Context) (*ap.Actor, error) {
 	if err != nil {
 		return nil, err
 	}
+	return s.actorFrom(doc)
+}
+
+// actorFrom arma el Person a partir del documento del perfil.
+func (s *Server) actorFrom(doc string) (*ap.Actor, error) {
 	var p profileBasics
 	if err := json.Unmarshal([]byte(doc), &p); err != nil {
 		return nil, err
@@ -207,6 +214,9 @@ func (s *Server) actor(ctx context.Context) (*ap.Actor, error) {
 	}
 	if p.Basics.Summary != "" {
 		a.Summary = ap.DefaultLangValue(p.Basics.Summary)
+	}
+	if p.Basics.Image != "" {
+		a.Icon = &ap.Object{Type: ap.ImageType, URL: ap.IRI(p.Basics.Image), MediaType: mediaTypeOf(p.Basics.Image)}
 	}
 	return a, nil
 }

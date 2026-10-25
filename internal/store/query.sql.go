@@ -314,6 +314,15 @@ func (q *Queries) RescheduleDelivery(ctx context.Context, arg RescheduleDelivery
 	return err
 }
 
+const updateProfile = `-- name: UpdateProfile :exec
+UPDATE profile SET document = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = 1
+`
+
+func (q *Queries) UpdateProfile(ctx context.Context, document string) error {
+	_, err := q.db.ExecContext(ctx, updateProfile, document)
+	return err
+}
+
 const upsertFollower = `-- name: UpsertFollower :exec
 INSERT INTO followers (actor_iri, inbox, shared_inbox, follow_iri)
 VALUES (?, ?, ?, ?)
