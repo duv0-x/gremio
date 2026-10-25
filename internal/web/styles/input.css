@@ -2,6 +2,7 @@
 @import "tailwindcss" source(none);
 @source "../*.templ";
 @source "../format.go";
+@source "../ficha.go";
 
 @font-face {
   font-family: "Space Grotesk";
