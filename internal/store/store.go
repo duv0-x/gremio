@@ -124,6 +124,18 @@ func (s *Store) Backup(ctx context.Context, dest string) (string, error) {
 	return dest, nil
 }
 
+// Tx ejecuta fn dentro de una transacción del escritor; si fn falla, se revierte.
+func (s *Store) Tx(ctx context.Context, fn func(q *Queries) error) error {
+	tx, err := s.writer.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if err := fn(s.Write.WithTx(tx)); err != nil {
+		return errors.Join(err, tx.Rollback())
+	}
+	return tx.Commit()
+}
+
 // Ping comprueba que las dos conexiones responden.
 func (s *Store) Ping(ctx context.Context) error {
 	return errors.Join(s.writer.PingContext(ctx), s.reader.PingContext(ctx))

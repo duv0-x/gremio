@@ -4,10 +4,30 @@
 
 package store
 
+import (
+	"database/sql"
+)
+
+type Follower struct {
+	ActorIri    string
+	Inbox       string
+	SharedInbox sql.NullString
+	FollowIri   string
+	CreatedAt   string
+}
+
 type Instance struct {
 	ID            int64
 	Username      string
 	PrivateKeyPem string
 	PublicKeyPem  string
 	CreatedAt     string
+	Host          sql.NullString
+	AccountDomain sql.NullString
+}
+
+type Profile struct {
+	ID        int64
+	Document  string
+	UpdatedAt string
 }
