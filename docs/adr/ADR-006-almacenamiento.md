@@ -24,9 +24,9 @@ Cada instancia es de una sola persona ([ADR-001](ADR-001-instancia-y-federacion.
 
 ### 2. Driver: `github.com/ncruces/go-sqlite3`
 
-- SQLite oficial compilado a WASM y ejecutado con `wazero`, a través de `database/sql` (`github.com/ncruces/go-sqlite3/driver`). Go puro: compilación cruzada a linux/arm64 sin toolchain de C.
+- SQLite oficial compilado a WASM y **traducido a Go con `wasm2go`** (desde v0.35.x; antes se ejecutaba con `wazero`), a través de `database/sql` (`github.com/ncruces/go-sqlite3/driver`). Go puro: compilación cruzada a linux/arm64 sin toolchain de C.
 - Es el driver por defecto de GoToSocial. La alternativa `modernc.org/sqlite`, en cambio, GoToSocial la reemplaza por un fork parcheado para un bug de concurrencia.
-- La compilación del WASM al arrancar se cachea en disco (como en la instancia de GoToSocial de la Pi).
+- Corrección (2026-10-24, gremio#5): con `wasm2go` ya no hay `wazero` ni compilación al arrancar, así que no hace falta caché.
 
 ### 3. Perfil como documento, el resto en tablas
 
@@ -42,7 +42,7 @@ Cada instancia es de una sola persona ([ADR-001](ADR-001-instancia-y-federacion.
 | `executions` / `execution_links` | Ejecuciones, su estado, visibilidad y enlaces |
 | `followers` | Seguidores remotos (Actor, inbox, `sharedInbox`) |
 | `delivery_queue` | Entregas salientes pendientes, intentos y próximo reintento |
-| `instance_keys` | Par de llaves del Actor para las HTTP Signatures |
+| `instance` | Dueño único y par de llaves del Actor para las HTTP Signatures (una fila; en gremio#5 se unió con `instance_keys`) |
 
 ### 4. Acceso: sqlc; migraciones: goose
 
@@ -67,7 +67,7 @@ Cada instancia es de una sola persona ([ADR-001](ADR-001-instancia-y-federacion.
 ## Consecuencias negativas
 
 - Si algún día hiciera falta una instancia multiusuario grande, habría que reabrir esta decisión (y ADR-001).
-- ncruces agrega `wazero` al binario y un costo de compilación en el primer arranque.
+- ncruces agrega el SQLite traducido a Go al binario (el binario linux/arm64 pesa ~18 MB).
 - El perfil como documento implica que cambiar su forma requiere migrar JSON en Go, no solo `ALTER TABLE`.
 - sqlc es una herramienta más en el flujo de desarrollo (hay que regenerar al cambiar consultas o esquema).
 
@@ -85,7 +85,7 @@ Cada instancia es de una sola persona ([ADR-001](ADR-001-instancia-y-federacion.
 
 ## Pendiente de resolver
 
-- Cómo se fija la versión de sqlc en el repo (`go tool` o binario fijado en CI).
+- ~~Cómo se fija la versión de sqlc~~ Resuelto en gremio#5: `//go:generate go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1 generate`. Así la versión queda fijada sin meter las dependencias de sqlc (que requieren cgo) en el `go.mod`.
 - Política de retención de respaldos automáticos.
 
 ## Links relacionados
