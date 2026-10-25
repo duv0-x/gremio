@@ -22,6 +22,7 @@ Además, [ADR-002](ADR-002-proyecto-y-ejecucion.md) define propiedades propias (
 - Los gremios eran la red de profesionales de un oficio, que certificaba el progreso aprendiz → oficial → maestro con una *obra maestra*. Calza con los proyectos por niveles (N1 a N4) y con armar equipos en la fase siguiente.
 - Repo: `duv0-x/gremio` (renombrado desde `reverse-mini-ats` el 2026-10-24; GitHub redirige el nombre viejo). Módulo Go: `github.com/duv0-x/gremio`.
 - Al revisarlo, no había proyectos del fediverso ni de perfiles profesionales con ese nombre.
+- **Actualización 2026-10-24: "Gremio" es el nombre clave del proyecto.** El nombre público puede cambiar más adelante. La URL del contexto (`https://w3id.org/gremio/ns/v1`) **no cambia aunque cambie el nombre**: es un identificador permanente, no una marca.
 
 ### 2. Contexto JSON-LD en w3id.org
 
