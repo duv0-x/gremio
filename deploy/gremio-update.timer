@@ -1,0 +1,9 @@
+[Unit]
+Description=Revisa cada 5 minutos si hay una release nueva de Gremio
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,44 @@
+# Gremio como servicio de systemd. Instalación: ver la sección "Instalar con systemd" del README.
+[Unit]
+Description=Gremio
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=gremio
+Group=gremio
+WorkingDirectory=/gremio
+EnvironmentFile=/gremio/gremio.env
+ExecStart=/gremio/gremio serve
+Restart=on-failure
+RestartSec=5
+
+# Solo puede escribir en su directorio de datos.
+ProtectSystem=strict
+ReadWritePaths=/gremio/data
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

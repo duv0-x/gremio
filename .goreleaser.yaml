@@ -1,0 +1,36 @@
+# Releases de Gremio (ADR-007): binarios sin cgo para Linux y macOS, con checksums.
+version: 2
+
+before:
+  hooks:
+    - ./scripts/third-party-licenses.sh
+
+builds:
+  - main: ./cmd/gremio
+    binary: gremio
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: darwin
+        goarch: amd64
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "gremio_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - deploy/*
+      - third_party_licenses/**/*
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  sort: asc
