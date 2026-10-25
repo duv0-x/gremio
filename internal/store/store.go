@@ -136,6 +136,9 @@ func (s *Store) Tx(ctx context.Context, fn func(q *Queries) error) error {
 	return tx.Commit()
 }
 
+// DataDir es el directorio de datos de la instancia (base, respaldos, media).
+func (s *Store) DataDir() string { return s.dataDir }
+
 // Ping comprueba que las dos conexiones responden.
 func (s *Store) Ping(ctx context.Context) error {
 	return errors.Join(s.writer.PingContext(ctx), s.reader.PingContext(ctx))

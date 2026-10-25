@@ -60,3 +60,6 @@ DELETE FROM delivery_queue WHERE id = ?;
 
 -- name: CountDeliveries :one
 SELECT count(*) FROM delivery_queue;
+
+-- name: UpdateProfile :exec
+UPDATE profile SET document = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = 1;
