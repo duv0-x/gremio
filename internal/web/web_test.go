@@ -40,7 +40,7 @@ func newTestServer(t *testing.T, document string) *httptest.Server {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	New(st, "v1.2.3").Register(mux)
+	New(st, "1.2.3").Register(mux)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 	return ts
@@ -66,7 +66,7 @@ func TestPerfilPublico(t *testing.T) {
 	for _, want := range []string{
 		`<html lang="es">`, "Alice Ejemplo", "Presentación larga", "Medellín, Colombia", "@alice@ejemplo.org",
 		"2021-05 → hoy", "Bajó el MTTR 23 %", `href="https://ejemplo.org/charla"`, "Experto",
-		`href="https://github.com/duv0-x/gremio/tree/v1.2.3"`, "/static/app.css?v=v1.2.3",
+		`href="https://github.com/duv0-x/gremio/tree/v1.2.3"`, "/static/app.css?v=1.2.3",
 		`<meta name="description" content="Bio corta">`,
 	} {
 		if !strings.Contains(body, want) {
@@ -80,6 +80,9 @@ func TestPerfilPublico(t *testing.T) {
 	}
 	if csp := resp.Header.Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'self'") {
 		t.Errorf("CSP = %q", csp)
+	}
+	if cc := resp.Header.Get("Cache-Control"); cc != "no-transform" {
+		t.Errorf("Cache-Control = %q", cc)
 	}
 }
 
@@ -98,7 +101,7 @@ func TestRutasDesconocidasYEstaticos(t *testing.T) {
 			t.Errorf("%s: HTTP %d", path, resp.StatusCode)
 		}
 	}
-	resp, css := get(t, ts.URL+"/static/app.css?v=v1.2.3")
+	resp, css := get(t, ts.URL+"/static/app.css?v=1.2.3")
 	if resp.StatusCode != http.StatusOK || !strings.Contains(css, "--accent") || !strings.Contains(resp.Header.Get("Cache-Control"), "immutable") {
 		t.Errorf("app.css: HTTP %d, %d bytes, %v", resp.StatusCode, len(css), resp.Header)
 	}

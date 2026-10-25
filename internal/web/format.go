@@ -18,10 +18,11 @@ type Page struct {
 // SourceURL apunta al código de la versión desplegada (ADR-004: el enlace "Source" es obligatorio).
 func (p Page) SourceURL() string {
 	const repo = "https://github.com/duv0-x/gremio"
-	if strings.HasPrefix(p.Version, "v") {
-		return repo + "/tree/" + p.Version
+	// GoReleaser inyecta la versión sin la "v" del tag.
+	if p.Version == "" || p.Version == "dev" {
+		return repo
 	}
-	return repo
+	return repo + "/tree/v" + strings.TrimPrefix(p.Version, "v")
 }
 
 // Email devuelve el email solo si el dueño lo hizo público (ADR-003 §4).
