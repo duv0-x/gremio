@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: vet
+        run: go vet ./...
+
+      - name: test
+        run: go test -race ./...
+
+      # ADR-007: el binario no puede depender de cgo (incluye linux/arm64 para la Pi).
+      - name: build sin cgo
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /dev/null ./cmd/gremio
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /dev/null ./cmd/gremio
+
+      # ADR-007: el código generado se commitea; falla si no está al día.
+      - name: código generado al día
+        run: |
+          go generate ./...
+          gofmt -l . | tee /dev/stderr | (! read)
+          git diff --exit-code

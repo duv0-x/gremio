@@ -19,6 +19,22 @@ Fase siguiente: armar equipos para proyectos complejos.
 - `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-008).
 - `internal/goap/`: núcleo de go-ap (ActivityPub) mantenido por nosotros.
 
+## Uso
+
+```bash
+go build ./cmd/gremio                         # Go 1.26, sin cgo
+./gremio admin init --username <usuario>      # crea la base, al dueño y su par de llaves
+./gremio serve                                # escucha en 127.0.0.1:8080 (GET /readyz)
+./gremio backup                               # copia consistente en data/backups/
+```
+
+El directorio de datos se elige con `--data-dir` o `GREMIO_DATA_DIR` (por defecto `./data`), y la dirección con `--addr` o `GREMIO_ADDR`.
+
+## Desarrollo
+
+- `go generate ./...` regenera el código de sqlc (`internal/store`), que se commitea.
+- `go vet ./... && go test ./...` antes de cada commit; CI además compila sin cgo para linux/amd64 y linux/arm64.
+
 ## Licencia
 
 [AGPL-3.0-or-later](LICENSE). `internal/goap/` es MIT (copiado de go-ap) y la especificación del vocabulario es CC0. Ver [ADR-004](docs/adr/ADR-004-licencia.md) y [CONTRIBUTING.md](CONTRIBUTING.md).
