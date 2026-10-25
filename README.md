@@ -16,7 +16,7 @@ Fase siguiente: armar equipos para proyectos complejos.
 ## Estructura
 
 - `docs/mockups/`: mockups de referencia (formato `.dc.html` del lienzo de diseño; no son HTML ejecutable).
-- `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-008).
+- `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-009).
 - `cmd/gremio/`: el binario (`serve`, `admin init`, `admin note`, `backup`).
 - `internal/store/`: SQLite, migraciones y consultas (sqlc).
 - `internal/instance/`: dueño, llaves y host de la instancia.
