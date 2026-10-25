@@ -79,6 +79,8 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	// Sin scripts de terceros ni inline: la página no ejecuta JavaScript.
 	w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+	// El handle @usuario@dominio parece un email: no-transform evita que un proxy como Cloudflare lo ofusque.
+	w.Header().Set("Cache-Control", "no-transform")
 	if err := ProfilePage(page).Render(r.Context(), w); err != nil {
 		slog.Error("render perfil", "err", err)
 	}

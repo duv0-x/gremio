@@ -37,7 +37,7 @@ GREMIO_HOST (URL pública) y GREMIO_ACCOUNT_DOMAIN (dominio del handle).
 Usa "gremio <comando> -h" para ver sus flags.
 `
 
-// version se fija al compilar con -ldflags "-X main.version=v1.2.3".
+// version se fija al compilar con -ldflags "-X main.version=1.2.3" (sin la "v" del tag, como lo hace GoReleaser).
 var version = "dev"
 
 func main() {
