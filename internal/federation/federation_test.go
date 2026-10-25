@@ -316,3 +316,43 @@ func TestSSRF(t *testing.T) {
 		t.Errorf("loopback: err = %v", err)
 	}
 }
+
+// Con account-domain distinto del host, Mastodon hace WebFinger con acct:usuario@<host> y espera
+// el subject canónico acct:usuario@<account-domain> (gremio#17).
+func TestWebfingerConAccountDomainDistinto(t *testing.T) {
+	ctx := context.Background()
+	var mux http.Handler
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { mux.ServeHTTP(w, r) }))
+	defer ts.Close()
+	st, err := store.Open(ctx, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if err := instance.Init(ctx, st, "root"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := instance.BindHost(ctx, st, ts.URL, "ejemplo.org"); err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(ctx, st, fastOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := http.NewServeMux()
+	s.Register(m)
+	mux = m
+
+	for _, res := range []string{"acct:root@ejemplo.org", "acct:root@127.0.0.1", string(s.actorID)} {
+		jrd := getJSON(t, ts.URL+"/.well-known/webfinger?resource="+res)
+		links, _ := jrd["links"].([]any)
+		if jrd["subject"] != "acct:root@ejemplo.org" || len(links) != 1 || links[0].(map[string]any)["href"] != string(s.actorID) {
+			t.Errorf("resource %s: %v", res, jrd)
+		}
+	}
+	resp, _ := http.Get(ts.URL + "/.well-known/webfinger?resource=acct:otro@127.0.0.1")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("otro usuario en el host: HTTP %d, quería 404", resp.StatusCode)
+	}
+}

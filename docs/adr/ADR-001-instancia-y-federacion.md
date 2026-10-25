@@ -71,6 +71,7 @@ Y contra `mastodon.social` (Mastodon 5.0.0-nightly, gremio#3), con `@duv0_x@mast
 - Follow aceptado, `Note` en el timeline de inicio y `Undo{Follow}` procesado, sin cambiar el código del spike.
 - Mastodon también firma sus GETs y recorre Actor, `outbox`, `following` y `followers` antes de seguir, y otra vez después del `Accept`.
 - Mastodon **repite el WebFinger después de obtener el Actor**: verifica que el dominio del handle corresponda al Actor. Con `account-domain` distinto del `host`, el WebFinger del dominio del handle tiene que apuntar al Actor.
+- **Con `account-domain` distinto del `host`, el WebFinger tiene que responder también `acct:usuario@<host>`** con el `subject` canónico `acct:usuario@<account-domain>`. Mastodon verifica el Actor con ese recurso, y si recibe un 404 lo descarta sin mostrar nada. Se detectó en producción tras la migración a `work.duv0-x.cloud` (gremio#17).
 - Mastodon publica `sharedInbox` (`https://mastodon.social/inbox`): los `Note` van ahí.
 - **mastodon.social suspende todo `trycloudflare.com`** (motivo "Spam" en su lista pública de bloqueos): una instancia de Gremio necesita dominio propio. Las pruebas se hicieron con un túnel nombrado en `spike.duv0-x.cloud`.
 - Las pruebas fueron contra una instancia sin `AUTHORIZED_FETCH` confirmado; como el spike firma todos sus GETs, debería funcionar también con instancias que lo exigen, pero no se probó.

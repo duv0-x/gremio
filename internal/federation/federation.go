@@ -45,6 +45,9 @@ type Server struct {
 	keys    map[string]remoteKey // keyId -> llave remota verificada
 	actorID ap.IRI
 	wakeCh  chan struct{}
+	// hostAcct es acct:usuario@<host>: Mastodon verifica el Actor con WebFinger contra su host
+	// aunque el handle use otro account-domain (ADR-001).
+	hostAcct string
 }
 
 // New carga la instancia y su llave. La instancia debe tener host (ver instance.BindHost).
@@ -69,15 +72,20 @@ func New(ctx context.Context, st *store.Store, opts Options) (*Server, error) {
 	if opts.PollInterval == 0 {
 		opts.PollInterval = 5 * time.Second
 	}
+	hostURL, err := url.Parse(inst.Host.String)
+	if err != nil {
+		return nil, err
+	}
 	return &Server{
-		st:      st,
-		inst:    inst,
-		key:     key,
-		opts:    opts,
-		client:  newClient(opts.AllowPrivateNetworks),
-		keys:    map[string]remoteKey{},
-		actorID: ap.IRI(inst.Host.String + "/users/" + inst.Username),
-		wakeCh:  make(chan struct{}, 1),
+		hostAcct: "acct:" + inst.Username + "@" + hostURL.Hostname(),
+		st:       st,
+		inst:     inst,
+		key:      key,
+		opts:     opts,
+		client:   newClient(opts.AllowPrivateNetworks),
+		keys:     map[string]remoteKey{},
+		actorID:  ap.IRI(inst.Host.String + "/users/" + inst.Username),
+		wakeCh:   make(chan struct{}, 1),
 	}, nil
 }
 
@@ -121,7 +129,7 @@ func writeJSON(w http.ResponseWriter, contentType string, v any) {
 
 func (s *Server) webfinger(w http.ResponseWriter, r *http.Request) {
 	res := r.URL.Query().Get("resource")
-	if res != "acct:"+s.handle() && res != string(s.actorID) {
+	if res != "acct:"+s.handle() && res != s.hostAcct && res != string(s.actorID) {
 		http.NotFound(w, r)
 		return
 	}
