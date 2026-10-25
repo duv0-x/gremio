@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/duv0-x/gremio/internal/instance"
+	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 )
 
@@ -101,7 +102,7 @@ var fichaDoc = strings.Replace(doc, `"contact": {"email": "private", "phone": "p
     {"code": "OBS", "name": "Observabilidad", "subs": [{"name": "Grafana", "score": 70}]},
     {"code": "COD", "name": "Código", "subs": [{"name": "Go", "score": 40, "learning": true}]}],
   "views": [
-    {"slug": "sre", "code": "SRE", "name": "SRE", "weights": {"OBS": 2, "CNT": 1}},
+    {"slug": "sre", "code": "SRE", "level": "sr", "name": "SRE", "weights": {"OBS": 2, "CNT": 1}},
     {"slug": "platform-engineer", "code": "PLE", "name": "Platform Engineer", "weights": {"CNT": 2, "COD": 1}}],
   "traits": [{"name": "Automatizadora", "summary": "Todo pasa por un pipeline."}]}`, 1)
 
@@ -114,11 +115,12 @@ func TestFichaDeJugador(t *testing.T) {
 	for _, want := range []string{
 		`aria-label="Índice general 77"`, // SRE: (2·70 + 91) / 3
 		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
-		"Bajó el MTTR 23 %", "respaldado por 1 logro", `<abbr title="SRE">SRE</abbr> ×2`, `<abbr title="Platform Engineer">PLE</abbr> ×2`,
+		"Bajó el MTTR 23 %", "respaldado por 1 logro", ">SRE</abbr> ×2", ">PLE</abbr> ×2",
 		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
 		`id="cv"`, "Presentación larga", "<polygon",
 		// Toda sigla explica su significado al pasar el mouse.
-		`<abbr title="Platform Engineer"`, `<abbr title="Contenedores"`, "<title>CNT: Contenedores</title>",
+		`<abbr title="SRE · Site Reliability Engineer: Mantiene`, `<abbr title="Senior"`, "· Senior",
+		`<abbr title="Contenedores"`, "<title>CNT: Contenedores</title>",
 		`<abbr title="OVR (overall)`, "<title>OVR (overall)",
 	} {
 		if !strings.Contains(body, want) {
@@ -161,5 +163,20 @@ func TestRutasDesconocidasYEstaticos(t *testing.T) {
 	}
 	if resp, _ := get(t, ts.URL+"/static/fonts/ibm-plex-sans-latin-400-normal.woff2"); resp.StatusCode != http.StatusOK {
 		t.Errorf("fuente: HTTP %d", resp.StatusCode)
+	}
+}
+
+func TestRadarMuestraLosMejores(t *testing.T) {
+	var attrs []profile.Attribute
+	for i, score := range []int{50, 90, 10, 80, 70, 60, 95} {
+		attrs = append(attrs, profile.Attribute{Code: string(rune('A'+i)) + "X", Subs: []profile.Sub{{Score: score}}})
+	}
+	var got []string
+	for _, a := range topAttributes(attrs, 6) {
+		got = append(got, a.Code)
+	}
+	// Sale el de 10 (CX) y los demás conservan el orden del perfil.
+	if strings.Join(got, " ") != "AX BX DX EX FX GX" {
+		t.Errorf("topAttributes = %v", got)
 	}
 }

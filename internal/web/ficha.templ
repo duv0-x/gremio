@@ -14,7 +14,7 @@ templ ficha(p Page) {
 	<div id="ficha" class="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
 		<div class="grid gap-6 lg:grid-cols-[5fr_7fr]">
 			@fichaHero(p)
-			@fichaRadar(p.Resume.Gremio.Attributes)
+			@fichaRadar(topAttributes(p.Resume.Gremio.Attributes, radarSlots), len(p.Resume.Gremio.Attributes))
 		</div>
 		@fichaAttributes(p)
 		if len(p.Resume.Gremio.Traits) > 0 {
@@ -47,14 +47,22 @@ templ fichaHero(p Page) {
 				if v, ok := p.Selected(); ok {
 					<p class={ eyebrow }>Posición</p>
 					<p class="mt-1 flex flex-wrap items-baseline gap-x-2 font-display">
-						<abbr title={ v.Name } class="text-3xl font-bold">{ viewCode(v) }</abbr>
+						<abbr title={ positionTitle(v) } class="text-3xl font-bold">{ viewCode(v) }</abbr>
+						if v.Level != "" {
+							<abbr title={ levelLong(v) } class="text-lg font-semibold text-muted">{ levelShort(v) }</abbr>
+						}
 						for i, o := range p.Resume.Gremio.Views {
 							if i != p.View {
-								<span class="text-sm text-faint">· <abbr title={ o.Name }>{ viewCode(o) }</abbr></span>
+								<span class="text-sm text-faint">· <abbr title={ positionTitle(o) }>{ viewCode(o) }</abbr></span>
 							}
 						}
 					</p>
-					<p class="mt-1 font-mono text-[13px] text-accent">{ v.Name }</p>
+					<p class="mt-1 font-mono text-[13px] text-accent">
+						{ positionName(v) }
+						if v.Level != "" {
+							· { levelLong(v) }
+						}
+					</p>
 				}
 			</div>
 			<span aria-hidden="true" class="flex size-14 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-2 font-display text-xl font-bold text-accent">{ initials(p.Resume.Basics.Name) }</span>
@@ -96,14 +104,19 @@ templ fichaHero(p Page) {
 }
 
 templ roleChip(p Page, v profile.View) {
-	<abbr title={ v.Name } class="font-mono text-[12px] uppercase">{ viewCode(v) }</abbr>
+	<abbr title={ positionTitle(v) } class="font-mono text-[12px] uppercase">{ viewCode(v) }</abbr>
 	<span class="font-display text-2xl font-bold">{ itoa(p.Resume.Overall(v)) }</span>
 }
 
-templ fichaRadar(attrs []profile.Attribute) {
+templ fichaRadar(attrs []profile.Attribute, total int) {
 	<section class={ panel } aria-labelledby="radar-titulo">
 		<h2 id="radar-titulo" class={ h2Ficha }>Radar</h2>
-		<p class="mt-1 font-mono text-[13px] text-faint">Puntajes de 0 a 99, autodeclarados</p>
+		<p class="mt-1 font-mono text-[13px] text-faint">
+			Puntajes de 0 a 99, autodeclarados
+			if total > len(attrs) {
+				· los { itoa(len(attrs)) } mejores de { itoa(total) }
+			}
+		</p>
 		<svg viewBox="-40 0 420 340" class="mx-auto mt-4 w-full max-w-[460px]" role="img" aria-labelledby="radar-desc">
 			<desc id="radar-desc">
 				for _, a := range attrs {

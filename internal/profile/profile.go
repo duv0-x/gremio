@@ -170,7 +170,8 @@ type Contact struct {
 // View es una vista por rol: un filtro sobre el mismo perfil, referenciado por ids (ADR-003 §3).
 type View struct {
 	Slug       string             `json:"slug"`
-	Code       string             `json:"code,omitempty"` // posición: PLE, SRE…
+	Code       string             `json:"code,omitempty"`  // posición del catálogo (ADR-011): PLE, SRE…
+	Level      string             `json:"level,omitempty"` // seniority: jr, semi-sr o sr
 	Name       string             `json:"name"`
 	Weights    map[string]float64 `json:"weights,omitempty"`
 	Summary    string             `json:"summary,omitempty"`
@@ -335,8 +336,8 @@ func (r *Resume) Normalize() error {
 		}
 	}
 	codes := map[string]bool{}
-	if n := len(r.Gremio.Attributes); n > 0 && (n < 3 || n > 8) {
-		return fmt.Errorf("gremio.attributes: el radar necesita de 3 a 8 atributos, hay %d", n)
+	if n := len(r.Gremio.Attributes); n > 0 && n < 3 {
+		return fmt.Errorf("gremio.attributes: el radar necesita al menos 3 atributos, hay %d", n)
 	}
 	for i := range r.Gremio.Attributes {
 		a := &r.Gremio.Attributes[i]
@@ -370,8 +371,12 @@ func (r *Resume) Normalize() error {
 		if strings.TrimSpace(v.Name) == "" {
 			return fmt.Errorf("%s: falta name", what)
 		}
+		// Un código fuera del catálogo se acepta: la página lo muestra como posición no estándar.
 		if v.Code != "" && !codeRe.MatchString(v.Code) {
 			return fmt.Errorf("%s: código %q inválido (2 a 4 letras mayúsculas)", what, v.Code)
+		}
+		if _, ok := Levels[v.Level]; v.Level != "" && !ok {
+			return fmt.Errorf("%s: nivel %q inválido (jr, semi-sr o sr)", what, v.Level)
 		}
 		for c, w := range v.Weights {
 			if !codes[c] || w <= 0 {
