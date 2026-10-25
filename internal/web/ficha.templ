@@ -37,23 +37,24 @@ templ ficha(p Page) {
 templ fichaHero(p Page) {
 	<section class={ panel, "flex flex-col gap-6" } aria-labelledby="nombre">
 		<div class="flex items-start gap-5">
-			<svg viewBox="0 0 120 120" class="size-24 shrink-0 cursor-help sm:size-28" role="img" aria-label={ "Índice general " + itoa(p.Overall()) }>
-				<title>{ ovrTitle }</title>
+			<span class="tip shrink-0" data-tip={ ovrTitle } tabindex="0">
+			<svg viewBox="0 0 120 120" class="size-24 sm:size-28" role="img" aria-label={ "Índice general " + itoa(p.Overall()) + ". " + ovrTitle }>
 				<polygon points={ hexagon(60, 60, 54) } class="fill-accent-soft stroke-accent" stroke-width="3"></polygon>
 				<text x="60" y="40" text-anchor="middle" class="fill-accent font-mono text-[13px] font-medium">OVR</text>
 				<text x="60" y="80" text-anchor="middle" class="fill-ink font-display text-[44px] font-bold">{ itoa(p.Overall()) }</text>
 			</svg>
+			</span>
 			<div class="min-w-0 flex-1">
 				if v, ok := p.Selected(); ok {
 					<p class={ eyebrow }>Posición</p>
 					<p class="mt-1 flex flex-wrap items-baseline gap-x-2 font-display">
-						<abbr title={ positionTitle(v) } class="text-3xl font-bold">{ viewCode(v) }</abbr>
+						@sigla(viewCode(v), positionTitle(v), "text-3xl font-bold", true)
 						if v.Level != "" {
-							<abbr title={ levelLong(v) } class="text-lg font-semibold text-muted">{ levelShort(v) }</abbr>
+							@sigla(levelShort(v), levelLong(v), "text-lg font-semibold text-muted", true)
 						}
 						for i, o := range p.Resume.Gremio.Views {
 							if i != p.View {
-								<span class="text-sm text-faint">· <abbr title={ positionTitle(o) }>{ viewCode(o) }</abbr></span>
+								<span class="text-sm text-faint">· @sigla(viewCode(o), positionTitle(o), "", true)</span>
 							}
 						}
 					</p>
@@ -78,8 +79,8 @@ templ fichaHero(p Page) {
 		</div>
 		if len(p.Resume.Gremio.Views) > 1 {
 			<div>
-				<p class={ eyebrow } id="roles"><abbr title={ ovrTitle }>OVR</abbr> por rol</p>
-				<ul class="mt-3 flex gap-3 overflow-x-auto pb-1" aria-labelledby="roles">
+				<p class={ eyebrow } id="roles">@sigla("OVR", ovrTitle, "", true) por rol</p>
+				<ul class="mt-3 flex flex-wrap gap-3" aria-labelledby="roles">
 					for i, v := range p.Resume.Gremio.Views {
 						<li class="shrink-0">
 							if i == p.View {
@@ -104,7 +105,7 @@ templ fichaHero(p Page) {
 }
 
 templ roleChip(p Page, v profile.View) {
-	<abbr title={ positionTitle(v) } class="font-mono text-[12px] uppercase">{ viewCode(v) }</abbr>
+	@sigla(viewCode(v), positionTitle(v), "font-mono text-[12px] uppercase", false)
 	<span class="font-display text-2xl font-bold">{ itoa(p.Resume.Overall(v)) }</span>
 }
 
@@ -132,12 +133,19 @@ templ fichaRadar(attrs []profile.Attribute, total int) {
 			}
 			<polygon points={ radarShape(attrs) } class="fill-accent/25 stroke-accent" stroke-width="2.5" stroke-linejoin="round"></polygon>
 			for _, l := range radarLabels(attrs) {
-				<text x={ l.X } y={ l.Y } text-anchor={ l.Anchor } class="cursor-help font-mono text-[14px]">
-					<title>{ l.Code }: { l.Name }</title>
+				<text x={ l.X } y={ l.Y } text-anchor={ l.Anchor } class="font-mono text-[14px]" aria-hidden="true">
 					<tspan class="fill-muted">{ l.Code }</tspan><tspan dx="6" class={ "font-semibold", fillFor(l.Score) }>{ itoa(l.Score) }</tspan>
 				</text>
 			}
 		</svg>
+		<dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] sm:grid-cols-3">
+			for _, a := range attrs {
+				<div class="flex gap-2">
+					<dt class="font-mono text-accent">{ a.Code }</dt>
+					<dd class="text-muted">{ a.Name }</dd>
+				</div>
+			}
+		</dl>
 	</section>
 }
 
@@ -147,13 +155,13 @@ templ fichaAttributes(p Page) {
 			<h2 id="atributos-titulo" class={ h2Ficha }>Atributos</h2>
 			<p class="font-mono text-[13px] text-faint">Toca un atributo para ver el detalle</p>
 		</div>
-		<ul class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+		<ul class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
 			for _, a := range p.Resume.Gremio.Attributes {
 				<li>
 					<a href={ templ.SafeURL("#" + attrAnchor(a.Code)) } class="flex h-full flex-col rounded-md border border-line bg-surface-2/40 p-4 text-ink no-underline hover:border-accent hover:text-ink">
 						<span class="flex items-start justify-between gap-2">
 							<span>
-								<abbr title={ a.Name } class="block font-mono text-[13px] text-accent">{ a.Code }</abbr>
+								@sigla(a.Code, a.Name, "block w-fit font-mono text-[13px] text-accent", false)
 								<span class="mt-0.5 block text-sm leading-snug font-semibold">{ a.Name }</span>
 							</span>
 							<span class={ "font-display text-[32px] leading-none font-bold", scoreClass(a.Score()) }>{ itoa(a.Score()) }</span>
@@ -200,7 +208,7 @@ templ attributeDetail(p Page, a profile.Attribute) {
 			<header class="flex items-start justify-between gap-4 border-b border-line p-6">
 				<div>
 					<p class="flex items-center gap-3">
-						<abbr title={ a.Name } class="rounded-sm border border-accent px-2 py-0.5 font-mono text-[13px] text-accent">{ a.Code }</abbr>
+						@sigla(a.Code, a.Name, "rounded-sm border border-accent px-2 py-0.5 font-mono text-[13px] text-accent", true)
 						<span class={ eyebrow }>Atributo</span>
 					</p>
 					<h2 id={ attrAnchor(a.Code) + "-titulo" } class="mt-2 font-display text-2xl font-bold">{ a.Name }</h2>
@@ -269,7 +277,7 @@ templ attributeDetail(p Page, a profile.Attribute) {
 						<h3 class={ eyebrow }>Peso en cada rol</h3>
 						<ul class="mt-3 flex flex-wrap gap-2">
 							for _, w := range ws {
-								<li class={ dataChip }><abbr title={ w.Name }>{ w.Code }</abbr> ×{ w.Weight }</li>
+								<li class={ dataChip }>@sigla(w.Code, w.Name, "", true) ×{ w.Weight }</li>
 							}
 						</ul>
 					</div>
@@ -343,4 +351,10 @@ templ fichaStats(r *profile.Resume) {
 			</li>
 		}
 	</ul>
+}
+
+// sigla muestra una abreviatura con su significado en un tooltip CSS inmediato (el title nativo tarda o no aparece,
+// y no existe en pantallas táctiles). Dentro de un enlace no lleva tabindex, para no anidar elementos enfocables.
+templ sigla(code, tip, class string, focusable bool) {
+	<abbr class={ "tip", class } data-tip={ tip } if focusable { tabindex="0" }>{ code }<span class="sr-only">{ " (" + tip + ")" }</span></abbr>
 }
