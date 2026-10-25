@@ -94,6 +94,49 @@ func TestEmailPublicoSeMuestraYTelefonoNunca(t *testing.T) {
 	}
 }
 
+// fichaDoc es doc con atributos, vistas ponderadas y rasgos (ADR-010).
+var fichaDoc = strings.Replace(doc, `"contact": {"email": "private", "phone": "private"}}`, `"contact": {"email": "private", "phone": "private"},
+  "attributes": [
+    {"code": "CNT", "name": "Contenedores", "subs": [{"name": "Kubernetes", "score": 92}, {"name": "EKS", "score": 90}], "skills": ["k8s"], "highlights": ["h1"]},
+    {"code": "OBS", "name": "Observabilidad", "subs": [{"name": "Grafana", "score": 70}]},
+    {"code": "COD", "name": "Código", "subs": [{"name": "Go", "score": 40, "learning": true}]}],
+  "views": [
+    {"slug": "sre", "code": "SRE", "name": "SRE", "weights": {"OBS": 2, "CNT": 1}},
+    {"slug": "platform-engineer", "code": "PLE", "name": "Platform Engineer", "weights": {"CNT": 2, "COD": 1}}],
+  "traits": [{"name": "Automatizadora", "summary": "Todo pasa por un pipeline."}]}`, 1)
+
+func TestFichaDeJugador(t *testing.T) {
+	ts := newTestServer(t, fichaDoc)
+	resp, body := get(t, ts.URL+"/@alice")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("HTTP %d", resp.StatusCode)
+	}
+	for _, want := range []string{
+		`aria-label="Índice general 77"`, // SRE: (2·70 + 91) / 3
+		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
+		"Bajó el MTTR 23 %", "respaldado por 1 logro", "SRE ×2", "PLE ×2",
+		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
+		`id="cv"`, "Presentación larga", "<polygon",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("falta %q", want)
+		}
+	}
+	if strings.Contains(body, "style=") {
+		t.Error("la CSP no admite style inline")
+	}
+
+	_, body = get(t, ts.URL+"/@alice/platform-engineer")
+	if !strings.Contains(body, `aria-label="Índice general 74"`) { // PLE: (2·91 + 40) / 3
+		t.Error("la vista PLE debe mostrar su propio OVR")
+	}
+	for _, path := range []string{"/@alice/sre", "/@alice/nope", "/@bob/sre"} {
+		if resp, _ := get(t, ts.URL+path); resp.StatusCode != http.StatusNotFound {
+			t.Errorf("%s: HTTP %d", path, resp.StatusCode)
+		}
+	}
+}
+
 func TestRaizRedirigeAlPerfil(t *testing.T) {
 	ts := newTestServer(t, doc)
 	resp, body := get(t, ts.URL+"/")

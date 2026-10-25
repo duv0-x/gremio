@@ -121,9 +121,44 @@ type Project struct {
 type Extension struct {
 	// About es la presentación larga de la página web; basics.summary queda como bio corta, que es lo que
 	// muestran Mastodon y las demás instancias.
-	About   string  `json:"about,omitempty"`
-	Contact Contact `json:"contact"`
-	Views   []View  `json:"views,omitempty"`
+	About      string      `json:"about,omitempty"`
+	Contact    Contact     `json:"contact"`
+	Views      []View      `json:"views,omitempty"`
+	Attributes []Attribute `json:"attributes,omitempty"`
+	Traits     []Trait     `json:"traits,omitempty"`
+}
+
+// Attribute es un eje de la ficha (ADR-010): su puntaje es el promedio de sus sub-atributos.
+type Attribute struct {
+	Code       string   `json:"code"`
+	Name       string   `json:"name"`
+	Subs       []Sub    `json:"subs"`
+	Skills     []string `json:"skills,omitempty"`
+	Highlights []string `json:"highlights,omitempty"`
+}
+
+// Sub es un sub-atributo con puntaje autodeclarado de 0 a 99.
+type Sub struct {
+	Name     string `json:"name"`
+	Score    int    `json:"score"`
+	Learning bool   `json:"learning,omitempty"`
+}
+
+// Score es el promedio redondeado de los sub-atributos.
+func (a Attribute) Score() int {
+	if len(a.Subs) == 0 {
+		return 0
+	}
+	sum := 0
+	for _, s := range a.Subs {
+		sum += s.Score
+	}
+	return (2*sum + len(a.Subs)) / (2 * len(a.Subs))
+}
+
+type Trait struct {
+	Name    string `json:"name"`
+	Summary string `json:"summary,omitempty"`
 }
 
 // Contact dice qué datos de contacto son públicos; por defecto, ninguno (ADR-003 §4).
@@ -134,15 +169,36 @@ type Contact struct {
 
 // View es una vista por rol: un filtro sobre el mismo perfil, referenciado por ids (ADR-003 §3).
 type View struct {
-	Slug       string   `json:"slug"`
-	Name       string   `json:"name"`
+	Slug       string             `json:"slug"`
+	Code       string             `json:"code,omitempty"` // posición: PLE, SRE…
+	Name       string             `json:"name"`
+	Weights    map[string]float64 `json:"weights,omitempty"`
 	Summary    string   `json:"summary,omitempty"`
 	Work       []string `json:"work,omitempty"`
 	Highlights []string `json:"highlights,omitempty"`
 	Skills     []string `json:"skills,omitempty"`
 }
 
+// Overall es el OVR de la vista: el promedio de los atributos ponderado por sus pesos (ADR-010 §3).
+// Sin pesos, todos los atributos pesan igual.
+func (r *Resume) Overall(v View) int {
+	var sum, total float64
+	for _, a := range r.Gremio.Attributes {
+		w := 1.0
+		if len(v.Weights) > 0 {
+			w = v.Weights[a.Code]
+		}
+		sum += w * float64(a.Score())
+		total += w
+	}
+	if total == 0 {
+		return 0
+	}
+	return int(sum/total + 0.5)
+}
+
 var (
+	codeRe = regexp.MustCompile(`^[A-Z]{2,4}$`)
 	dateRe = regexp.MustCompile(`^\d{4}(-\d{2}(-\d{2})?)?$`)
 	slugRe = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 	// Claves que el modelo no admite; si vienen en un archivo importado se descartan y se avisa.
@@ -278,6 +334,32 @@ func (r *Resume) Normalize() error {
 			return fmt.Errorf("gremio.contact: visibilidad %q inválida (public o private)", *v)
 		}
 	}
+	codes := map[string]bool{}
+	if n := len(r.Gremio.Attributes); n > 0 && (n < 3 || n > 8) {
+		return fmt.Errorf("gremio.attributes: el radar necesita de 3 a 8 atributos, hay %d", n)
+	}
+	for i := range r.Gremio.Attributes {
+		a := &r.Gremio.Attributes[i]
+		what := fmt.Sprintf("gremio.attributes[%d]", i)
+		if !codeRe.MatchString(a.Code) || codes[a.Code] {
+			return fmt.Errorf("%s: código %q inválido o repetido (2 a 4 letras mayúsculas)", what, a.Code)
+		}
+		codes[a.Code] = true
+		if strings.TrimSpace(a.Name) == "" || len(a.Subs) == 0 {
+			return fmt.Errorf("%s: falta name o subs", what)
+		}
+		for j, sub := range a.Subs {
+			if strings.TrimSpace(sub.Name) == "" || sub.Score < 0 || sub.Score > 99 {
+				return fmt.Errorf("%s.subs[%d]: falta name o el puntaje no está entre 0 y 99", what, j)
+			}
+		}
+		if err := refs(what, a.Skills, skills, "skills"); err != nil {
+			return err
+		}
+		if err := refs(what, a.Highlights, highlights, "highlights"); err != nil {
+			return err
+		}
+	}
 	slugs := map[string]bool{}
 	for i, v := range r.Gremio.Views {
 		what := fmt.Sprintf("gremio.views[%d]", i)
@@ -288,16 +370,36 @@ func (r *Resume) Normalize() error {
 		if strings.TrimSpace(v.Name) == "" {
 			return fmt.Errorf("%s: falta name", what)
 		}
-		for _, ref := range []struct {
-			ids   []string
-			known map[string]bool
-			kind  string
-		}{{v.Work, works, "work"}, {v.Highlights, highlights, "highlights"}, {v.Skills, skills, "skills"}} {
-			for _, x := range ref.ids {
-				if !ref.known[x] {
-					return fmt.Errorf("%s.%s: no existe el id %q", what, ref.kind, x)
-				}
+		if v.Code != "" && !codeRe.MatchString(v.Code) {
+			return fmt.Errorf("%s: código %q inválido (2 a 4 letras mayúsculas)", what, v.Code)
+		}
+		for c, w := range v.Weights {
+			if !codes[c] || w <= 0 {
+				return fmt.Errorf("%s.weights: el atributo %q no existe o su peso no es positivo", what, c)
 			}
+		}
+		if err := refs(what, v.Work, works, "work"); err != nil {
+			return err
+		}
+		if err := refs(what, v.Highlights, highlights, "highlights"); err != nil {
+			return err
+		}
+		if err := refs(what, v.Skills, skills, "skills"); err != nil {
+			return err
+		}
+	}
+	for i, t := range r.Gremio.Traits {
+		if strings.TrimSpace(t.Name) == "" {
+			return fmt.Errorf("gremio.traits[%d]: falta name", i)
+		}
+	}
+	return nil
+}
+
+func refs(what string, ids []string, known map[string]bool, kind string) error {
+	for _, x := range ids {
+		if !known[x] {
+			return fmt.Errorf("%s.%s: no existe el id %q", what, kind, x)
 		}
 	}
 	return nil
@@ -372,6 +474,7 @@ func Diff(cur, next *Resume) []string {
 		row("certificados", len(cur.Certificates), len(next.Certificates)),
 		row("proyectos", len(cur.Projects), len(next.Projects)),
 		row("vistas", len(cur.Gremio.Views), len(next.Gremio.Views)),
+		row("atributos", len(cur.Gremio.Attributes), len(next.Gremio.Attributes)),
 	}
 }
 

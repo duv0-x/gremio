@@ -9,10 +9,30 @@ import (
 
 // Page son los datos de la página del perfil.
 type Page struct {
-	Resume  *profile.Resume
-	Handle  string // @usuario@dominio
-	Actor   string // URL del Actor de ActivityPub
-	Version string
+	Resume   *profile.Resume
+	Username string
+	Handle   string // @usuario@dominio
+	Actor    string // URL del Actor de ActivityPub
+	Version  string
+	View     int // vista seleccionada; la primera es la principal
+	Timeline timeline
+}
+
+// HasFicha dice si el perfil tiene atributos; sin ellos la página es el CV de v0.2 (ADR-010).
+func (p Page) HasFicha() bool { return len(p.Resume.Gremio.Attributes) > 0 }
+
+// Selected es la vista elegida, si el perfil tiene vistas.
+func (p Page) Selected() (profile.View, bool) {
+	if p.View < len(p.Resume.Gremio.Views) {
+		return p.Resume.Gremio.Views[p.View], true
+	}
+	return profile.View{}, false
+}
+
+// Overall es el OVR de la vista elegida, o de todos los atributos por igual si no hay vistas.
+func (p Page) Overall() int {
+	v, _ := p.Selected()
+	return p.Resume.Overall(v)
 }
 
 // SourceURL apunta al código de la versión desplegada (ADR-004: el enlace "Source" es obligatorio).

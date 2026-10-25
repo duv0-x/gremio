@@ -9,7 +9,9 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
@@ -43,6 +45,8 @@ func (s *Server) Register(mux *http.ServeMux) {
 		files.ServeHTTP(w, r)
 	})))
 	mux.HandleFunc("GET /{handle}", s.getProfile)
+	// {view...} y no {view}: así /static/ es más específico y no choca.
+	mux.HandleFunc("GET /{handle}/{view...}", s.getProfile)
 	mux.HandleFunc("GET /{$}", s.getRoot)
 }
 
@@ -81,10 +85,21 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := Page{
-		Resume:  res,
-		Handle:  "@" + inst.Username + "@" + inst.AccountDomain.String,
-		Actor:   inst.Host.String + "/users/" + inst.Username,
-		Version: s.version,
+		Resume:   res,
+		Username: inst.Username,
+		Handle:   "@" + inst.Username + "@" + inst.AccountDomain.String,
+		Actor:    inst.Host.String + "/users/" + inst.Username,
+		Version:  s.version,
+		Timeline: buildTimeline(res.Work, time.Now()),
+	}
+	if slug := r.PathValue("view"); slug != "" {
+		i := slices.IndexFunc(res.Gremio.Views, func(v profile.View) bool { return v.Slug == slug })
+		// La primera vista vive en /@usuario: su slug no es una segunda URL.
+		if i <= 0 {
+			http.NotFound(w, r)
+			return
+		}
+		page.View = i
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")

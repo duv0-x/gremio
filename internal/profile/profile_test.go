@@ -3,6 +3,7 @@ package profile
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -98,6 +99,14 @@ func TestParseRechazaDocumentosInvalidos(t *testing.T) {
 		"tipo equivocado":  `{"basics":{"name":"a"},"work":"Acme"}`,
 		"slug repetido":    `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"a"},{"slug":"sre","name":"b"}]}}`,
 		"trabajo sin name": `{"basics":{"name":"a"},"work":[{"position":"x"}]}`,
+		"pocos atributos":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `]}}`,
+		"código":           `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("aa", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"código repetido":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("AAA", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"puntaje":          `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 100) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"atributo sin id":  `{"basics":{"name":"a"},"gremio":{"attributes":[{"code":"AAA","name":"a","subs":[{"name":"x","score":1}],"highlights":["nope"]},` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"peso":             `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `],"views":[{"slug":"x","name":"x","weights":{"ZZZ":1}}]}}`,
+		"peso negativo":    `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `],"views":[{"slug":"x","name":"x","weights":{"AAA":-1}}]}}`,
+		"posición":         `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"x","name":"x","code":"platform"}]}}`,
 	} {
 		if _, _, err := Parse([]byte(doc)); err == nil {
 			t.Errorf("%s: se aceptó %s", name, doc)
@@ -109,5 +118,29 @@ func TestLoadPerfilAnterior(t *testing.T) {
 	r, err := Load(`{"basics":{"name":"alice","image":"https://x/media/a.png"}}`)
 	if err != nil || r.Basics.Image == "" || r.Gremio.Contact.Email != "private" {
 		t.Fatalf("Load = %+v, %v", r, err)
+	}
+}
+
+func attr(code string, score int) string {
+	return fmt.Sprintf(`{"code":%q,"name":"x","subs":[{"name":"x","score":%d}]}`, code, score)
+}
+
+func TestScoreYOverall(t *testing.T) {
+	r, _, err := Parse([]byte(`{"basics":{"name":"a"},"gremio":{
+	  "attributes":[{"code":"IAC","name":"IaC","subs":[{"name":"Terraform","score":94},{"name":"Módulos","score":91}]},` + attr("OBS", 70) + `,` + attr("COD", 40) + `],
+	  "views":[{"slug":"ple","code":"PLE","name":"Platform","weights":{"IAC":2,"OBS":1}},{"slug":"todo","name":"Todo"}]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Gremio.Attributes[0].Score(); got != 93 { // 92.5 redondea hacia arriba
+		t.Errorf("Score = %d", got)
+	}
+	// (2·93 + 70) / 3 = 85.3; COD no pesa en PLE.
+	if got := r.Overall(r.Gremio.Views[0]); got != 85 {
+		t.Errorf("OVR PLE = %d", got)
+	}
+	// Sin pesos: (93 + 70 + 40) / 3 = 67.7.
+	if got := r.Overall(r.Gremio.Views[1]); got != 68 {
+		t.Errorf("OVR sin pesos = %d", got)
 	}
 }

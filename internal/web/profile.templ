@@ -9,6 +9,7 @@ const (
 	dataChip   = "rounded-sm bg-surface-2 px-2 py-0.5 font-mono text-[13px] text-muted"
 	btnPrimary = "inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-[18px] text-[15px] font-semibold text-on-accent no-underline hover:bg-accent-hover hover:text-on-accent"
 	section    = "mx-auto max-w-[1200px] px-4 py-10 sm:px-6 sm:py-14"
+	navLink    = "inline-flex min-h-11 items-center text-muted no-underline hover:text-ink"
 )
 
 templ layout(p Page, title string) {
@@ -33,13 +34,18 @@ templ layout(p Page, title string) {
 						<span class={ dataChip, "hidden sm:inline" }>{ p.Handle }</span>
 					</a>
 					<ul class="flex flex-wrap gap-x-5 font-mono text-[13px] uppercase tracking-[0.08em]">
-						if len(p.Resume.Work) > 0 {
-							<li><a class="inline-flex min-h-11 items-center text-muted no-underline hover:text-ink" href="#experiencia">Experiencia</a></li>
+						if p.HasFicha() {
+							<li><a class={ navLink } href="#ficha">Ficha</a></li>
+							<li><a class={ navLink } href="#cv">CV</a></li>
+						} else {
+							if len(p.Resume.Work) > 0 {
+								<li><a class={ navLink } href="#experiencia">Experiencia</a></li>
+							}
+							if len(p.Resume.Skills) > 0 {
+								<li><a class={ navLink } href="#skills">Skills</a></li>
+							}
 						}
-						if len(p.Resume.Skills) > 0 {
-							<li><a class="inline-flex min-h-11 items-center text-muted no-underline hover:text-ink" href="#skills">Skills</a></li>
-						}
-						<li><a class="inline-flex min-h-11 items-center text-muted no-underline hover:text-ink" href="#contacto">Contacto</a></li>
+						<li><a class={ navLink } href="#contacto">Contacto</a></li>
 					</ul>
 				</nav>
 			</header>
@@ -60,18 +66,47 @@ templ layout(p Page, title string) {
 
 templ ProfilePage(p Page) {
 	@layout(p, p.Resume.Basics.Name+" · "+p.Resume.Basics.Label) {
-		@profileHeader(p)
+		if p.HasFicha() {
+			@ficha(p)
+			@cv(p)
+		} else {
+			@cvPage(p)
+		}
+	}
+}
+
+// cv es el perfil completo debajo de la ficha: la información no se pierde, solo deja de ir primero (ADR-010 §5).
+templ cv(p Page) {
+	<div id="cv" class="border-t border-line pb-20 sm:pb-0">
+		<section class={ section, "pb-0! sm:pb-0!" } aria-labelledby="cv-titulo">
+			<p class={ eyebrow }>CV completo</p>
+			<h2 id="cv-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">{ p.Resume.Basics.Name }</h2>
+			if about := p.About(); about != "" {
+				<p class="mt-4 max-w-[720px] text-lg leading-relaxed text-muted">{ about }</p>
+			}
+		</section>
 		if len(p.Resume.Work) > 0 {
 			@experience(p.Resume.Work)
-		}
-		if len(p.Resume.Skills) > 0 {
-			@skills(p.Resume.Skills)
 		}
 		if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
 			@formation(p.Resume)
 		}
 		@contact(p)
+	</div>
+}
+
+templ cvPage(p Page) {
+	@profileHeader(p)
+	if len(p.Resume.Work) > 0 {
+		@experience(p.Resume.Work)
 	}
+	if len(p.Resume.Skills) > 0 {
+		@skills(p.Resume.Skills)
+	}
+	if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
+		@formation(p.Resume)
+	}
+	@contact(p)
 }
 
 templ profileHeader(p Page) {

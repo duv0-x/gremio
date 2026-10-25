@@ -159,9 +159,12 @@ Diseño vigente del módulo Perfil, en el proyecto de Stitch. Reemplaza a `docs/
 
 | Pantalla | Stitch (`screens/…`) | Captura |
 |----------|----------------------|---------|
-| Perfil público, desktop | `39d0ba8ef5124247b45542cec6023929` | [perfil-desktop](stitch/perfil-desktop.png) |
-| Perfil público, móvil | `e44bc3bf5f4c417dacf6507649173816` | [perfil-movil](stitch/perfil-movil.png) |
-| Vista por rol (Platform Engineer) | `e564cf3a744a41c5a420f2a70310ab05` | [vista-rol](stitch/vista-rol.png) |
+| **Ficha de jugador, desktop** (oscuro) | `50ca36da74d642fbb1acfc1c86344c8c` | [ficha-desktop](stitch/ficha-desktop.png) |
+| **Ficha de jugador, móvil** (claro) | `fea526eaf1744082b58543e37e21d158` | [ficha-movil](stitch/ficha-movil.png) |
+| **Detalle de un atributo** | `72b1e5aaa4fb49a7b346d7273b48d99b` | [ficha-detalle](stitch/ficha-detalle.png) |
+| Perfil público, desktop (v0.2, reemplazado por la ficha) | `39d0ba8ef5124247b45542cec6023929` | [perfil-desktop](stitch/perfil-desktop.png) |
+| Perfil público, móvil (v0.2, reemplazado por la ficha) | `e44bc3bf5f4c417dacf6507649173816` | [perfil-movil](stitch/perfil-movil.png) |
+| Vista por rol (v0.2, reemplazado por la ficha) | `e564cf3a744a41c5a420f2a70310ab05` | [vista-rol](stitch/vista-rol.png) |
 | `/cv` (A4, impresión) | `d0a0c30627964ef4a647754d29cdf362` | [cv](stitch/cv.png) |
 | Login: entrar, revisa tu correo, confirmar, enlace vencido | `4b384e5fa5494c8eb360dd2dc812940f` | [login](stitch/login.png) |
 | Panel: edición del perfil | `cf3d9637e43a4bf6942f23d66f11dc17` | [panel-perfil](stitch/panel-perfil.png) |
@@ -171,6 +174,12 @@ Diseño vigente del módulo Perfil, en el proyecto de Stitch. Reemplaza a `docs/
 | Login y panel, móvil | `c5073892ba214bc692e349c763d80ec7` | [login-panel-movil](stitch/login-panel-movil.png) |
 
 Notas para implementar:
+
+- **Ficha de jugador** ([ADR-010](../adr/ADR-010-ficha-de-jugador.md)), aprobada el 2026-10-25:
+  - **No vale el contenido de Stitch**: los puntajes, las certificaciones CKA y HashiCorp, "14+ años", "Percentil 98.4 / top 2 %", "-23 % costo AWS", "Disponible" ni "Técnica verificada". Sí vale el contenido del perfil importado.
+  - **Sin años totales ni comparaciones** entre personas.
+  - **Detalle sin JavaScript**: el panel es un `<section>` con `:target`, sin aria-modal (no atrapa el foco).
+  - **Puntajes**: el color del número (acento ≥ 85, tinta 70–84, apagado < 70) nunca va solo, siempre con el número escrito.
 
 - **El contenido es ilustrativo.** Stitch completó logros, stacks y skills por su cuenta (p. ej. le puso Rust/Tokio/gRPC a Gremio, que es Go, y agregó GCP, PCI-DSS y BGP). El contenido real sale del perfil importado (`duv0-x.github.io/files/cv.yaml`). Tampoco vale el email que arma el botón "Mostrar email" del HTML.
 - **Privacidad**: ninguna pantalla muestra edad, género, nacionalidad, foto obligatoria ni salarios (revisado en capturas y HTML). El contacto aparece oculto por defecto.
