@@ -152,3 +152,28 @@ Un botón con icono solo lleva `aria-label`. Con htmx, el botón pasa a `aria-bu
 - **Foco**: visible en botones e inputs de los dos modos (anillo `focus`).
 - **Objetivos de 44 px**: Stitch dibuja las tabs de vistas y los chips de skill más bajos (unos 32 px). En el código las tabs miden 44 px y los chips enlazados tienen un área clicable de 44 px; la pantalla de Stitch no es la referencia de tamaño.
 - **Nivel de skill**: Stitch lo marca con un punto lleno, medio o vacío. El código usa la barra de 6 px y el texto del nivel, para no depender de una forma pequeña.
+
+## Pantallas del módulo Perfil
+
+Diseño vigente del módulo Perfil, en el proyecto de Stitch. Reemplaza a `docs/mockups/Main.dc.html`. Las capturas están en `stitch/`.
+
+| Pantalla | Stitch (`screens/…`) | Captura |
+|----------|----------------------|---------|
+| Perfil público, desktop | `39d0ba8ef5124247b45542cec6023929` | [perfil-desktop](stitch/perfil-desktop.png) |
+| Perfil público, móvil | `e44bc3bf5f4c417dacf6507649173816` | [perfil-movil](stitch/perfil-movil.png) |
+| Vista por rol (Platform Engineer) | `e564cf3a744a41c5a420f2a70310ab05` | [vista-rol](stitch/vista-rol.png) |
+| `/cv` (A4, impresión) | `d0a0c30627964ef4a647754d29cdf362` | [cv](stitch/cv.png) |
+| Login: entrar, revisa tu correo, confirmar, enlace vencido | `4b384e5fa5494c8eb360dd2dc812940f` | [login](stitch/login.png) |
+| Panel: edición del perfil | `cf3d9637e43a4bf6942f23d66f11dc17` | [panel-perfil](stitch/panel-perfil.png) |
+| Panel: vistas por rol | `fd4348a7318f496e961864e64413cda5` | [panel-vistas](stitch/panel-vistas.png) |
+| Panel: importar y exportar JSON Resume | `0e83107843db49d9932010a55be428d1` | [panel-importar](stitch/panel-importar.png) |
+| Panel: sesiones | `78e23caffdc349008dda7ff2ada3a365` | [panel-sesiones](stitch/panel-sesiones.png) |
+| Login y panel, móvil | `c5073892ba214bc692e349c763d80ec7` | [login-panel-movil](stitch/login-panel-movil.png) |
+
+Notas para implementar:
+
+- **El contenido es ilustrativo.** Stitch completó logros, stacks y skills por su cuenta (p. ej. le puso Rust/Tokio/gRPC a Gremio, que es Go, y agregó GCP, PCI-DSS y BGP). El contenido real sale del perfil importado (`duv0-x.github.io/files/cv.yaml`). Tampoco vale el email que arma el botón "Mostrar email" del HTML.
+- **Privacidad**: ninguna pantalla muestra edad, género, nacionalidad, foto obligatoria ni salarios (revisado en capturas y HTML). El contacto aparece oculto por defecto.
+- **Layout responsivo**: en móvil todo va en una columna, con gutter de 16 px, botones a ancho completo y tabs con scroll horizontal. En el panel, la navegación lateral pasa a una barra inferior de 4 ítems y las acciones del formulario quedan al pie. Las pantallas que no tienen versión móvil propia (vista por rol, vistas, importar y sesiones) siguen ese mismo patrón. `/cv` es solo de impresión.
+- **`/cv`**: Stitch usó mono para todo el cuerpo. En el código el cuerpo va en IBM Plex Sans, y en mono solo las fechas y los datos.
+- **Elementos que no se implementan tal cual**: el contador "Storage 12.4 MB · 0 rastreadores" del panel, los "Skills auditados" y las cifras de federación son adornos de Stitch y no están en [ADR-003](../adr/ADR-003-perfil-v1.md).
