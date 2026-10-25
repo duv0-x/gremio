@@ -100,6 +100,7 @@ func TestParseRechazaDocumentosInvalidos(t *testing.T) {
 		"slug repetido":    `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"a"},{"slug":"sre","name":"b"}]}}`,
 		"trabajo sin name": `{"basics":{"name":"a"},"work":[{"position":"x"}]}`,
 		"pocos atributos":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `]}}`,
+		"seniority":        `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"x","name":"x","code":"SRE","level":"lead"}]}}`,
 		"código":           `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("aa", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
 		"código repetido":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("AAA", 50) + `,` + attr("CCC", 50) + `]}}`,
 		"puntaje":          `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 100) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
@@ -142,5 +143,21 @@ func TestScoreYOverall(t *testing.T) {
 	// Sin pesos: (93 + 70 + 40) / 3 = 67.7.
 	if got := r.Overall(r.Gremio.Views[1]); got != 68 {
 		t.Errorf("OVR sin pesos = %d", got)
+	}
+}
+
+func TestCatalogoDePosiciones(t *testing.T) {
+	seen := map[string]bool{}
+	for _, p := range Positions {
+		if !codeRe.MatchString(p.Code) || seen[p.Code] || p.Name == "" || p.Family == "" || p.Summary == "" {
+			t.Errorf("posición inválida o repetida: %+v", p)
+		}
+		seen[p.Code] = true
+	}
+	if p, ok := LookupPosition("SRE"); !ok || p.Name != "Site Reliability Engineer" {
+		t.Errorf("LookupPosition(SRE) = %+v, %v", p, ok)
+	}
+	if _, ok := LookupPosition("DOL"); ok {
+		t.Error("DevOps Lead no es una posición: es DVO con nivel")
 	}
 }

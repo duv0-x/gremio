@@ -142,6 +142,47 @@ func viewCode(v profile.View) string {
 	return strings.ToUpper(v.Slug[:min(3, len(v.Slug))])
 }
 
+// positionName es el nombre de la posición en el catálogo (ADR-011), o el de la vista si el código no es estándar.
+func positionName(v profile.View) string {
+	if pos, ok := profile.LookupPosition(v.Code); ok {
+		return pos.Name
+	}
+	return v.Name
+}
+
+// positionTitle es el tooltip de la sigla de una posición.
+func positionTitle(v profile.View) string {
+	if pos, ok := profile.LookupPosition(v.Code); ok {
+		return pos.Code + " · " + pos.Name + ": " + pos.Summary
+	}
+	return v.Name + " (posición fuera del catálogo de Gremio)"
+}
+
+func levelShort(v profile.View) string { return profile.Levels[v.Level][0] }
+func levelLong(v profile.View) string  { return profile.Levels[v.Level][1] }
+
+// radarSlots es cuántos ejes muestra el radar: los atributos son libres, pero en el radar van los mejores.
+const radarSlots = 6
+
+// topAttributes son los n atributos de mayor puntaje, en el orden del perfil para que la forma sea estable.
+func topAttributes(attrs []profile.Attribute, n int) []profile.Attribute {
+	if len(attrs) <= n {
+		return attrs
+	}
+	idx := make([]int, len(attrs))
+	for i := range idx {
+		idx[i] = i
+	}
+	slices.SortStableFunc(idx, func(a, b int) int { return attrs[b].Score() - attrs[a].Score() })
+	idx = idx[:n]
+	slices.Sort(idx)
+	out := make([]profile.Attribute, n)
+	for i, j := range idx {
+		out[i] = attrs[j]
+	}
+	return out
+}
+
 type weightedView struct {
 	Code   string
 	Name   string
@@ -157,7 +198,7 @@ func weightsFor(r *profile.Resume, code string) []weightedView {
 			w = v.Weights[code]
 		}
 		if w > 0 {
-			out = append(out, weightedView{viewCode(v), v.Name, strconv.FormatFloat(w, 'g', 3, 64)})
+			out = append(out, weightedView{viewCode(v), positionTitle(v), strconv.FormatFloat(w, 'g', 3, 64)})
 		}
 	}
 	return out

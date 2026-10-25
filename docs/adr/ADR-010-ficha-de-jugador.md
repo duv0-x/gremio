@@ -19,7 +19,7 @@ Las skills de ADR-003 solo tienen un nivel de tres valores (`expert`, `solid`, `
 
 ### 1. Atributos: ejes con sub-atributos puntuados
 
-La extensión `gremio` suma `attributes`, una lista de **3 a 8 ejes**:
+La extensión `gremio` suma `attributes`, una lista de ejes (al menos 3; el radar muestra los 6 mejores, ver [ADR-011](ADR-011-catalogo-de-posiciones.md)):
 
 ```json
 {
@@ -44,7 +44,7 @@ Las calificaciones de terceros (compañeros de proyecto, atestaciones firmadas) 
 
 ### 3. OVR por rol: promedio ponderado
 
-Cada vista suma `code` (la posición, de 2 a 4 letras: `PLE`, `SRE`…) y `weights`, un mapa de código de atributo a peso positivo. **El OVR de la vista es el promedio de los puntajes de los ejes ponderado por esos pesos.** Sin pesos, todos los ejes pesan igual. La primera vista es la posición principal.
+Cada vista suma `code` (la posición del catálogo de [ADR-011](ADR-011-catalogo-de-posiciones.md): `PLE`, `SRE`…) y `weights`, un mapa de código de atributo a peso positivo. **El OVR de la vista es el promedio de los puntajes de los ejes ponderado por esos pesos.** Sin pesos, todos los ejes pesan igual. La primera vista es la posición principal.
 
 Es el modelo de "un rol es una vista que combina capacidades con pesos": agregar un rol es agregar una vista, no rehacer el perfil.
 
