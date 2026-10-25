@@ -48,7 +48,7 @@ El objetivo es una plataforma descentralizada y robusta, así que se prefiere un
 - **`code.superseriousbusiness.org/httpsig`** (BSD-3, el que usa GoToSocial contra Mastodon) para firmar y verificar las HTTP Signatures, como dependencia normal.
 - El envío a los seguidores (fan-out a `sharedInbox` cuando exista) se hace con reintentos, a través de una cola persistida en la base de datos. Así una caída no pierde entregas.
 - **Todos los GETs salientes a otras instancias van firmados** (`(request-target)`, `host`, `date`): GoToSocial firma los suyos y exige firma para entregar un Actor.
-- La entrega usa el `sharedInbox` si el Actor remoto lo publica y, si no, su inbox personal (GoToSocial no publica `sharedInbox`).
+- La entrega usa el `sharedInbox` si el Actor remoto lo publica (Mastodon sí) y, si no, su inbox personal (GoToSocial no publica `sharedInbox`).
 - El dueño de una llave se toma de `publicKey.owner`: GoToSocial usa `keyId` con ruta (`/users/x/main-key`) y Mastodon con fragmento (`#main-key`).
 - Las pruebas de interoperabilidad se hacen contra `echo.duv0-x.cloud` (GoToSocial propio) y contra una cuenta de Mastodon.
 
@@ -61,7 +61,15 @@ Una instancia mínima (`spike/federation/`, estado en memoria, expuesta con un q
 - El `Undo{Follow}` eliminó al seguidor.
 - Antes de seguir, GoToSocial recorre el Actor completo con GETs firmados: Actor, `followers`, `following` y `outbox`. Las tres colecciones deben existir aunque estén vacías.
 - GoToSocial acepta dominios `*.trycloudflare.com`.
-- Pendiente: repetir la prueba contra Mastodon.
+
+Y contra `mastodon.social` (Mastodon 5.0.0-nightly, gremio#3), con `@duv0_x@mastodon.social`:
+
+- Follow aceptado, `Note` en el timeline de inicio y `Undo{Follow}` procesado, sin cambiar el código del spike.
+- Mastodon también firma sus GETs y recorre Actor, `outbox`, `following` y `followers` antes de seguir, y otra vez después del `Accept`.
+- Mastodon **repite el WebFinger después de obtener el Actor**: verifica que el dominio del handle corresponda al Actor. Con `account-domain` distinto del `host`, el WebFinger del dominio del handle tiene que apuntar al Actor.
+- Mastodon publica `sharedInbox` (`https://mastodon.social/inbox`): los `Note` van ahí.
+- **mastodon.social suspende todo `trycloudflare.com`** (motivo "Spam" en su lista pública de bloqueos): una instancia de Gremio necesita dominio propio. Las pruebas se hicieron con un túnel nombrado en `spike.duv0-x.cloud`.
+- Las pruebas fueron contra una instancia sin `AUTHORIZED_FETCH` confirmado; como el spike firma todos sus GETs, debería funcionar también con instancias que lo exigen, pero no se probó.
 
 ## Consecuencias positivas
 
