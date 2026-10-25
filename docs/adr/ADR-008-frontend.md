@@ -34,6 +34,7 @@ Gremio tiene dos caras web: el **perfil público** (más sus vistas por rol, `/c
 - Los **tokens del sistema visual** de los mockups se definen como variables del tema de Tailwind:
   - fondo `#F3F4F1`, tinta `#16181B`, acento `#0F6E61`;
   - tipografías Space Grotesk (títulos), IBM Plex Sans (texto) e IBM Plex Mono (datos).
+  - La paleta completa (neutros, estados, modo oscuro) y la escala viven en [`docs/design/DESIGN.md`](../design/DESIGN.md). Cambio respecto a los mockups: el gris de texto secundario `#7A8088` no llegaba a AA sobre el fondo y pasa a `#6B7078`.
 - Las tipografías se embeben y se sirven desde la instancia (sin Google Fonts), por la misma razón que htmx.
 - Modo oscuro con `prefers-color-scheme`.
 
