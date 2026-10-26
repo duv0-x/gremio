@@ -21,9 +21,6 @@ templ ficha(p Page) {
 			@fichaRadar(topAttributes(p.Resume.Gremio.Attributes, radarSlots), len(p.Resume.Gremio.Attributes))
 		</div>
 		@fichaAttributes(p)
-		if len(p.Resume.Gremio.Traits) > 0 {
-			@fichaTraits(p.Resume.Gremio.Traits)
-		}
 	</div>
 	for _, a := range p.Resume.Gremio.Attributes {
 		@attributeDetail(p, a)
@@ -95,6 +92,18 @@ templ fichaHero(p Page) {
 									@roleChip(p, v)
 								</a>
 							}
+						</li>
+					}
+				</ul>
+			</div>
+		}
+		if len(p.Resume.Gremio.Traits) > 0 {
+			<div>
+				<p class={ eyebrow } id="rasgos">Rasgos</p>
+				<ul class="mt-3 flex flex-wrap gap-3" aria-labelledby="rasgos">
+					for _, t := range p.Resume.Gremio.Traits {
+						<li>
+							@traitBadge(t)
 						</li>
 					}
 				</ul>
@@ -306,70 +315,24 @@ templ attributeDetail(p Page, a profile.Attribute) {
 	}
 }
 
-// fichaTraits son los rasgos como insignias: un medallón con sus iniciales, en una cinta deslizable.
-templ fichaTraits(traits []profile.Trait) {
-	<section class={ panel } aria-labelledby="rasgos-titulo" data-cinta>
-		<div class="flex flex-wrap items-center justify-between gap-2">
-			<div>
-				<h2 id="rasgos-titulo" class={ h2Ficha }>Rasgos</h2>
-				<p class="mt-1 font-mono text-[13px] text-faint">Insignias · desliza para ver más</p>
-			</div>
-			@cintaArrows("Rasgos anteriores", "Rasgos siguientes")
-		</div>
-		<ul data-cinta-track tabindex="0" aria-label="Rasgos" class="mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4">
-			for _, t := range traits {
-				<li class="flex w-[220px] shrink-0 snap-start flex-col items-center rounded-lg border border-line bg-surface-2/40 p-5 text-center">
-					<svg viewBox="0 0 120 120" class="size-24" aria-hidden="true">
-						<polygon points={ hexagon(60, 60, 56) } class="fill-accent-soft stroke-accent" stroke-width="3"></polygon>
-						<polygon points={ hexagon(60, 60, 44) } class="fill-none stroke-accent/40" stroke-width="1.5" stroke-dasharray="4 4"></polygon>
-						<text x="60" y="72" text-anchor="middle" class="fill-accent font-display text-[34px] font-bold">{ traitInitials(t.Name) }</text>
-					</svg>
-					<p class="mt-4 font-display text-lg leading-snug font-bold">{ t.Name }</p>
-					if t.Summary != "" {
-						<p class="mt-2 text-sm leading-relaxed text-muted">{ t.Summary }</p>
-					}
-				</li>
+// traitBadge es la insignia de un rasgo: hexágono del color del rasgo con un brillo arriba y un círculo con el
+// ícono de Lucide (o las iniciales). El nombre y la descripción van en el tooltip, como en las siglas.
+templ traitBadge(t profile.Trait) {
+	<span class="tip tip-start inline-flex rounded-full" data-tip={ traitTip(t) } tabindex="0">
+		<svg viewBox="0 0 120 120" class={ "size-14", "badge-" + traitColor(t) } aria-hidden="true">
+			<polygon points={ hexagon(60, 60, 56) } class="badge-fill"></polygon>
+			<polygon points={ hexagonTop(60, 60, 56) } class="fill-white/15"></polygon>
+			<circle cx="60" cy="60" r="31" class="fill-white"></circle>
+			if icon := traitIcon(t); icon != "" {
+				<g transform="translate(39 39) scale(1.75)" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-stroke">
+					@templ.Raw(icon)
+				</g>
+			} else {
+				<text x="60" y="71" text-anchor="middle" class="badge-text font-display text-[30px] font-bold">{ traitInitials(t.Name) }</text>
 			}
-		</ul>
-	</section>
-}
-
-// cvTimeline es la trayectoria: una fila por trabajo con su barra en el tiempo, eje de años y líneas guía.
-// Cada nombre abre el panel del trabajo.
-templ cvTimeline(p Page) {
-	<section class={ section, "pb-0! sm:pb-0!" } aria-labelledby="trayectoria-titulo">
-		<p class={ eyebrow }>01 · Trayectoria</p>
-		<h2 id="trayectoria-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Línea de tiempo</h2>
-		<p class="mt-1 font-mono text-[13px] text-faint">{ p.Timeline.From } → hoy · { itoa(len(p.Timeline.Rows)) } { plural(len(p.Timeline.Rows), "empresa", "empresas") }</p>
-		<div class={ panel, "mt-6" }>
-			<ol class="flex flex-col gap-2">
-				for _, r := range p.Timeline.Rows {
-					<li class="grid grid-cols-[120px_1fr] items-center gap-3 sm:grid-cols-[220px_1fr] sm:gap-4">
-						<a href={ templ.SafeURL("#" + workAnchor(r.Work)) } class="min-w-0 text-ink no-underline hover:text-accent">
-							<span class={ "block truncate text-sm font-semibold", templ.KV("text-accent", r.Current) }>{ r.Work.Name }</span>
-							<span class="block font-mono text-[11px] whitespace-nowrap text-faint sm:text-[12px]">{ r.Range }</span>
-						</a>
-						<svg viewBox="0 0 1000 24" class="block w-full" role="img" aria-label={ r.Work.Name + ": " + r.Range }>
-							for _, t := range p.Timeline.Ticks {
-								<line x1={ t.X } y1="0" x2={ t.X } y2="24" class="stroke-line" stroke-width="1.5"></line>
-							}
-							<rect x={ r.X } y="5" width={ r.W } height="14" rx="7" class={ templ.KV("fill-accent", r.Current), templ.KV("fill-control", !r.Current) }></rect>
-						</svg>
-					</li>
-				}
-				// Eje de años, alineado con las barras.
-				<li class="grid grid-cols-[120px_1fr] gap-3 sm:grid-cols-[220px_1fr] sm:gap-4" aria-hidden="true">
-					<span></span>
-					<svg viewBox="0 0 1000 40" class="block w-full overflow-visible">
-						// En móvil va un año de cada dos marcas, con letra más grande (el SVG se encoge con el ancho).
-						for i, t := range p.Timeline.Ticks {
-							<text x={ t.X } y="28" text-anchor="middle" class={ "fill-faint font-mono text-[22px] max-sm:text-[44px]", templ.KV("max-sm:hidden", i%2 == 1) }>{ t.Label }</text>
-						}
-					</svg>
-				</li>
-			</ol>
-		</div>
-	</section>
+		</svg>
+		<span class="sr-only">{ traitTip(t) }</span>
+	</span>
 }
 
 // sigla muestra una abreviatura con su significado en un tooltip CSS inmediato (el title nativo tarda o no aparece,

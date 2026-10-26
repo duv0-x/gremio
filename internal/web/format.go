@@ -18,7 +18,6 @@ type Page struct {
 	Version  string
 	View     int    // vista seleccionada; la primera es la principal
 	Tab      string // pestaña: ficha, cv o contacto
-	Timeline timeline
 }
 
 // tabPath es la URL de una pestaña; la ficha conserva la vista elegida.

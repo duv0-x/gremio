@@ -179,6 +179,7 @@ Notas para implementar:
   - **No vale el contenido de Stitch**: los puntajes, las certificaciones CKA y HashiCorp, "14+ años", "Percentil 98.4 / top 2 %", "-23 % costo AWS", "Disponible" ni "Técnica verificada". Sí vale el contenido del perfil importado.
   - **Sin años totales ni comparaciones** entre personas.
   - **Detalle sin JavaScript**: el panel es un `<section>` con `:target`, sin aria-modal (no atrapa el foco).
+  - **Insignias de rasgos**: son la única excepción al acento único. Llevan un hexágono del color del rasgo con un brillo arriba y un círculo blanco con un ícono de [Lucide](https://lucide.dev) (ISC, embebido en `internal/icons`). La paleta tiene 6 colores, todos ≥ 4.5:1 sobre blanco: verde `#0F6E61`, azul `#1D4ED8`, ámbar `#9A4A06`, rojo `#B42318`, violeta `#6D28D9` y gris `#4D525A`. Van en la carta del jugador; el nombre y la descripción salen en el tooltip.
   - **Puntajes**: el color del número (acento ≥ 85, tinta 70–84, apagado < 70) nunca va solo, siempre con el número escrito.
 
 - **El contenido es ilustrativo.** Stitch completó logros, stacks y skills por su cuenta (p. ej. le puso Rust/Tokio/gRPC a Gremio, que es Go, y agregó GCP, PCI-DSS y BGP). El contenido real sale del perfil importado (`duv0-x.github.io/files/cv.yaml`). Tampoco vale el email que arma el botón "Mostrar email" del HTML.
