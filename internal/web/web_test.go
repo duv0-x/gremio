@@ -139,7 +139,7 @@ func TestFichaDeJugador(t *testing.T) {
 		}
 	}
 	_, body = get(t, ts.URL+"/@alice/cv")
-	for _, want := range []string{"Presentación larga", `href="#trabajo-acme"`, `id="trabajo-acme"`, "Respalda estos atributos", `href="/@alice#atributo-cnt"`, "Bajó el MTTR", `aria-current="page" class="inline-flex min-h-11 items-center border-b-2 border-accent text-ink no-underline hover:text-ink">CV<`} {
+	for _, want := range []string{"Presentación larga", `href="#trabajo-acme"`, `id="trabajo-acme"`, "Respalda estos atributos", `href="/@alice#atributo-cnt"`, "Bajó el MTTR", `href="/@alice/cv" aria-current="page"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("CV: falta %q", want)
 		}
