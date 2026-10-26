@@ -176,6 +176,8 @@ var TraitColors = []string{"verde", "azul", "ambar", "rojo", "violeta", "gris"}
 type Contact struct {
 	Email string `json:"email"` // "public" o "private"
 	Phone string `json:"phone"`
+	// Whatsapp "public" publica basics.phone solo como enlace de WhatsApp (wa.me), nunca como texto.
+	Whatsapp string `json:"whatsapp"`
 }
 
 // View es una vista por rol: un filtro sobre el mismo perfil, referenciado por ids (ADR-003 §3).
@@ -337,7 +339,7 @@ func (r *Resume) Normalize() error {
 	}
 
 	c := &r.Gremio.Contact
-	for _, v := range []*string{&c.Email, &c.Phone} {
+	for _, v := range []*string{&c.Email, &c.Phone, &c.Whatsapp} {
 		switch *v {
 		case "public", "private":
 		case "":
@@ -350,6 +352,9 @@ func (r *Resume) Normalize() error {
 		if _, err := time.LoadLocation(tz); err != nil || tz == "Local" {
 			return fmt.Errorf("gremio.timezone: %q no es una zona IANA (p. ej. America/Bogota)", tz)
 		}
+	}
+	if c.Whatsapp == "public" && strings.TrimSpace(r.Basics.Phone) == "" {
+		return errors.New("gremio.contact.whatsapp es public pero falta basics.phone")
 	}
 	codes := map[string]bool{}
 	if n := len(r.Gremio.Attributes); n > 0 && n < 3 {

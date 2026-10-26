@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,8 @@ type Page struct {
 	Actor    string // URL del Actor de ActivityPub
 	Version  string
 	View     int    // vista seleccionada; la primera es la principal
-	Tab      string // pestaña: ficha, cv o contacto
+	Tab      string // pestaña: ficha o cv
+	HasCV    bool   // hay un PDF del CV para descargar
 }
 
 // tabPath es la URL de una pestaña; la ficha conserva la vista elegida.
@@ -30,11 +32,8 @@ func (p Page) tabPath(tab string) string {
 
 func (p Page) Title() string {
 	t := p.Resume.Basics.Name + " · " + p.Resume.Basics.Label
-	switch p.Tab {
-	case "cv":
+	if p.Tab == "cv" {
 		return p.Resume.Basics.Name + " · CV"
-	case "contacto":
-		return p.Resume.Basics.Name + " · Contacto"
 	}
 	return t
 }
@@ -65,6 +64,26 @@ func (p Page) SourceURL() string {
 	}
 	return repo + "/tree/v" + strings.TrimPrefix(p.Version, "v")
 }
+
+// WhatsApp es el enlace wa.me con un mensaje inicial, solo si el dueño lo hizo público (el número no se muestra).
+func (p Page) WhatsApp() string {
+	if p.Resume.Gremio.Contact.Whatsapp != "public" {
+		return ""
+	}
+	digits := strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, p.Resume.Basics.Phone)
+	if digits == "" {
+		return ""
+	}
+	first := strings.Fields(p.Resume.Basics.Name)[0]
+	return "https://wa.me/" + digits + "?text=" + url.QueryEscape("Hola "+first+", vi tu perfil en Gremio ("+p.Handle+") y me gustaría conversar.")
+}
+
+func (p Page) cvPDFPath() string { return "/@" + p.Username + "/cv.pdf" }
 
 // Email devuelve el email solo si el dueño lo hizo público (ADR-003 §4).
 func (p Page) Email() string {

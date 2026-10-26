@@ -41,10 +41,9 @@ templ layout(p Page, title string) {
 					if p.HasFicha() {
 						// Pestañas de carpeta, del mismo ancho y apoyadas en el borde del header; cada una tiene su URL
 						// y muestra solo su sección.
-						<ul class="-mb-px grid w-full grid-cols-3 gap-1.5 pt-2 font-mono text-[13px] uppercase tracking-[0.08em] sm:w-[480px]">
+						<ul class="-mb-px grid w-full grid-cols-2 gap-1.5 pt-2 font-mono text-[13px] uppercase tracking-[0.08em] sm:w-[320px]">
 							@navTab(p, "ficha", "Ficha")
 							@navTab(p, "cv", "CV")
-							@navTab(p, "contacto", "Contacto")
 						</ul>
 					} else {
 						<ul class="flex flex-wrap gap-x-5 font-mono text-[13px] uppercase tracking-[0.08em]">
@@ -59,9 +58,10 @@ templ layout(p Page, title string) {
 					}
 				</nav>
 			</header>
-			<main id="contenido">
+			<main id="contenido" class={ templ.KV("pb-24 sm:pb-28", p.HasCV || p.WhatsApp() != "") }>
 				{ children... }
 			</main>
+			@actions(p)
 			<footer class="border-t border-line">
 				<div class="mx-auto flex max-w-[1200px] flex-wrap justify-between gap-2 px-4 py-6 text-sm text-faint sm:px-6">
 					<p>
@@ -79,8 +79,6 @@ templ ProfilePage(p Page) {
 		switch  {
 			case p.Tab == "cv":
 				@cv(p)
-			case p.Tab == "contacto":
-				@contact(p)
 			case p.HasFicha():
 				@ficha(p)
 			default:
@@ -116,6 +114,8 @@ templ cv(p Page) {
 		if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
 			@formation(p.Resume)
 		}
+		// Los canales de contacto van al final del CV (la pestaña Contacto se fusionó aquí).
+		@contact(p)
 	</div>
 }
 
@@ -366,7 +366,11 @@ templ contact(p Page) {
 			if email := p.Email(); email != "" {
 				<p class="mt-2"><a href={ templ.SafeURL("mailto:" + email) }>{ email }</a></p>
 			} else {
-				<p class="mt-2 text-muted">El email y el teléfono no son públicos. Escribe por cualquiera de estos canales.</p>
+				if wa := p.WhatsApp(); wa != "" {
+					<p class="mt-2 text-muted">Escríbeme por <a href={ templ.SafeURL(wa) } rel="noopener" target="_blank">WhatsApp</a> o por cualquiera de estos canales.</p>
+				} else {
+					<p class="mt-2 text-muted">El email y el teléfono no son públicos. Escribe por cualquiera de estos canales.</p>
+				}
 			}
 			<ul class="mt-6 grid gap-3 sm:grid-cols-3">
 				<li class="rounded-md bg-surface-2 p-4">
