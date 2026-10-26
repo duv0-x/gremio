@@ -16,8 +16,28 @@ type Page struct {
 	Handle   string // @usuario@dominio
 	Actor    string // URL del Actor de ActivityPub
 	Version  string
-	View     int // vista seleccionada; la primera es la principal
+	View     int    // vista seleccionada; la primera es la principal
+	Tab      string // pestaña: ficha, cv o contacto
 	Timeline timeline
+}
+
+// tabPath es la URL de una pestaña; la ficha conserva la vista elegida.
+func (p Page) tabPath(tab string) string {
+	if tab == "ficha" {
+		return p.viewPath(p.View)
+	}
+	return "/@" + p.Username + "/" + tab
+}
+
+func (p Page) Title() string {
+	t := p.Resume.Basics.Name + " · " + p.Resume.Basics.Label
+	switch p.Tab {
+	case "cv":
+		return p.Resume.Basics.Name + " · CV"
+	case "contacto":
+		return p.Resume.Basics.Name + " · Contacto"
+	}
+	return t
 }
 
 // HasFicha dice si el perfil tiene atributos; sin ellos la página es el CV de v0.2 (ADR-010).

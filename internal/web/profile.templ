@@ -28,29 +28,34 @@ templ layout(p Page, title string) {
 			}
 			<link rel="stylesheet" href={ "/static/app.css?v=" + p.Version }/>
 			<link rel="alternate" type="application/activity+json" href={ p.Actor }/>
+			<script src={ "/static/cinta.js?v=" + p.Version } defer></script>
 		</head>
 		<body>
 			<a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-md focus:bg-surface focus:p-3">Saltar al contenido</a>
 			<header class="border-b border-line">
-				<nav aria-label="Principal" class="mx-auto flex min-h-16 max-w-[1200px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-2 sm:px-6">
-					<a href="#" class="flex min-h-11 items-center gap-3 text-ink no-underline hover:text-ink">
+				<nav aria-label="Principal" class="mx-auto flex min-h-16 max-w-[1200px] flex-wrap items-center justify-between gap-x-6 px-4 sm:px-6">
+					<a href={ templ.SafeURL("/@" + p.Username) } class="flex min-h-11 items-center gap-3 py-2 text-ink no-underline hover:text-ink">
 						<span class="font-display text-lg font-bold">{ p.Resume.Basics.Name }</span>
 						<span class={ dataChip, "hidden sm:inline" }>{ p.Handle }</span>
 					</a>
-					<ul class="flex flex-wrap gap-x-5 font-mono text-[13px] uppercase tracking-[0.08em]">
-						if p.HasFicha() {
-							<li><a class={ navLink } href="#ficha">Ficha</a></li>
-							<li><a class={ navLink } href="#cv">CV</a></li>
-						} else {
+					if p.HasFicha() {
+						// Pestañas: cada sección tiene su URL y muestra solo lo suyo.
+						<ul class="-mb-px flex gap-x-6 self-stretch font-mono text-[13px] uppercase tracking-[0.08em]">
+							@navTab(p, "ficha", "Ficha")
+							@navTab(p, "cv", "CV")
+							@navTab(p, "contacto", "Contacto")
+						</ul>
+					} else {
+						<ul class="flex flex-wrap gap-x-5 font-mono text-[13px] uppercase tracking-[0.08em]">
 							if len(p.Resume.Work) > 0 {
 								<li><a class={ navLink } href="#experiencia">Experiencia</a></li>
 							}
 							if len(p.Resume.Skills) > 0 {
 								<li><a class={ navLink } href="#skills">Skills</a></li>
 							}
-						}
-						<li><a class={ navLink } href="#contacto">Contacto</a></li>
-					</ul>
+							<li><a class={ navLink } href="#contacto">Contacto</a></li>
+						</ul>
+					}
 				</nav>
 			</header>
 			<main id="contenido">
@@ -69,19 +74,33 @@ templ layout(p Page, title string) {
 }
 
 templ ProfilePage(p Page) {
-	@layout(p, p.Resume.Basics.Name+" · "+p.Resume.Basics.Label) {
-		if p.HasFicha() {
-			@ficha(p)
-			@cv(p)
-		} else {
-			@cvPage(p)
+	@layout(p, p.Title()) {
+		switch {
+			case p.Tab == "cv":
+				@cv(p)
+			case p.Tab == "contacto":
+				@contact(p)
+			case p.HasFicha():
+				@ficha(p)
+			default:
+				@cvPage(p)
 		}
 	}
 }
 
-// cv es el perfil completo debajo de la ficha: la información no se pierde, solo deja de ir primero (ADR-010 §5).
+templ navTab(p Page, tab, label string) {
+	<li class="flex">
+		if p.Tab == tab {
+			<a href={ templ.SafeURL(p.tabPath(tab)) } aria-current="page" class="inline-flex min-h-11 items-center border-b-2 border-accent text-ink no-underline hover:text-ink">{ label }</a>
+		} else {
+			<a href={ templ.SafeURL(p.tabPath(tab)) } class="inline-flex min-h-11 items-center border-b-2 border-transparent text-muted no-underline hover:border-line hover:text-ink">{ label }</a>
+		}
+	</li>
+}
+
+// cv es el perfil completo, en su propia pestaña: la información no se pierde, solo deja de ir primero (ADR-010 §5).
 templ cv(p Page) {
-	<div id="cv" class="border-t border-line pb-20 sm:pb-0">
+	<div id="cv">
 		<section class={ section, "pb-0! sm:pb-0!" } aria-labelledby="cv-titulo">
 			<p class={ eyebrow }>CV completo</p>
 			<h2 id="cv-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">{ p.Resume.Basics.Name }</h2>
@@ -95,7 +114,6 @@ templ cv(p Page) {
 		if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
 			@formation(p.Resume)
 		}
-		@contact(p)
 	</div>
 }
 

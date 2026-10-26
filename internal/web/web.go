@@ -92,7 +92,10 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		Version:  s.version,
 		Timeline: buildTimeline(res.Work, time.Now()),
 	}
-	if slug := r.PathValue("view"); slug != "" {
+	page.Tab = "ficha"
+	if slug := r.PathValue("view"); slug == "cv" || slug == "contacto" {
+		page.Tab = slug
+	} else if slug != "" {
 		i := slices.IndexFunc(res.Gremio.Views, func(v profile.View) bool { return v.Slug == slug })
 		// La primera vista vive en /@usuario: su slug no es una segunda URL.
 		if i <= 0 {

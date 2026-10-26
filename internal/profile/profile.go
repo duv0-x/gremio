@@ -372,7 +372,8 @@ func (r *Resume) Normalize() error {
 	slugs := map[string]bool{}
 	for i, v := range r.Gremio.Views {
 		what := fmt.Sprintf("gremio.views[%d]", i)
-		if !slugRe.MatchString(v.Slug) || slugs[v.Slug] {
+		// cv y contacto son pestañas de la página (/@usuario/cv), no vistas.
+		if !slugRe.MatchString(v.Slug) || slugs[v.Slug] || v.Slug == "cv" || v.Slug == "contacto" {
 			return fmt.Errorf("%s: slug %q inválido o repetido", what, v.Slug)
 		}
 		slugs[v.Slug] = true
