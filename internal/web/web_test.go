@@ -118,7 +118,7 @@ func TestFichaDeJugador(t *testing.T) {
 		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
 		"Bajó el MTTR 23 %", "respaldado por 1 logro", "SRE<span class=\"sr-only\">", "PLE<span class=\"sr-only\">",
 		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
-		`id="cv"`, "Presentación larga", "<polygon", `<details class="group" open>`, `data-tip="Zona horaria: America/Bogota (UTC−5 hoy)"`,
+		"<polygon", `data-tip="Zona horaria: America/Bogota (UTC−5 hoy)"`, "data-cinta-track", `href="/@alice/cv"`,
 		// Toda sigla explica su significado al pasar el mouse.
 		`data-tip="SRE · Site Reliability Engineer: Mantiene`, `data-tip="Senior"`, "· Senior",
 		`data-tip="Contenedores"`, `<dt class="font-mono text-accent">CNT</dt>`, `data-tip="OVR (overall)`,
@@ -130,6 +130,26 @@ func TestFichaDeJugador(t *testing.T) {
 	}
 	if strings.Contains(body, "style=") {
 		t.Error("la CSP no admite style inline")
+	}
+
+	// La ficha no trae el CV ni el contacto: cada pestaña muestra solo lo suyo.
+	for _, leak := range []string{"Presentación larga", `id="contacto"`, "<details"} {
+		if strings.Contains(body, leak) {
+			t.Errorf("la pestaña Ficha muestra %q", leak)
+		}
+	}
+	_, body = get(t, ts.URL+"/@alice/cv")
+	for _, want := range []string{"Presentación larga", `<details class="group" open>`, "Bajó el MTTR", `aria-current="page" class="inline-flex min-h-11 items-center border-b-2 border-accent text-ink no-underline hover:text-ink">CV<`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("CV: falta %q", want)
+		}
+	}
+	if strings.Contains(body, "<polygon") || strings.Contains(body, `id="contacto"`) {
+		t.Error("la pestaña CV no debe traer la ficha ni el contacto")
+	}
+	_, body = get(t, ts.URL+"/@alice/contacto")
+	if !strings.Contains(body, `id="contacto"`) || strings.Contains(body, "Bajó el MTTR") || strings.Contains(body, "<polygon") {
+		t.Error("la pestaña Contacto debe traer solo el contacto")
 	}
 
 	_, body = get(t, ts.URL+"/@alice/platform-engineer")
