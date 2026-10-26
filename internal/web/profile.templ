@@ -1,6 +1,10 @@
 package web
 
-import "github.com/duv0-x/gremio/internal/profile"
+import (
+	"time"
+
+	"github.com/duv0-x/gremio/internal/profile"
+)
 
 // Clases compartidas (DESIGN.md: tarjetas, eyebrow, chips de dato y botones de 44 px).
 const (
@@ -118,7 +122,12 @@ templ profileHeader(p Page) {
 					<p class="mt-4 font-display text-xl font-semibold text-accent">{ p.Resume.Basics.Label }</p>
 				}
 				if loc := p.Location(); loc != "" {
-					<p class="mt-2 font-mono text-sm text-muted">{ loc }</p>
+					<p class="mt-2 font-mono text-sm text-muted">
+						{ loc }
+						if tz, tip := p.TimeZone(time.Now()); tz != "" {
+							· @sigla(tz, tip, "", true)
+						}
+					</p>
 				}
 				if about := p.About(); about != "" {
 					<p class="mt-6 text-lg leading-relaxed text-muted">{ about }</p>

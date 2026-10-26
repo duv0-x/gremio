@@ -100,6 +100,7 @@ func TestParseRechazaDocumentosInvalidos(t *testing.T) {
 		"slug repetido":    `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"a"},{"slug":"sre","name":"b"}]}}`,
 		"trabajo sin name": `{"basics":{"name":"a"},"work":[{"position":"x"}]}`,
 		"pocos atributos":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `]}}`,
+		"zona horaria":     `{"basics":{"name":"a"},"gremio":{"timezone":"UTC-5"}}`,
 		"seniority":        `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"x","name":"x","code":"SRE","level":"lead"}]}}`,
 		"código":           `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("aa", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
 		"código repetido":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("AAA", 50) + `,` + attr("CCC", 50) + `]}}`,

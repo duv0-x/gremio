@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
+	_ "time/tzdata" // el binario no depende de las zonas del sistema
 )
 
 // Resume es el perfil completo. Las secciones de JSON Resume que no usa el v1 no se guardan.
@@ -122,6 +124,7 @@ type Extension struct {
 	// About es la presentación larga de la página web; basics.summary queda como bio corta, que es lo que
 	// muestran Mastodon y las demás instancias.
 	About      string      `json:"about,omitempty"`
+	Timezone   string      `json:"timezone,omitempty"` // nombre IANA, p. ej. America/Bogota
 	Contact    Contact     `json:"contact"`
 	Views      []View      `json:"views,omitempty"`
 	Attributes []Attribute `json:"attributes,omitempty"`
@@ -333,6 +336,11 @@ func (r *Resume) Normalize() error {
 			*v = "private"
 		default:
 			return fmt.Errorf("gremio.contact: visibilidad %q inválida (public o private)", *v)
+		}
+	}
+	if tz := r.Gremio.Timezone; tz != "" {
+		if _, err := time.LoadLocation(tz); err != nil || tz == "Local" {
+			return fmt.Errorf("gremio.timezone: %q no es una zona IANA (p. ej. America/Bogota)", tz)
 		}
 	}
 	codes := map[string]bool{}

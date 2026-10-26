@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
@@ -96,7 +97,7 @@ func TestEmailPublicoSeMuestraYTelefonoNunca(t *testing.T) {
 }
 
 // fichaDoc es doc con atributos, vistas ponderadas y rasgos (ADR-010).
-var fichaDoc = strings.Replace(doc, `"contact": {"email": "private", "phone": "private"}}`, `"contact": {"email": "private", "phone": "private"},
+var fichaDoc = strings.Replace(doc, `"contact": {"email": "private", "phone": "private"}}`, `"contact": {"email": "private", "phone": "private"}, "timezone": "America/Bogota",
   "attributes": [
     {"code": "CNT", "name": "Contenedores", "subs": [{"name": "Kubernetes", "score": 92}, {"name": "EKS", "score": 90}], "skills": ["k8s"], "highlights": ["h1"]},
     {"code": "OBS", "name": "Observabilidad", "subs": [{"name": "Grafana", "score": 70}]},
@@ -117,7 +118,7 @@ func TestFichaDeJugador(t *testing.T) {
 		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
 		"Bajó el MTTR 23 %", "respaldado por 1 logro", "SRE<span class=\"sr-only\">", "PLE<span class=\"sr-only\">",
 		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
-		`id="cv"`, "Presentación larga", "<polygon", `<details class="group" open>`,
+		`id="cv"`, "Presentación larga", "<polygon", `<details class="group" open>`, `data-tip="Zona horaria: America/Bogota (UTC−5 hoy)"`,
 		// Toda sigla explica su significado al pasar el mouse.
 		`data-tip="SRE · Site Reliability Engineer: Mantiene`, `data-tip="Senior"`, "· Senior",
 		`data-tip="Contenedores"`, `<dt class="font-mono text-accent">CNT</dt>`, `data-tip="OVR (overall)`,
@@ -178,5 +179,25 @@ func TestRadarMuestraLosMejores(t *testing.T) {
 	// Sale el de 10 (CX) y los demás conservan el orden del perfil.
 	if strings.Join(got, " ") != "AX BX DX EX FX GX" {
 		t.Errorf("topAttributes = %v", got)
+	}
+}
+
+func TestTimeZoneConHorarioDeVerano(t *testing.T) {
+	p := Page{Resume: &profile.Resume{Gremio: profile.Extension{Timezone: "Asia/Kolkata"}}}
+	if got, _ := p.TimeZone(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)); got != "UTC+5:30" {
+		t.Errorf("Kolkata = %q", got)
+	}
+	p.Resume.Gremio.Timezone = "Europe/Madrid"
+	for date, want := range map[time.Time]string{
+		time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC): "UTC+1",
+		time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC): "UTC+2",
+	} {
+		if got, _ := p.TimeZone(date); got != want {
+			t.Errorf("Madrid %s = %q, quiero %q", date.Format("01-02"), got, want)
+		}
+	}
+	p.Resume.Gremio.Timezone = ""
+	if got, _ := p.TimeZone(time.Now()); got != "" {
+		t.Errorf("sin zona = %q", got)
 	}
 }
