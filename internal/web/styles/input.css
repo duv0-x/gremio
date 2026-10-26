@@ -186,13 +186,22 @@
   }
 }
 
-/* Insignias de rasgos: la paleta corta, única excepción al acento único (DESIGN.md). Todos dan ≥ 4.5:1 sobre blanco. */
+/* Insignias de rasgos: la paleta corta, única excepción al acento único (DESIGN.md). En claro, ≥ 4.5:1 sobre
+   surface-2; en oscuro, los tonos claros de cada color, también ≥ 4.5:1 sobre surface-2. */
 .badge-verde { --badge: #0f6e61; }
 .badge-azul { --badge: #1d4ed8; }
 .badge-ambar { --badge: #9a4a06; }
 .badge-rojo { --badge: #b42318; }
 .badge-violeta { --badge: #6d28d9; }
 .badge-gris { --badge: #4d525a; }
+@media (prefers-color-scheme: dark) {
+  .badge-verde { --badge: #4fb8a6; }
+  .badge-azul { --badge: #8ab4f8; }
+  .badge-ambar { --badge: #e0a256; }
+  .badge-rojo { --badge: #f08a7e; }
+  .badge-violeta { --badge: #b9a3f7; }
+  .badge-gris { --badge: #a9aeb5; }
+}
 .badge-fill { fill: var(--badge); }
 .badge-stroke { stroke: var(--badge); }
 .badge-text { fill: var(--badge); }

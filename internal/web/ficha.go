@@ -301,13 +301,6 @@ func traitIcon(t profile.Trait) string {
 	return icons.Inner(t.Icon)
 }
 
-// hexagonTop es la cara superior de la insignia (un rombo entre la punta, los vértices de arriba y el centro),
-// que da el brillo de gema.
-func hexagonTop(cx, cy, r float64) string {
-	p := func(a float64) string { return fmt.Sprintf("%.1f,%.1f", cx+r*math.Cos(a), cy+r*math.Sin(a)) }
-	return strings.Join([]string{p(-math.Pi / 2), p(-math.Pi / 6), fmt.Sprintf("%.1f,%.1f", cx, cy), p(-5 * math.Pi / 6)}, " ")
-}
-
 // traitInitials son las letras del medallón de un rasgo: las iniciales de las dos primeras palabras largas
 // ("Líder de equipo" → LE), o las dos primeras letras si hay una sola.
 func traitInitials(name string) string {
