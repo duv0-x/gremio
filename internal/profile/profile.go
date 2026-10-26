@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 	_ "time/tzdata" // el binario no depende de las zonas del sistema
+
+	"github.com/duv0-x/gremio/internal/icons"
 )
 
 // Resume es el perfil completo. Las secciones de JSON Resume que no usa el v1 no se guardan.
@@ -159,10 +161,16 @@ func (a Attribute) Score() int {
 	return (2*sum + len(a.Subs)) / (2 * len(a.Subs))
 }
 
+// Trait es un rasgo: una insignia con un ícono de Lucide y un color de la paleta corta (TraitColors).
 type Trait struct {
 	Name    string `json:"name"`
 	Summary string `json:"summary,omitempty"`
+	Icon    string `json:"icon,omitempty"`  // nombre de Lucide, p. ej. "bot"
+	Color   string `json:"color,omitempty"` // verde, azul, ambar, rojo, violeta o gris
 }
+
+// TraitColors es la paleta de las insignias: la única excepción al acento único del design system (DESIGN.md).
+var TraitColors = []string{"verde", "azul", "ambar", "rojo", "violeta", "gris"}
 
 // Contact dice qué datos de contacto son públicos; por defecto, ninguno (ADR-003 §4).
 type Contact struct {
@@ -405,6 +413,12 @@ func (r *Resume) Normalize() error {
 	for i, t := range r.Gremio.Traits {
 		if strings.TrimSpace(t.Name) == "" {
 			return fmt.Errorf("gremio.traits[%d]: falta name", i)
+		}
+		if t.Icon != "" && !icons.Exists(t.Icon) {
+			return fmt.Errorf("gremio.traits[%d]: no existe el ícono %q (ver lucide.dev/icons)", i, t.Icon)
+		}
+		if t.Color != "" && !slices.Contains(TraitColors, t.Color) {
+			return fmt.Errorf("gremio.traits[%d]: color %q inválido (%s)", i, t.Color, strings.Join(TraitColors, ", "))
 		}
 	}
 	return nil

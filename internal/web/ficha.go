@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/duv0-x/gremio/internal/icons"
 	"github.com/duv0-x/gremio/internal/profile"
 )
 
@@ -280,83 +280,32 @@ func languagesLine(r *profile.Resume) string {
 	return strings.Join(parts, " · ")
 }
 
-// Línea de tiempo: una fila por trabajo, sobre un viewBox de 1000 de ancho, con marcas de año cada dos años.
-type timelineRow struct {
-	Work    profile.Work
-	X, W    string
-	Range   string
-	Current bool
+func traitTip(t profile.Trait) string {
+	if t.Summary == "" {
+		return t.Name
+	}
+	return t.Name + ": " + t.Summary
 }
 
-type timelineTick struct {
-	X, Label string
+func traitColor(t profile.Trait) string {
+	if t.Color == "" {
+		return "verde"
+	}
+	return t.Color
 }
 
-type timeline struct {
-	Rows  []timelineRow
-	Ticks []timelineTick
-	From  string
+func traitIcon(t profile.Trait) string {
+	if t.Icon == "" {
+		return ""
+	}
+	return icons.Inner(t.Icon)
 }
 
-func month(d string) (int, bool) {
-	if len(d) < 4 {
-		return 0, false
-	}
-	y, err := strconv.Atoi(d[:4])
-	if err != nil {
-		return 0, false
-	}
-	m := 1
-	if len(d) >= 7 {
-		m, _ = strconv.Atoi(d[5:7])
-	}
-	return y*12 + m - 1, true
-}
-
-func buildTimeline(work []profile.Work, now time.Time) timeline {
-	type span struct {
-		start, end int
-		w          profile.Work
-	}
-	cur := now.Year()*12 + int(now.Month()) - 1
-	var spans []span
-	first := cur
-	for _, w := range work {
-		s, ok := month(w.StartDate)
-		if !ok {
-			continue
-		}
-		e := cur + 1
-		if w.EndDate != "" {
-			if m, ok := month(w.EndDate); ok {
-				e = m + 1
-				if len(w.EndDate) == 4 {
-					e = m + 12
-				}
-			}
-		}
-		spans = append(spans, span{s, max(e, s+1), w})
-		first = min(first, s)
-	}
-	if len(spans) == 0 {
-		return timeline{}
-	}
-	first -= first % 12 // el eje arranca en enero
-	total := float64(cur + 1 - first)
-	x := func(m int) float64 { return float64(m-first) / total * 1000 }
-	t := timeline{From: strconv.Itoa(first / 12)}
-	for y := first / 12; y <= now.Year(); y += 2 {
-		t.Ticks = append(t.Ticks, timelineTick{fmt.Sprintf("%.1f", x(y*12)), strconv.Itoa(y)})
-	}
-	for _, s := range spans {
-		t.Rows = append(t.Rows, timelineRow{
-			Work: s.w,
-			X:    fmt.Sprintf("%.1f", x(s.start)), W: fmt.Sprintf("%.1f", max(x(s.end)-x(s.start), 4)),
-			Range:   dateRange(s.w.StartDate, s.w.EndDate),
-			Current: s.w.EndDate == "",
-		})
-	}
-	return t
+// hexagonTop es la cara superior de la insignia (un rombo entre la punta, los vértices de arriba y el centro),
+// que da el brillo de gema.
+func hexagonTop(cx, cy, r float64) string {
+	p := func(a float64) string { return fmt.Sprintf("%.1f,%.1f", cx+r*math.Cos(a), cy+r*math.Sin(a)) }
+	return strings.Join([]string{p(-math.Pi / 2), p(-math.Pi / 6), fmt.Sprintf("%.1f,%.1f", cx, cy), p(-5 * math.Pi / 6)}, " ")
 }
 
 // traitInitials son las letras del medallón de un rasgo: las iniciales de las dos primeras palabras largas

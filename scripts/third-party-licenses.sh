@@ -26,3 +26,7 @@ done
 # Fuentes embebidas en la web (SIL OFL 1.1, ADR-008).
 mkdir -p "$out/fonts"
 cp internal/web/static/fonts/LICENSE-*.txt "$out/fonts/"
+
+# Íconos de Lucide embebidos (ISC, internal/icons).
+mkdir -p "$out/icons/lucide"
+cp internal/icons/lucide/LICENSE "$out/icons/lucide/"

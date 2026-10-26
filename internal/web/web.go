@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
@@ -90,7 +89,6 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		Handle:   "@" + inst.Username + "@" + inst.AccountDomain.String,
 		Actor:    inst.Host.String + "/users/" + inst.Username,
 		Version:  s.version,
-		Timeline: buildTimeline(res.Work, time.Now()),
 	}
 	page.Tab = "ficha"
 	if slug := r.PathValue("view"); slug == "cv" || slug == "contacto" {

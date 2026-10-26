@@ -161,6 +161,13 @@
     white-space: normal;
     pointer-events: none;
   }
+  /* Alineado al borde izquierdo de la sigla, para las que van al inicio de una fila. */
+  .tip-start:hover::after,
+  .tip-start:focus-visible::after,
+  .tip-start:focus::after {
+    left: 0;
+    transform: none;
+  }
   @media (max-width: 639px) {
     .tip:hover::after,
     .tip:focus-visible::after,
@@ -178,6 +185,17 @@
     @apply text-accent underline underline-offset-3 hover:text-accent-hover;
   }
 }
+
+/* Insignias de rasgos: la paleta corta, única excepción al acento único (DESIGN.md). Todos dan ≥ 4.5:1 sobre blanco. */
+.badge-verde { --badge: #0f6e61; }
+.badge-azul { --badge: #1d4ed8; }
+.badge-ambar { --badge: #9a4a06; }
+.badge-rojo { --badge: #b42318; }
+.badge-violeta { --badge: #6d28d9; }
+.badge-gris { --badge: #4d525a; }
+.badge-fill { fill: var(--badge); }
+.badge-stroke { stroke: var(--badge); }
+.badge-text { fill: var(--badge); }
 
 @media print {
   .no-print {

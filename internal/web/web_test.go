@@ -105,7 +105,7 @@ var fichaDoc = strings.Replace(doc, `"contact": {"email": "private", "phone": "p
   "views": [
     {"slug": "sre", "code": "SRE", "level": "sr", "name": "SRE", "weights": {"OBS": 2, "CNT": 1}},
     {"slug": "platform-engineer", "code": "PLE", "name": "Platform Engineer", "weights": {"CNT": 2, "COD": 1}}],
-  "traits": [{"name": "Automatizadora", "summary": "Todo pasa por un pipeline."}]}`, 1)
+  "traits": [{"name": "Automatizadora", "summary": "Todo pasa por un pipeline.", "icon": "bot", "color": "violeta"}, {"name": "Sin ícono"}]}`, 1)
 
 func TestFichaDeJugador(t *testing.T) {
 	ts := newTestServer(t, fichaDoc)
@@ -118,6 +118,7 @@ func TestFichaDeJugador(t *testing.T) {
 		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
 		"Bajó el MTTR 23 %", "respaldado por 1 logro", "SRE<span class=\"sr-only\">", "PLE<span class=\"sr-only\">",
 		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
+		"badge-violeta", `data-tip="Automatizadora: Todo pasa por un pipeline."`, `<path d="M12 8V4H8"/>`, "badge-verde", ">SÍ</text>",
 		"<polygon", `data-tip="Zona horaria: America/Bogota (UTC−5 hoy)"`, "data-cinta-track", `href="/@alice/cv"`,
 		// Toda sigla explica su significado al pasar el mouse.
 		`data-tip="SRE · Site Reliability Engineer: Mantiene`, `data-tip="Senior"`, "· Senior",
@@ -139,7 +140,7 @@ func TestFichaDeJugador(t *testing.T) {
 		}
 	}
 	_, body = get(t, ts.URL+"/@alice/cv")
-	for _, want := range []string{"Presentación larga", "Línea de tiempo", `aria-label="Acme: 2021-05 → hoy"`, `href="#trabajo-acme"`, `id="trabajo-acme"`, "Respalda estos atributos", `href="/@alice#atributo-cnt"`, "Bajó el MTTR", `href="/@alice/cv" aria-current="page"`} {
+	for _, want := range []string{"Presentación larga", `href="#trabajo-acme"`, `id="trabajo-acme"`, "Respalda estos atributos", `href="/@alice#atributo-cnt"`, "Bajó el MTTR", `href="/@alice/cv" aria-current="page"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("CV: falta %q", want)
 		}
@@ -222,21 +223,10 @@ func TestTimeZoneConHorarioDeVerano(t *testing.T) {
 	}
 }
 
-func TestInsigniasYLineaDeTiempo(t *testing.T) {
+func TestIniciales(t *testing.T) {
 	for name, want := range map[string]string{"Líder de equipo": "LE", "Ingeniería agéntica": "IA", "Self-hosted": "SH", "Automatizador": "AU"} {
 		if got := traitInitials(name); got != want {
 			t.Errorf("traitInitials(%q) = %q, quiero %q", name, got, want)
 		}
-	}
-	tl := buildTimeline([]profile.Work{{Name: "Actual", StartDate: "2021-05"}, {Name: "Vieja", StartDate: "2015", EndDate: "2018-12"}}, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
-	if tl.From != "2015" || len(tl.Rows) != 2 || !tl.Rows[0].Current || tl.Rows[1].X != "0.0" {
-		t.Errorf("timeline = %+v", tl)
-	}
-	var years []string
-	for _, tick := range tl.Ticks {
-		years = append(years, tick.Label)
-	}
-	if strings.Join(years, " ") != "2015 2017 2019 2021 2023 2025" {
-		t.Errorf("marcas = %v", years)
 	}
 }
