@@ -119,7 +119,8 @@ func TestEntregaDescartadaPor4xxOIntentosAgotados(t *testing.T) {
 
 	// Una entrega en su último intento que vuelve a fallar con 503 se descarta.
 	b.status.Store(503)
-	if err := a.st.Write.EnqueueDelivery(ctx, store.EnqueueDeliveryParams{Inbox: b.url + "/inbox", Activity: `{}`, NextAttemptAt: dbTime(now())}); err != nil {
+	// Se encola en el futuro para que el worker no la tome antes de ponerla en su último intento (gremio#33).
+	if err := a.st.Write.EnqueueDelivery(ctx, store.EnqueueDeliveryParams{Inbox: b.url + "/inbox", Activity: `{}`, NextAttemptAt: dbTime(now().Add(time.Hour))}); err != nil {
 		t.Fatal(err)
 	}
 	due, _ := a.st.Read.DueDeliveries(ctx, store.DueDeliveriesParams{NextAttemptAt: "9999", Limit: 1})
