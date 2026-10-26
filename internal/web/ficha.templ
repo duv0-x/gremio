@@ -3,6 +3,7 @@ package web
 import (
 	"time"
 
+	"github.com/duv0-x/gremio/internal/icons"
 	"github.com/duv0-x/gremio/internal/profile"
 )
 
@@ -25,10 +26,34 @@ templ ficha(p Page) {
 	for _, a := range p.Resume.Gremio.Attributes {
 		@attributeDetail(p, a)
 	}
-	<nav aria-label="Acciones" class="fixed inset-x-0 bottom-0 z-10 flex gap-3 border-t border-line bg-bg/95 px-4 py-3 sm:hidden">
-		<a class={ btnPrimary, "flex-1" } href={ templ.SafeURL(p.tabPath("cv")) }>Ver CV</a>
-		<a class={ btnSec } href={ templ.SafeURL(p.tabPath("contacto")) }>Seguir</a>
-	</nav>
+}
+
+// actions es la barra de acciones, siempre visible en todas las pestañas: abajo a lo ancho en móvil y flotando
+// abajo a la derecha en pantallas anchas.
+templ actions(p Page) {
+	if p.HasCV || p.WhatsApp() != "" {
+		<nav aria-label="Acciones" class="fixed inset-x-0 bottom-0 z-20 flex gap-3 border-t border-line bg-bg/95 px-4 py-3 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:rounded-lg sm:border sm:p-3 sm:shadow-[0_8px_24px_rgb(22_24_27/0.12)]">
+			if p.HasCV {
+				<a class={ btnPrimary, "flex-1 gap-2 sm:flex-none" } href={ templ.SafeURL(p.cvPDFPath()) } download>
+					@icon("download")
+					Descargar CV (PDF)
+				</a>
+			}
+			if wa := p.WhatsApp(); wa != "" {
+				<a class={ btnSec, "flex-1 gap-2 sm:flex-none" } href={ templ.SafeURL(wa) } rel="noopener" target="_blank">
+					@icon("message-circle")
+					WhatsApp
+				</a>
+			}
+		</nav>
+	}
+}
+
+// icon es un ícono de Lucide de 20 px, decorativo.
+templ icon(name string) {
+	<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		@templ.Raw(icons.Inner(name))
+	</svg>
 }
 
 templ fichaHero(p Page) {
@@ -67,15 +92,18 @@ templ fichaHero(p Page) {
 		</div>
 		<div class="border-t border-line pt-6">
 			<h1 id="nombre" class="font-display text-[34px] leading-[1.05] font-bold tracking-[-0.01em] uppercase sm:text-[44px]">{ p.Resume.Basics.Name }</h1>
-			<p class="mt-2 text-muted">
-				{ p.Resume.Basics.Label }
-				if loc := p.Location(); loc != "" {
-					<span class="font-mono text-sm text-faint">· { loc }</span>
-				}
-				if tz, tip := p.TimeZone(time.Now()); tz != "" {
-					<span class="font-mono text-sm text-faint">· @sigla(tz, tip, "", true)</span>
-				}
-			</p>
+			<p class="mt-2 text-muted">{ p.Resume.Basics.Label }</p>
+			if loc, tz := p.Location(), p.Resume.Gremio.Timezone; loc != "" || tz != "" {
+				<p class="mt-1 font-mono text-sm text-faint">
+					{ loc }
+					if tz, tip := p.TimeZone(time.Now()); tz != "" {
+						if loc != "" {
+							·
+						}
+						@sigla(tz, tip, "", true)
+					}
+				</p>
+			}
 		</div>
 		if len(p.Resume.Gremio.Views) > 1 {
 			<div>
@@ -109,10 +137,6 @@ templ fichaHero(p Page) {
 				</ul>
 			</div>
 		}
-		<p class="mt-auto hidden flex-wrap gap-3 sm:flex">
-			<a class={ btnPrimary } href={ templ.SafeURL(p.tabPath("cv")) }>Ver CV completo</a>
-			<a class={ btnSec } href={ templ.SafeURL(p.tabPath("contacto")) }>Seguir en el fediverso</a>
-		</p>
 	</section>
 }
 

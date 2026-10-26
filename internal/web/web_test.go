@@ -26,8 +26,13 @@ const doc = `{
 
 func newTestServer(t *testing.T, document string) *httptest.Server {
 	t.Helper()
+	return newTestServerIn(t, document, t.TempDir())
+}
+
+func newTestServerIn(t *testing.T, document, dataDir string) *httptest.Server {
+	t.Helper()
 	ctx := context.Background()
-	st, err := store.Open(ctx, t.TempDir())
+	st, err := store.Open(ctx, dataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +102,7 @@ func TestEmailPublicoSeMuestraYTelefonoNunca(t *testing.T) {
 }
 
 // fichaDoc es doc con atributos, vistas ponderadas y rasgos (ADR-010).
-var fichaDoc = strings.Replace(doc, `"contact": {"email": "private", "phone": "private"}}`, `"contact": {"email": "private", "phone": "private"}, "timezone": "America/Bogota",
+var fichaDoc = strings.Replace(doc, `"contact": {"email": "private", "phone": "private"}}`, `"contact": {"email": "private", "phone": "private", "whatsapp": "public"}, "timezone": "America/Bogota",
   "attributes": [
     {"code": "CNT", "name": "Contenedores", "subs": [{"name": "Kubernetes", "score": 92}, {"name": "EKS", "score": 90}], "skills": ["k8s"], "highlights": ["h1"]},
     {"code": "OBS", "name": "Observabilidad", "subs": [{"name": "Grafana", "score": 70}]},
@@ -145,12 +150,15 @@ func TestFichaDeJugador(t *testing.T) {
 			t.Errorf("CV: falta %q", want)
 		}
 	}
-	if strings.Contains(body, "<polygon") || strings.Contains(body, `id="contacto"`) {
-		t.Error("la pestaña CV no debe traer la ficha ni el contacto")
+	if strings.Contains(body, "<polygon") {
+		t.Error("la pestaña CV no debe traer la ficha")
 	}
-	_, body = get(t, ts.URL+"/@alice/contacto")
-	if !strings.Contains(body, `id="contacto"`) || strings.Contains(body, "Bajó el MTTR") || strings.Contains(body, "<polygon") {
-		t.Error("la pestaña Contacto debe traer solo el contacto")
+	if !strings.Contains(body, `id="contacto"`) {
+		t.Error("el contacto va al final del CV")
+	}
+	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	if resp, err := noFollow.Get(ts.URL + "/@alice/contacto"); err != nil || resp.StatusCode != http.StatusMovedPermanently || resp.Header.Get("Location") != "/@alice/cv#contacto" {
+		t.Errorf("/contacto debe redirigir al CV: %v %v", resp, err)
 	}
 
 	_, body = get(t, ts.URL+"/@alice/platform-engineer")
@@ -228,5 +236,34 @@ func TestIniciales(t *testing.T) {
 		if got := traitInitials(name); got != want {
 			t.Errorf("traitInitials(%q) = %q, quiero %q", name, got, want)
 		}
+	}
+}
+
+func TestAccionesDescargarCVyWhatsApp(t *testing.T) {
+	dir := t.TempDir()
+	ts := newTestServerIn(t, fichaDoc, dir)
+
+	resp, body := get(t, ts.URL+"/@alice")
+	wa := `href="https://wa.me/573000000000?text=Hola+Alice%2C+vi+tu+perfil+en+Gremio`
+	if !strings.Contains(body, wa) || strings.Contains(body, "+57 300") || strings.Contains(body, "/@alice/cv.pdf") {
+		t.Errorf("sin PDF: debe estar WhatsApp (sin el número como texto) y no la descarga (HTTP %d)", resp.StatusCode)
+	}
+	if resp, _ := get(t, ts.URL+"/@alice/cv.pdf"); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("cv.pdf sin subir: HTTP %d", resp.StatusCode)
+	}
+
+	if err := SaveCV(dir, []byte("no soy un pdf")); err == nil {
+		t.Error("SaveCV aceptó un archivo que no es PDF")
+	}
+	if err := SaveCV(dir, []byte("%PDF-1.7 hola")); err != nil {
+		t.Fatal(err)
+	}
+	_, body = get(t, ts.URL+"/@alice/cv")
+	if !strings.Contains(body, `href="/@alice/cv.pdf" download`) {
+		t.Error("con PDF, la barra de acciones debe ofrecer la descarga en todas las pestañas")
+	}
+	resp, pdf := get(t, ts.URL+"/@alice/cv.pdf")
+	if resp.StatusCode != http.StatusOK || pdf != "%PDF-1.7 hola" || !strings.HasPrefix(resp.Header.Get("Content-Disposition"), "attachment;") {
+		t.Errorf("cv.pdf: HTTP %d %q %q", resp.StatusCode, resp.Header.Get("Content-Disposition"), pdf)
 	}
 }

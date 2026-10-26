@@ -30,6 +30,7 @@ Comandos:
   admin profile cambia nombre, resumen o avatar del perfil (avisa a los seguidores)
   admin import reemplaza el perfil por un JSON Resume (muestra qué cambia y pide confirmar)
   admin export escribe el perfil como JSON Resume por stdout
+  admin cv-pdf publica el PDF del CV para el botón "Descargar CV" (reemplaza el anterior)
   backup       copia consistente de la base
 
 Variables de entorno: GREMIO_DATA_DIR (directorio de datos), GREMIO_ADDR (dirección de escucha),
@@ -67,6 +68,8 @@ func run(ctx context.Context, args []string) error {
 		return adminImport(ctx, args[2:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "export":
 		return adminExport(ctx, args[2:])
+	case args[0] == "admin" && len(args) > 1 && args[1] == "cv-pdf":
+		return adminCVPDF(ctx, args[2:])
 	case args[0] == "backup":
 		return backup(ctx, args[1:])
 	default:
@@ -330,5 +333,29 @@ func backup(ctx context.Context, args []string) error {
 		return err
 	}
 	slog.Info("respaldo creado", "archivo", dest)
+	return nil
+}
+
+func adminCVPDF(ctx context.Context, args []string) error {
+	fs, dataDir := newFlags("admin cv-pdf")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 1 {
+		return errors.New("uso: gremio admin cv-pdf <archivo.pdf>")
+	}
+	data, err := os.ReadFile(fs.Arg(0))
+	if err != nil {
+		return err
+	}
+	st, err := store.Open(ctx, *dataDir) // valida que el directorio sea el de una instancia
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	if err := web.SaveCV(st.DataDir(), data); err != nil {
+		return err
+	}
+	slog.Info("CV publicado", "bytes", len(data), "url", "/@<usuario>/cv.pdf")
 	return nil
 }

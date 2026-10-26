@@ -36,7 +36,7 @@ func TestParseNormalizaYDescartaDatosProhibidos(t *testing.T) {
 	if r.Work[0].ID == "" || r.Work[1].ID != "old" || r.Skills[0].ID == "" {
 		t.Errorf("ids = %q %q %q", r.Work[0].ID, r.Work[1].ID, r.Skills[0].ID)
 	}
-	if r.Gremio.Contact != (Contact{Email: "private", Phone: "private"}) {
+	if r.Gremio.Contact != (Contact{Email: "private", Phone: "private", Whatsapp: "private"}) {
 		t.Errorf("el contacto debe ser privado por defecto: %+v", r.Gremio.Contact)
 	}
 	doc, _ := r.Export(true)
@@ -88,30 +88,31 @@ func TestExportEstandar(t *testing.T) {
 
 func TestParseRechazaDocumentosInvalidos(t *testing.T) {
 	for name, doc := range map[string]string{
-		"sin nombre":       `{"basics":{"name":" "}}`,
-		"fecha":            `{"basics":{"name":"a"},"work":[{"name":"x","startDate":"mayo 2021"}]}`,
-		"nivel":            `{"basics":{"name":"a"},"skills":[{"name":"x","level":"ninja"}]}`,
-		"id repetido":      `{"basics":{"name":"a"},"work":[{"id":"x","name":"a"},{"id":"x","name":"b"}]}`,
-		"vista sin id":     `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"SRE","skills":["nope"]}]}}`,
-		"slug":             `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"SRE Lead","name":"x"}]}}`,
-		"visibilidad":      `{"basics":{"name":"a"},"gremio":{"contact":{"email":"todos"}}}`,
-		"no es JSON":       `basics: {name: a}`,
-		"tipo equivocado":  `{"basics":{"name":"a"},"work":"Acme"}`,
-		"slug repetido":    `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"a"},{"slug":"sre","name":"b"}]}}`,
-		"trabajo sin name": `{"basics":{"name":"a"},"work":[{"position":"x"}]}`,
-		"pocos atributos":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `]}}`,
-		"ícono":            `{"basics":{"name":"a"},"gremio":{"traits":[{"name":"x","icon":"no-existe"}]}}`,
-		"color":            `{"basics":{"name":"a"},"gremio":{"traits":[{"name":"x","color":"fucsia"}]}}`,
-		"slug reservado":   `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"cv","name":"x"}]}}`,
-		"zona horaria":     `{"basics":{"name":"a"},"gremio":{"timezone":"UTC-5"}}`,
-		"seniority":        `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"x","name":"x","code":"SRE","level":"lead"}]}}`,
-		"código":           `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("aa", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
-		"código repetido":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("AAA", 50) + `,` + attr("CCC", 50) + `]}}`,
-		"puntaje":          `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 100) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
-		"atributo sin id":  `{"basics":{"name":"a"},"gremio":{"attributes":[{"code":"AAA","name":"a","subs":[{"name":"x","score":1}],"highlights":["nope"]},` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
-		"peso":             `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `],"views":[{"slug":"x","name":"x","weights":{"ZZZ":1}}]}}`,
-		"peso negativo":    `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `],"views":[{"slug":"x","name":"x","weights":{"AAA":-1}}]}}`,
-		"posición":         `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"x","name":"x","code":"platform"}]}}`,
+		"sin nombre":            `{"basics":{"name":" "}}`,
+		"fecha":                 `{"basics":{"name":"a"},"work":[{"name":"x","startDate":"mayo 2021"}]}`,
+		"nivel":                 `{"basics":{"name":"a"},"skills":[{"name":"x","level":"ninja"}]}`,
+		"id repetido":           `{"basics":{"name":"a"},"work":[{"id":"x","name":"a"},{"id":"x","name":"b"}]}`,
+		"vista sin id":          `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"SRE","skills":["nope"]}]}}`,
+		"slug":                  `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"SRE Lead","name":"x"}]}}`,
+		"visibilidad":           `{"basics":{"name":"a"},"gremio":{"contact":{"email":"todos"}}}`,
+		"no es JSON":            `basics: {name: a}`,
+		"tipo equivocado":       `{"basics":{"name":"a"},"work":"Acme"}`,
+		"slug repetido":         `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"a"},{"slug":"sre","name":"b"}]}}`,
+		"trabajo sin name":      `{"basics":{"name":"a"},"work":[{"position":"x"}]}`,
+		"pocos atributos":       `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `]}}`,
+		"whatsapp sin teléfono": `{"basics":{"name":"a"},"gremio":{"contact":{"whatsapp":"public"}}}`,
+		"ícono":                 `{"basics":{"name":"a"},"gremio":{"traits":[{"name":"x","icon":"no-existe"}]}}`,
+		"color":                 `{"basics":{"name":"a"},"gremio":{"traits":[{"name":"x","color":"fucsia"}]}}`,
+		"slug reservado":        `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"cv","name":"x"}]}}`,
+		"zona horaria":          `{"basics":{"name":"a"},"gremio":{"timezone":"UTC-5"}}`,
+		"seniority":             `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"x","name":"x","code":"SRE","level":"lead"}]}}`,
+		"código":                `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("aa", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"código repetido":       `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("AAA", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"puntaje":               `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 100) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"atributo sin id":       `{"basics":{"name":"a"},"gremio":{"attributes":[{"code":"AAA","name":"a","subs":[{"name":"x","score":1}],"highlights":["nope"]},` + attr("BBB", 50) + `,` + attr("CCC", 50) + `]}}`,
+		"peso":                  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `],"views":[{"slug":"x","name":"x","weights":{"ZZZ":1}}]}}`,
+		"peso negativo":         `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `,` + attr("CCC", 50) + `],"views":[{"slug":"x","name":"x","weights":{"AAA":-1}}]}}`,
+		"posición":              `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"x","name":"x","code":"platform"}]}}`,
 	} {
 		if _, _, err := Parse([]byte(doc)); err == nil {
 			t.Errorf("%s: se aceptó %s", name, doc)

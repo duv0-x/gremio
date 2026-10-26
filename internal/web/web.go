@@ -91,9 +91,19 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		Version:  s.version,
 	}
 	page.Tab = "ficha"
-	if slug := r.PathValue("view"); slug == "cv" || slug == "contacto" {
+	page.HasCV = s.hasCV()
+	switch slug := r.PathValue("view"); slug {
+	case "":
+	case "cv.pdf":
+		s.serveCV(w, r, res.Basics.Name)
+		return
+	case "contacto":
+		// La pestaña Contacto se fusionó con el CV.
+		http.Redirect(w, r, "/@"+inst.Username+"/cv#contacto", http.StatusMovedPermanently)
+		return
+	case "cv":
 		page.Tab = slug
-	} else if slug != "" {
+	default:
 		i := slices.IndexFunc(res.Gremio.Views, func(v profile.View) bool { return v.Slug == slug })
 		// La primera vista vive en /@usuario: su slug no es una segunda URL.
 		if i <= 0 {
@@ -104,7 +114,7 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	// Sin scripts de terceros ni inline: la página no ejecuta JavaScript.
+	// Sin scripts de terceros ni inline: solo static/cinta.js, que es opcional.
 	w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 	// El handle @usuario@dominio parece un email: no-transform evita que un proxy como Cloudflare lo ofusque.
