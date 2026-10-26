@@ -8,10 +8,10 @@ import (
 
 // Ficha de jugador (ADR-010, DESIGN.md: pantallas "Ficha de jugador").
 const (
-	panel   = "rounded-lg border border-line bg-surface p-5 sm:p-8"
-	h2Ficha = "font-display text-xl font-bold uppercase tracking-[0.01em]"
+	panel    = "rounded-lg border border-line bg-surface p-5 sm:p-8"
+	h2Ficha  = "font-display text-xl font-bold uppercase tracking-[0.01em]"
 	statTile = "rounded-lg border border-line bg-surface p-5"
-	btnSec  = "inline-flex min-h-11 items-center justify-center rounded-md border-[1.5px] border-control px-[18px] text-[15px] font-semibold text-ink no-underline hover:bg-surface-2 hover:text-ink"
+	btnSec   = "inline-flex min-h-11 items-center justify-center rounded-md border-[1.5px] border-control px-[18px] text-[15px] font-semibold text-ink no-underline hover:bg-surface-2 hover:text-ink"
 )
 
 templ ficha(p Page) {
@@ -42,11 +42,11 @@ templ fichaHero(p Page) {
 	<section class={ panel, "flex flex-col gap-6" } aria-labelledby="nombre">
 		<div class="flex items-start gap-5">
 			<span class="tip shrink-0" data-tip={ ovrTitle } tabindex="0">
-			<svg viewBox="0 0 120 120" class="size-24 sm:size-28" role="img" aria-label={ "Índice general " + itoa(p.Overall()) + ". " + ovrTitle }>
-				<polygon points={ hexagon(60, 60, 54) } class="fill-accent-soft stroke-accent" stroke-width="3"></polygon>
-				<text x="60" y="40" text-anchor="middle" class="fill-accent font-mono text-[13px] font-medium">OVR</text>
-				<text x="60" y="80" text-anchor="middle" class="fill-ink font-display text-[44px] font-bold">{ itoa(p.Overall()) }</text>
-			</svg>
+				<svg viewBox="0 0 120 120" class="size-24 sm:size-28" role="img" aria-label={ "Índice general " + itoa(p.Overall()) + ". " + ovrTitle }>
+					<polygon points={ hexagon(60, 60, 54) } class="fill-accent-soft stroke-accent" stroke-width="3"></polygon>
+					<text x="60" y="40" text-anchor="middle" class="fill-accent font-mono text-[13px] font-medium">OVR</text>
+					<text x="60" y="80" text-anchor="middle" class="fill-ink font-display text-[44px] font-bold">{ itoa(p.Overall()) }</text>
+				</svg>
 			</span>
 			<div class="min-w-0 flex-1">
 				if v, ok := p.Selected(); ok {
@@ -163,11 +163,7 @@ templ fichaAttributes(p Page) {
 				<h2 id="atributos-titulo" class={ h2Ficha }>Atributos</h2>
 				<p class="mt-1 font-mono text-[13px] text-faint">Desliza para ver más · toca uno para ver el detalle</p>
 			</div>
-			// Las flechas aparecen solo con JavaScript (static/cinta.js) y en pantallas anchas; en móvil se desliza con el dedo.
-			<div class="hidden gap-2 sm:flex">
-				<button type="button" data-cinta-dir="-1" hidden aria-label="Atributos anteriores" class="size-11 rounded-md border border-line text-xl text-ink hover:bg-surface-2">‹</button>
-				<button type="button" data-cinta-dir="1" hidden aria-label="Atributos siguientes" class="size-11 rounded-md border border-line text-xl text-ink hover:bg-surface-2">›</button>
-			</div>
+			@cintaArrows("Atributos anteriores", "Atributos siguientes")
 		</div>
 		// Cinta horizontal con scroll-snap; tabindex para poder deslizarla con el teclado.
 		<ul data-cinta-track tabindex="0" aria-label="Atributos" class="mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4">
@@ -216,90 +212,102 @@ templ subBar(s profile.Sub) {
 	</span>
 }
 
-templ attributeDetail(p Page, a profile.Attribute) {
-	<section id={ attrAnchor(a.Code) } role="dialog" aria-labelledby={ attrAnchor(a.Code) + "-titulo" } class="fixed inset-0 z-30 hidden justify-end target:flex">
-		<a href="#atributos-titulo" class="absolute inset-0 bg-black/60" aria-label="Cerrar el detalle" tabindex="-1"></a>
+// drawer es el panel lateral de detalle: se abre con :target (#id) y funciona sin JavaScript.
+// header va arriba junto al botón de cerrar; el título del header debe llevar id={ id + "-titulo" }.
+templ drawer(id, closeHref string, header templ.Component) {
+	<section id={ id } role="dialog" aria-labelledby={ id + "-titulo" } class="fixed inset-0 z-30 hidden justify-end target:flex">
+		<a href={ templ.SafeURL(closeHref) } class="absolute inset-0 bg-black/60" aria-label="Cerrar el detalle" tabindex="-1"></a>
 		<div class="relative flex h-full w-full max-w-[560px] flex-col overflow-y-auto border-l border-line bg-bg">
 			<header class="flex items-start justify-between gap-4 border-b border-line p-6">
 				<div>
-					<p class="flex items-center gap-3">
-						@sigla(a.Code, a.Name, "rounded-sm border border-accent px-2 py-0.5 font-mono text-[13px] text-accent", true)
-						<span class={ eyebrow }>Atributo</span>
-					</p>
-					<h2 id={ attrAnchor(a.Code) + "-titulo" } class="mt-2 font-display text-2xl font-bold">{ a.Name }</h2>
+					@header
 				</div>
-				<a href="#atributos-titulo" class="flex size-11 shrink-0 items-center justify-center rounded-md border border-line text-xl text-ink no-underline hover:bg-surface-2 hover:text-ink" aria-label="Cerrar">×</a>
+				<a href={ templ.SafeURL(closeHref) } class="flex size-11 shrink-0 items-center justify-center rounded-md border border-line text-xl text-ink no-underline hover:bg-surface-2 hover:text-ink" aria-label="Cerrar">×</a>
 			</header>
 			<div class="flex flex-col gap-8 p-6">
-				<div class="flex items-end gap-4 rounded-lg border border-line bg-surface p-5">
-					<p class={ "font-display text-[56px] leading-none font-bold", scoreClass(a.Score()) }>{ itoa(a.Score()) }</p>
-					<p class="pb-1 text-sm text-muted">
-						Autodeclarado
-						if n := len(a.Highlights); n > 0 {
-							· respaldado por { itoa(n) } { plural(n, "logro", "logros") }
-						}
-					</p>
-				</div>
-				<div>
-					<h3 class={ eyebrow }>Sub-atributos</h3>
-					<div class="mt-3 flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
-						for _, s := range a.Subs {
-							@subBar(s)
-						}
-					</div>
-				</div>
-				if kws := attrKeywords(p.Resume, a); len(kws) > 0 {
-					<div>
-						<h3 class={ eyebrow }>Tecnologías</h3>
-						<ul class="mt-3 flex flex-wrap gap-2">
-							for _, k := range kws {
-								<li class="rounded-full border border-line px-3 py-1 text-sm">{ k }</li>
-							}
-						</ul>
-					</div>
-				}
-				if ws := attrWorks(p.Resume, a); len(ws) > 0 {
-					<div>
-						<h3 class={ eyebrow }>Dónde lo usó</h3>
-						<ul class="mt-3 flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
-							for _, w := range ws {
-								<li class="flex flex-wrap items-baseline justify-between gap-2 p-4">
-									<span class="font-semibold">{ w.Name }</span>
-									<span class="font-mono text-[13px] text-muted">{ dateRange(w.StartDate, w.EndDate) }</span>
-								</li>
-							}
-						</ul>
-					</div>
-				}
-				if hs := attrHighlights(p.Resume, a); len(hs) > 0 {
-					<div>
-						<h3 class={ eyebrow }>Evidencia</h3>
-						<ul class="mt-3 flex flex-col gap-3">
-							for _, h := range hs {
-								<li class="rounded-lg border border-line bg-surface p-4">
-									<p class="font-mono text-[12px] text-faint uppercase">{ h.Work }</p>
-									<p class="mt-1 leading-relaxed">{ h.Text }</p>
-									for i, e := range h.Evidence {
-										<a class="mt-2 inline-flex min-h-11 items-center font-mono text-[13px]" href={ templ.SafeURL(e) } rel="noopener">ver evidencia{ evidenceSuffix(i, len(h.Evidence)) } ↗</a>
-									}
-								</li>
-							}
-						</ul>
-					</div>
-				}
-				if ws := weightsFor(p.Resume, a.Code); len(ws) > 0 {
-					<div>
-						<h3 class={ eyebrow }>Peso en cada rol</h3>
-						<ul class="mt-3 flex flex-wrap gap-2">
-							for _, w := range ws {
-								<li class={ dataChip }>@sigla(w.Code, w.Name, "", true) ×{ w.Weight }</li>
-							}
-						</ul>
-					</div>
-				}
+				{ children... }
 			</div>
 		</div>
 	</section>
+}
+
+templ attributeHeader(a profile.Attribute) {
+	<p class="flex items-center gap-3">
+		@sigla(a.Code, a.Name, "rounded-sm border border-accent px-2 py-0.5 font-mono text-[13px] text-accent", true)
+		<span class={ eyebrow }>Atributo</span>
+	</p>
+	<h2 id={ attrAnchor(a.Code) + "-titulo" } class="mt-2 font-display text-2xl font-bold">{ a.Name }</h2>
+}
+
+templ attributeDetail(p Page, a profile.Attribute) {
+	@drawer(attrAnchor(a.Code), "#atributos-titulo", attributeHeader(a)) {
+		<div class="flex items-end gap-4 rounded-lg border border-line bg-surface p-5">
+			<p class={ "font-display text-[56px] leading-none font-bold", scoreClass(a.Score()) }>{ itoa(a.Score()) }</p>
+			<p class="pb-1 text-sm text-muted">
+				Autodeclarado
+				if n := len(a.Highlights); n > 0 {
+					· respaldado por { itoa(n) } { plural(n, "logro", "logros") }
+				}
+			</p>
+		</div>
+		<div>
+			<h3 class={ eyebrow }>Sub-atributos</h3>
+			<div class="mt-3 flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
+				for _, s := range a.Subs {
+					@subBar(s)
+				}
+			</div>
+		</div>
+		if kws := attrKeywords(p.Resume, a); len(kws) > 0 {
+			<div>
+				<h3 class={ eyebrow }>Tecnologías</h3>
+				<ul class="mt-3 flex flex-wrap gap-2">
+					for _, k := range kws {
+						<li class="rounded-full border border-line px-3 py-1 text-sm">{ k }</li>
+					}
+				</ul>
+			</div>
+		}
+		if ws := attrWorks(p.Resume, a); len(ws) > 0 {
+			<div>
+				<h3 class={ eyebrow }>Dónde lo usó</h3>
+				<ul class="mt-3 flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
+					for _, w := range ws {
+						<li class="flex flex-wrap items-baseline justify-between gap-2 p-4">
+							<span class="font-semibold">{ w.Name }</span>
+							<span class="font-mono text-[13px] text-muted">{ dateRange(w.StartDate, w.EndDate) }</span>
+						</li>
+					}
+				</ul>
+			</div>
+		}
+		if hs := attrHighlights(p.Resume, a); len(hs) > 0 {
+			<div>
+				<h3 class={ eyebrow }>Evidencia</h3>
+				<ul class="mt-3 flex flex-col gap-3">
+					for _, h := range hs {
+						<li class="rounded-lg border border-line bg-surface p-4">
+							<p class="font-mono text-[12px] text-faint uppercase">{ h.Work }</p>
+							<p class="mt-1 leading-relaxed">{ h.Text }</p>
+							for i, e := range h.Evidence {
+								<a class="mt-2 inline-flex min-h-11 items-center font-mono text-[13px]" href={ templ.SafeURL(e) } rel="noopener">ver evidencia{ evidenceSuffix(i, len(h.Evidence)) } ↗</a>
+							}
+						</li>
+					}
+				</ul>
+			</div>
+		}
+		if ws := weightsFor(p.Resume, a.Code); len(ws) > 0 {
+			<div>
+				<h3 class={ eyebrow }>Peso en cada rol</h3>
+				<ul class="mt-3 flex flex-wrap gap-2">
+					for _, w := range ws {
+						<li class={ dataChip }>@sigla(w.Code, w.Name, "", true) ×{ w.Weight }</li>
+					}
+				</ul>
+			</div>
+		}
+	}
 }
 
 templ fichaTraits(traits []profile.Trait) {
@@ -371,5 +379,20 @@ templ fichaStats(r *profile.Resume) {
 // sigla muestra una abreviatura con su significado en un tooltip CSS inmediato (el title nativo tarda o no aparece,
 // y no existe en pantallas táctiles). Dentro de un enlace no lleva tabindex, para no anidar elementos enfocables.
 templ sigla(code, tip, class string, focusable bool) {
-	<abbr class={ "tip", class } data-tip={ tip } if focusable { tabindex="0" }>{ code }<span class="sr-only">{ " (" + tip + ")" }</span></abbr>
+	<abbr
+		class={ "tip", class }
+		data-tip={ tip }
+		if focusable {
+			tabindex="0"
+		}
+	>{ code }<span class="sr-only">{ " (" + tip + ")" }</span></abbr>
+}
+
+// cintaArrows son las flechas de una cinta [data-cinta]. Aparecen solo con JavaScript (static/cinta.js)
+// y en pantallas anchas; en móvil la cinta se desliza con el dedo.
+templ cintaArrows(prev, next string) {
+	<div class="hidden gap-2 sm:flex">
+		<button type="button" data-cinta-dir="-1" hidden aria-label={ prev } class="size-11 rounded-md border border-line text-xl text-ink hover:bg-surface-2">‹</button>
+		<button type="button" data-cinta-dir="1" hidden aria-label={ next } class="size-11 rounded-md border border-line text-xl text-ink hover:bg-surface-2">›</button>
+	</div>
 }
