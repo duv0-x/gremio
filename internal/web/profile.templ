@@ -110,6 +110,9 @@ templ cv(p Page) {
 				<p class="mt-4 max-w-[720px] text-lg leading-relaxed text-muted">{ about }</p>
 			}
 		</section>
+		if len(p.Timeline.Rows) > 0 {
+			@cvTimeline(p)
+		}
 		if len(p.Resume.Work) > 0 {
 			@experience(p)
 		}
@@ -172,7 +175,7 @@ templ experience(p Page) {
 	<section id="experiencia" class={ section } aria-labelledby="experiencia-titulo" data-cinta>
 		<div class="flex flex-wrap items-end justify-between gap-2">
 			<div>
-				<p class={ eyebrow }>01 · Trayectoria</p>
+				<p class={ eyebrow }>02 · Trabajos</p>
 				<h2 id="experiencia-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Experiencia</h2>
 				<p class="mt-1 font-mono text-[13px] text-faint">Desliza para ver más · toca un trabajo para ver sus logros</p>
 			</div>
