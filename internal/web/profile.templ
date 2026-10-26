@@ -75,7 +75,7 @@ templ layout(p Page, title string) {
 
 templ ProfilePage(p Page) {
 	@layout(p, p.Title()) {
-		switch {
+		switch  {
 			case p.Tab == "cv":
 				@cv(p)
 			case p.Tab == "contacto":
@@ -109,7 +109,7 @@ templ cv(p Page) {
 			}
 		</section>
 		if len(p.Resume.Work) > 0 {
-			@experience(p.Resume.Work)
+			@experience(p)
 		}
 		if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
 			@formation(p.Resume)
@@ -120,7 +120,7 @@ templ cv(p Page) {
 templ cvPage(p Page) {
 	@profileHeader(p)
 	if len(p.Resume.Work) > 0 {
-		@experience(p.Resume.Work)
+		@experience(p)
 	}
 	if len(p.Resume.Skills) > 0 {
 		@skills(p.Resume.Skills)
@@ -166,62 +166,93 @@ templ profileHeader(p Page) {
 	</section>
 }
 
-templ experience(work []profile.Work) {
-	<section id="experiencia" class={ section } aria-labelledby="experiencia-titulo">
-		<p class={ eyebrow }>01 · Trayectoria</p>
-		<h2 id="experiencia-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Experiencia</h2>
-		<ol class="mt-8 flex flex-col gap-3">
-			for i, w := range work {
-				<li class="rounded-lg border border-line bg-surface">
-					// Cada trabajo se despliega; el actual arranca abierto.
-					<details class="group" open?={ i == 0 }>
-						<summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-2 p-5 sm:px-6 [&::-webkit-details-marker]:hidden">
-							<h3 class="font-display text-lg font-semibold sm:text-xl">
-								{ w.Name }
-								if w.Position != "" {
-									<span class="text-accent">· { w.Position }</span>
-								}
-							</h3>
-							<span class="flex items-center gap-3">
-								if r := dateRange(w.StartDate, w.EndDate); r != "" {
-									<span class={ dataChip }>{ r }</span>
-								}
-								if n := len(w.Highlights); n > 0 {
-									<span class="font-mono text-[13px] text-faint">{ itoa(n) } { plural(n, "logro", "logros") }</span>
-								}
-								<span aria-hidden="true" class="text-xl text-muted transition-transform group-open:rotate-90">›</span>
-							</span>
-						</summary>
-						<div class="border-t border-line px-5 pt-4 pb-6 sm:px-6">
-							if w.Location != "" {
-								<p class="text-sm text-faint">{ w.Location }</p>
+templ experience(p Page) {
+	<section id="experiencia" class={ section } aria-labelledby="experiencia-titulo" data-cinta>
+		<div class="flex flex-wrap items-end justify-between gap-2">
+			<div>
+				<p class={ eyebrow }>01 · Trayectoria</p>
+				<h2 id="experiencia-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Experiencia</h2>
+				<p class="mt-1 font-mono text-[13px] text-faint">Desliza para ver más · toca un trabajo para ver sus logros</p>
+			</div>
+			@cintaArrows("Trabajos anteriores", "Trabajos siguientes")
+		</div>
+		// Cada trabajo es una tarjeta de la cinta; el detalle completo va en su panel (ADR-010 §5).
+		<ol data-cinta-track tabindex="0" aria-label="Experiencia" class="mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4">
+			for _, w := range p.Resume.Work {
+				<li class="w-[260px] shrink-0 snap-start sm:w-[280px]">
+					<a href={ templ.SafeURL("#" + workAnchor(w)) } class={ "flex h-full flex-col rounded-md border bg-surface p-4 text-ink no-underline hover:border-accent hover:text-ink", templ.KV("border-accent", w.EndDate == ""), templ.KV("border-line", w.EndDate != "") }>
+						<span class="font-mono text-[13px] text-muted">{ dateRange(w.StartDate, w.EndDate) }</span>
+						<span class="mt-2 font-display text-lg leading-snug font-semibold">{ w.Name }</span>
+						if w.Position != "" {
+							<span class="mt-1 text-sm leading-snug text-accent">{ w.Position }</span>
+						}
+						if len(w.Highlights) > 0 {
+							<span class="mt-3 line-clamp-3 border-t border-line pt-3 text-sm leading-relaxed text-muted">{ w.Highlights[0].Text }</span>
+						}
+						<span class="mt-auto flex items-center justify-between pt-4 font-mono text-[13px] text-faint">
+							if n := len(w.Highlights); n > 0 {
+								{ itoa(n) } { plural(n, "logro", "logros") }
+							} else {
+								Ver detalle
 							}
-							if w.Summary != "" {
-								<p class="mt-2 text-muted">{ w.Summary }</p>
-							}
-							if len(w.Highlights) > 0 {
-								<ul class="mt-2 flex max-w-[80ch] flex-col gap-2">
-									for _, h := range w.Highlights {
-										<li class="flex gap-3 leading-relaxed">
-											<span aria-hidden="true" class="mt-[0.6em] size-1.5 shrink-0 rounded-sm bg-accent"></span>
-											<span>
-												{ h.Text }
-												for i, e := range h.Evidence {
-													<a class="ml-2 font-mono text-[13px] whitespace-nowrap" href={ templ.SafeURL(e) } rel="noopener">
-														[evidencia{ evidenceSuffix(i, len(h.Evidence)) } ↗]
-													</a>
-												}
-											</span>
-										</li>
-									}
-								</ul>
-							}
-						</div>
-					</details>
+							<span aria-hidden="true">›</span>
+						</span>
+					</a>
 				</li>
 			}
 		</ol>
 	</section>
+	for _, w := range p.Resume.Work {
+		@workDetail(p, w)
+	}
+}
+
+templ workHeader(w profile.Work) {
+	<p class={ eyebrow }>{ dateRange(w.StartDate, w.EndDate) }</p>
+	<h2 id={ workAnchor(w) + "-titulo" } class="mt-2 font-display text-2xl font-bold">{ w.Name }</h2>
+	if w.Position != "" {
+		<p class="mt-1 text-accent">{ w.Position }</p>
+	}
+}
+
+templ workDetail(p Page, w profile.Work) {
+	@drawer(workAnchor(w), "#experiencia-titulo", workHeader(w)) {
+		if w.Location != "" || w.Summary != "" {
+			<div>
+				if w.Location != "" {
+					<p class="text-sm text-faint">{ w.Location }</p>
+				}
+				if w.Summary != "" {
+					<p class="mt-2 text-muted">{ w.Summary }</p>
+				}
+			</div>
+		}
+		if len(w.Highlights) > 0 {
+			<div>
+				<h3 class={ eyebrow }>Logros</h3>
+				<ul class="mt-3 flex flex-col gap-3">
+					for _, h := range w.Highlights {
+						<li class="rounded-lg border border-line bg-surface p-4 leading-relaxed">
+							{ h.Text }
+							for i, e := range h.Evidence {
+								<a class="mt-2 flex min-h-11 items-center font-mono text-[13px]" href={ templ.SafeURL(e) } rel="noopener">ver evidencia{ evidenceSuffix(i, len(h.Evidence)) } ↗</a>
+							}
+						</li>
+					}
+				</ul>
+			</div>
+		}
+		if as := workAttributes(p.Resume, w); len(as) > 0 {
+			<div>
+				<h3 class={ eyebrow }>Respalda estos atributos</h3>
+				<ul class="mt-3 flex flex-wrap gap-2">
+					for _, a := range as {
+						<li><a href={ templ.SafeURL("/@" + p.Username + "#" + attrAnchor(a.Code)) } class={ dataChip, "no-underline" }>@sigla(a.Code, a.Name, "", false) · { a.Name }</a></li>
+					}
+				</ul>
+			</div>
+		}
+	}
 }
 
 templ skills(list []profile.Skill) {

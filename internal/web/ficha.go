@@ -122,6 +122,19 @@ func barClass(s profile.Sub) string {
 // ovrTitle explica la sigla OVR (ADR-010 §3).
 const ovrTitle = "OVR (overall): índice general del rol, el promedio de los atributos ponderado por su peso en ese rol"
 
+func workAnchor(w profile.Work) string { return "trabajo-" + w.ID }
+
+// workAttributes son los atributos que el trabajo respalda: los que citan alguno de sus logros.
+func workAttributes(r *profile.Resume, w profile.Work) []profile.Attribute {
+	var out []profile.Attribute
+	for _, a := range r.Gremio.Attributes {
+		if slices.ContainsFunc(w.Highlights, func(h profile.Highlight) bool { return slices.Contains(a.Highlights, h.ID) }) {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func attrAnchor(code string) string { return "atributo-" + strings.ToLower(code) }
 
 func itoa(n int) string { return strconv.Itoa(n) }

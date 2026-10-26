@@ -133,13 +133,13 @@ func TestFichaDeJugador(t *testing.T) {
 	}
 
 	// La ficha no trae el CV ni el contacto: cada pestaña muestra solo lo suyo.
-	for _, leak := range []string{"Presentación larga", `id="contacto"`, "<details"} {
+	for _, leak := range []string{"Presentación larga", `id="contacto"`, `id="trabajo-acme"`} {
 		if strings.Contains(body, leak) {
 			t.Errorf("la pestaña Ficha muestra %q", leak)
 		}
 	}
 	_, body = get(t, ts.URL+"/@alice/cv")
-	for _, want := range []string{"Presentación larga", `<details class="group" open>`, "Bajó el MTTR", `aria-current="page" class="inline-flex min-h-11 items-center border-b-2 border-accent text-ink no-underline hover:text-ink">CV<`} {
+	for _, want := range []string{"Presentación larga", `href="#trabajo-acme"`, `id="trabajo-acme"`, "Respalda estos atributos", `href="/@alice#atributo-cnt"`, "Bajó el MTTR", `aria-current="page" class="inline-flex min-h-11 items-center border-b-2 border-accent text-ink no-underline hover:text-ink">CV<`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("CV: falta %q", want)
 		}
