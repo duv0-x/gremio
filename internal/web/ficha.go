@@ -280,16 +280,22 @@ func languagesLine(r *profile.Resume) string {
 	return strings.Join(parts, " · ")
 }
 
-// Línea de tiempo: un segmento por trabajo sobre un viewBox de 1000 de ancho, en carriles si se solapan.
-type segment struct {
-	X, W, Y, H string
-	Title      string
-	Current    bool
+// Línea de tiempo: una fila por trabajo, sobre un viewBox de 1000 de ancho, con marcas de año cada dos años.
+type timelineRow struct {
+	Work    profile.Work
+	X, W    string
+	Range   string
+	Current bool
+}
+
+type timelineTick struct {
+	X, Label string
 }
 
 type timeline struct {
-	Segments []segment
-	From     string
+	Rows  []timelineRow
+	Ticks []timelineTick
+	From  string
 }
 
 func month(d string) (int, bool) {
@@ -335,32 +341,38 @@ func buildTimeline(work []profile.Work, now time.Time) timeline {
 	if len(spans) == 0 {
 		return timeline{}
 	}
-	// Carriles: cada trabajo va al primero que ya terminó cuando él empieza (los trabajos vienen del más reciente al más viejo).
-	lane := make([]int, len(spans))
-	var ends []int
-	for i := len(spans) - 1; i >= 0; i-- {
-		l := 0
-		for l < len(ends) && ends[l] > spans[i].start {
-			l++
-		}
-		if l == len(ends) {
-			ends = append(ends, 0)
-		}
-		ends[l] = spans[i].end
-		lane[i] = l
-	}
+	first -= first % 12 // el eje arranca en enero
 	total := float64(cur + 1 - first)
-	h := 40.0 / float64(len(ends))
+	x := func(m int) float64 { return float64(m-first) / total * 1000 }
 	t := timeline{From: strconv.Itoa(first / 12)}
-	for i, s := range spans {
-		x := float64(s.start-first) / total * 1000
-		w := float64(s.end-s.start)/total*1000 - 4
-		t.Segments = append(t.Segments, segment{
-			X: fmt.Sprintf("%.1f", x), W: fmt.Sprintf("%.1f", max(w, 2)),
-			Y: fmt.Sprintf("%.1f", float64(lane[i])*h), H: fmt.Sprintf("%.1f", h-3),
-			Title:   s.w.Name + " · " + dateRange(s.w.StartDate, s.w.EndDate),
+	for y := first / 12; y <= now.Year(); y += 2 {
+		t.Ticks = append(t.Ticks, timelineTick{fmt.Sprintf("%.1f", x(y*12)), strconv.Itoa(y)})
+	}
+	for _, s := range spans {
+		t.Rows = append(t.Rows, timelineRow{
+			Work: s.w,
+			X:    fmt.Sprintf("%.1f", x(s.start)), W: fmt.Sprintf("%.1f", max(x(s.end)-x(s.start), 4)),
+			Range:   dateRange(s.w.StartDate, s.w.EndDate),
 			Current: s.w.EndDate == "",
 		})
 	}
 	return t
+}
+
+// traitInitials son las letras del medallón de un rasgo: las iniciales de las dos primeras palabras largas
+// ("Líder de equipo" → LE), o las dos primeras letras si hay una sola.
+func traitInitials(name string) string {
+	var words [][]rune
+	for _, w := range strings.Fields(strings.ReplaceAll(name, "-", " ")) {
+		if r := []rune(w); len(r) > 2 {
+			words = append(words, r)
+		}
+	}
+	switch len(words) {
+	case 0:
+		return ""
+	case 1:
+		return strings.ToUpper(string(words[0][:2]))
+	}
+	return strings.ToUpper(string([]rune{words[0][0], words[1][0]}))
 }

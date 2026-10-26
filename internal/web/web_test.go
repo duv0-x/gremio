@@ -133,13 +133,13 @@ func TestFichaDeJugador(t *testing.T) {
 	}
 
 	// La ficha no trae el CV ni el contacto: cada pestaña muestra solo lo suyo.
-	for _, leak := range []string{"Presentación larga", `id="contacto"`, `id="trabajo-acme"`} {
+	for _, leak := range []string{"Presentación larga", `id="contacto"`, `id="trabajo-acme"`, "Línea de tiempo", "logros con contexto"} {
 		if strings.Contains(body, leak) {
 			t.Errorf("la pestaña Ficha muestra %q", leak)
 		}
 	}
 	_, body = get(t, ts.URL+"/@alice/cv")
-	for _, want := range []string{"Presentación larga", `href="#trabajo-acme"`, `id="trabajo-acme"`, "Respalda estos atributos", `href="/@alice#atributo-cnt"`, "Bajó el MTTR", `href="/@alice/cv" aria-current="page"`} {
+	for _, want := range []string{"Presentación larga", "Línea de tiempo", `aria-label="Acme: 2021-05 → hoy"`, `href="#trabajo-acme"`, `id="trabajo-acme"`, "Respalda estos atributos", `href="/@alice#atributo-cnt"`, "Bajó el MTTR", `href="/@alice/cv" aria-current="page"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("CV: falta %q", want)
 		}
@@ -219,5 +219,24 @@ func TestTimeZoneConHorarioDeVerano(t *testing.T) {
 	p.Resume.Gremio.Timezone = ""
 	if got, _ := p.TimeZone(time.Now()); got != "" {
 		t.Errorf("sin zona = %q", got)
+	}
+}
+
+func TestInsigniasYLineaDeTiempo(t *testing.T) {
+	for name, want := range map[string]string{"Líder de equipo": "LE", "Ingeniería agéntica": "IA", "Self-hosted": "SH", "Automatizador": "AU"} {
+		if got := traitInitials(name); got != want {
+			t.Errorf("traitInitials(%q) = %q, quiero %q", name, got, want)
+		}
+	}
+	tl := buildTimeline([]profile.Work{{Name: "Actual", StartDate: "2021-05"}, {Name: "Vieja", StartDate: "2015", EndDate: "2018-12"}}, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
+	if tl.From != "2015" || len(tl.Rows) != 2 || !tl.Rows[0].Current || tl.Rows[1].X != "0.0" {
+		t.Errorf("timeline = %+v", tl)
+	}
+	var years []string
+	for _, tick := range tl.Ticks {
+		years = append(years, tick.Label)
+	}
+	if strings.Join(years, " ") != "2015 2017 2019 2021 2023 2025" {
+		t.Errorf("marcas = %v", years)
 	}
 }

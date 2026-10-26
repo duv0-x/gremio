@@ -24,10 +24,6 @@ templ ficha(p Page) {
 		if len(p.Resume.Gremio.Traits) > 0 {
 			@fichaTraits(p.Resume.Gremio.Traits)
 		}
-		if len(p.Timeline.Segments) > 0 {
-			@fichaTimeline(p)
-		}
-		@fichaStats(p.Resume)
 	</div>
 	for _, a := range p.Resume.Gremio.Attributes {
 		@attributeDetail(p, a)
@@ -310,15 +306,27 @@ templ attributeDetail(p Page, a profile.Attribute) {
 	}
 }
 
+// fichaTraits son los rasgos como insignias: un medallón con sus iniciales, en una cinta deslizable.
 templ fichaTraits(traits []profile.Trait) {
-	<section class={ panel } aria-labelledby="rasgos-titulo">
-		<h2 id="rasgos-titulo" class={ h2Ficha }>Rasgos</h2>
-		<ul class="mt-5 grid gap-3 sm:grid-cols-3">
+	<section class={ panel } aria-labelledby="rasgos-titulo" data-cinta>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<div>
+				<h2 id="rasgos-titulo" class={ h2Ficha }>Rasgos</h2>
+				<p class="mt-1 font-mono text-[13px] text-faint">Insignias · desliza para ver más</p>
+			</div>
+			@cintaArrows("Rasgos anteriores", "Rasgos siguientes")
+		</div>
+		<ul data-cinta-track tabindex="0" aria-label="Rasgos" class="mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4">
 			for _, t := range traits {
-				<li class="rounded-md border border-line bg-surface-2/40 p-4">
-					<p class="flex items-center gap-2 font-semibold"><span aria-hidden="true" class="size-2 rounded-full bg-accent"></span>{ t.Name }</p>
+				<li class="flex w-[220px] shrink-0 snap-start flex-col items-center rounded-lg border border-line bg-surface-2/40 p-5 text-center">
+					<svg viewBox="0 0 120 120" class="size-24" aria-hidden="true">
+						<polygon points={ hexagon(60, 60, 56) } class="fill-accent-soft stroke-accent" stroke-width="3"></polygon>
+						<polygon points={ hexagon(60, 60, 44) } class="fill-none stroke-accent/40" stroke-width="1.5" stroke-dasharray="4 4"></polygon>
+						<text x="60" y="72" text-anchor="middle" class="fill-accent font-display text-[34px] font-bold">{ traitInitials(t.Name) }</text>
+					</svg>
+					<p class="mt-4 font-display text-lg leading-snug font-bold">{ t.Name }</p>
 					if t.Summary != "" {
-						<p class="mt-1 text-sm text-muted">{ t.Summary }</p>
+						<p class="mt-2 text-sm leading-relaxed text-muted">{ t.Summary }</p>
 					}
 				</li>
 			}
@@ -326,54 +334,42 @@ templ fichaTraits(traits []profile.Trait) {
 	</section>
 }
 
-templ fichaTimeline(p Page) {
-	<section class={ panel } aria-labelledby="trayectoria-titulo">
-		<h2 id="trayectoria-titulo" class={ h2Ficha }>Trayectoria</h2>
-		<p class="mt-1 font-mono text-[13px] text-faint">{ p.Timeline.From } → hoy · { itoa(len(p.Resume.Work)) } { plural(len(p.Resume.Work), "empresa", "empresas") }</p>
-		<svg viewBox="0 0 1000 40" preserveAspectRatio="none" class="mt-5 block h-10 w-full" role="img" aria-label={ "Línea de tiempo desde " + p.Timeline.From + " hasta hoy" }>
-			for _, s := range p.Timeline.Segments {
-				<rect x={ s.X } y={ s.Y } width={ s.W } height={ s.H } rx="3" class={ templ.KV("fill-accent", s.Current), templ.KV("fill-control/50", !s.Current) }>
-					<title>{ s.Title }</title>
-				</rect>
-			}
-		</svg>
-		<div class="mt-2 flex justify-between font-mono text-[13px] text-faint">
-			<span>{ p.Timeline.From }</span>
-			<span class="text-accent">hoy</span>
-		</div>
-		<ol class="mt-6 grid gap-3 sm:grid-cols-3">
-			for i, w := range p.Resume.Work[:min(3, len(p.Resume.Work))] {
-				<li class={ "rounded-md border p-4", templ.KV("border-accent", i == 0 && w.EndDate == ""), templ.KV("border-line", i != 0 || w.EndDate != "") }>
-					<p class="font-mono text-[13px] text-muted">{ dateRange(w.StartDate, w.EndDate) }</p>
-					<p class="mt-1 font-semibold">{ w.Name }</p>
-					if w.Position != "" {
-						<p class="text-sm text-accent">{ w.Position }</p>
-					}
+// cvTimeline es la trayectoria: una fila por trabajo con su barra en el tiempo, eje de años y líneas guía.
+// Cada nombre abre el panel del trabajo.
+templ cvTimeline(p Page) {
+	<section class={ section, "pb-0! sm:pb-0!" } aria-labelledby="trayectoria-titulo">
+		<p class={ eyebrow }>01 · Trayectoria</p>
+		<h2 id="trayectoria-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Línea de tiempo</h2>
+		<p class="mt-1 font-mono text-[13px] text-faint">{ p.Timeline.From } → hoy · { itoa(len(p.Timeline.Rows)) } { plural(len(p.Timeline.Rows), "empresa", "empresas") }</p>
+		<div class={ panel, "mt-6" }>
+			<ol class="flex flex-col gap-2">
+				for _, r := range p.Timeline.Rows {
+					<li class="grid grid-cols-[120px_1fr] items-center gap-3 sm:grid-cols-[220px_1fr] sm:gap-4">
+						<a href={ templ.SafeURL("#" + workAnchor(r.Work)) } class="min-w-0 text-ink no-underline hover:text-accent">
+							<span class={ "block truncate text-sm font-semibold", templ.KV("text-accent", r.Current) }>{ r.Work.Name }</span>
+							<span class="block font-mono text-[11px] whitespace-nowrap text-faint sm:text-[12px]">{ r.Range }</span>
+						</a>
+						<svg viewBox="0 0 1000 24" class="block w-full" role="img" aria-label={ r.Work.Name + ": " + r.Range }>
+							for _, t := range p.Timeline.Ticks {
+								<line x1={ t.X } y1="0" x2={ t.X } y2="24" class="stroke-line" stroke-width="1.5"></line>
+							}
+							<rect x={ r.X } y="5" width={ r.W } height="14" rx="7" class={ templ.KV("fill-accent", r.Current), templ.KV("fill-control", !r.Current) }></rect>
+						</svg>
+					</li>
+				}
+				// Eje de años, alineado con las barras.
+				<li class="grid grid-cols-[120px_1fr] gap-3 sm:grid-cols-[220px_1fr] sm:gap-4" aria-hidden="true">
+					<span></span>
+					<svg viewBox="0 0 1000 40" class="block w-full overflow-visible">
+						// En móvil va un año de cada dos marcas, con letra más grande (el SVG se encoge con el ancho).
+						for i, t := range p.Timeline.Ticks {
+							<text x={ t.X } y="28" text-anchor="middle" class={ "fill-faint font-mono text-[22px] max-sm:text-[44px]", templ.KV("max-sm:hidden", i%2 == 1) }>{ t.Label }</text>
+						}
+					</svg>
 				</li>
-			}
-		</ol>
+			</ol>
+		</div>
 	</section>
-}
-
-templ fichaStats(r *profile.Resume) {
-	<ul class="grid gap-3 sm:grid-cols-3">
-		<li class={ statTile }>
-			<p class="font-display text-3xl font-bold">{ itoa(totalHighlights(r)) }</p>
-			<p class="text-sm text-muted">logros con contexto</p>
-		</li>
-		if len(r.Certificates) > 0 {
-			<li class={ statTile }>
-				<p class="font-display text-3xl font-bold">{ itoa(len(r.Certificates)) }</p>
-				<p class="text-sm text-muted">{ plural(len(r.Certificates), "certificación", "certificaciones") }</p>
-			</li>
-		}
-		if len(r.Languages) > 0 {
-			<li class={ statTile }>
-				<p class="font-display text-3xl font-bold">{ itoa(len(r.Languages)) }</p>
-				<p class="text-sm text-muted">{ plural(len(r.Languages), "idioma", "idiomas") } · { languagesLine(r) }</p>
-			</li>
-		}
-	</ul>
 }
 
 // sigla muestra una abreviatura con su significado en un tooltip CSS inmediato (el title nativo tarda o no aparece,
