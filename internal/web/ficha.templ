@@ -1,6 +1,10 @@
 package web
 
-import "github.com/duv0-x/gremio/internal/profile"
+import (
+	"time"
+
+	"github.com/duv0-x/gremio/internal/profile"
+)
 
 // Ficha de jugador (ADR-010, DESIGN.md: pantallas "Ficha de jugador").
 const (
@@ -74,6 +78,9 @@ templ fichaHero(p Page) {
 				{ p.Resume.Basics.Label }
 				if loc := p.Location(); loc != "" {
 					<span class="font-mono text-sm text-faint">· { loc }</span>
+				}
+				if tz, tip := p.TimeZone(time.Now()); tz != "" {
+					<span class="font-mono text-sm text-faint">· @sigla(tz, tip, "", true)</span>
 				}
 			</p>
 		</div>

@@ -1,8 +1,10 @@
 package web
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/duv0-x/gremio/internal/profile"
 )
@@ -72,6 +74,24 @@ func (p Page) Location() string {
 		}
 	}
 	return strings.Join(parts, ", ")
+}
+
+// TimeZone da el desfase actual de la zona del dueño ("UTC−5", "UTC+5:30") y el nombre IANA para el tooltip.
+func (p Page) TimeZone(now time.Time) (offset, tip string) {
+	loc, err := time.LoadLocation(p.Resume.Gremio.Timezone)
+	if p.Resume.Gremio.Timezone == "" || err != nil {
+		return "", ""
+	}
+	_, secs := now.In(loc).Zone()
+	sign := "+"
+	if secs < 0 {
+		sign, secs = "−", -secs
+	}
+	offset = "UTC" + sign + strconv.Itoa(secs/3600)
+	if m := secs % 3600 / 60; m != 0 {
+		offset += fmt.Sprintf(":%02d", m)
+	}
+	return offset, "Zona horaria: " + p.Resume.Gremio.Timezone + " (" + offset + " hoy)"
 }
 
 func countryName(code string) string {
