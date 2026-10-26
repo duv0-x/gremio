@@ -44,7 +44,7 @@ func ficha(p Page) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"ficha\" class=\"mx-auto flex max-w-[1200px] flex-col gap-6 px-4 pt-8 pb-24 sm:px-6 sm:py-12\"><div class=\"grid gap-6 lg:grid-cols-[5fr_7fr]\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"ficha\" class=\"mx-auto flex max-w-[1200px] flex-col gap-6 px-4 pt-8 pb-8 sm:px-6 sm:pt-12\"><div class=\"grid gap-6 lg:grid-cols-[5fr_7fr]\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
