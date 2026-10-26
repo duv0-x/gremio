@@ -39,8 +39,9 @@ templ actions(p Page) {
 					Descargar CV (PDF)
 				</a>
 			}
-			if wa := p.WhatsApp(); wa != "" {
-				<a class={ btnSec, "flex-1 gap-2 sm:flex-none" } href={ templ.SafeURL(wa) } rel="noopener" target="_blank">
+			if p.WhatsApp() != "" {
+				// El enlace pasa por /@usuario/whatsapp para que el número no quede en el HTML.
+				<a class={ btnSec, "flex-1 gap-2 sm:flex-none" } href={ templ.SafeURL(p.whatsappPath()) } rel="nofollow noopener" target="_blank">
 					@icon("message-circle")
 					WhatsApp
 				</a>
