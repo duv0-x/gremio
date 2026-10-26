@@ -153,11 +153,11 @@ func TestFichaDeJugador(t *testing.T) {
 	if strings.Contains(body, "<polygon") {
 		t.Error("la pestaña CV no debe traer la ficha")
 	}
-	if !strings.Contains(body, `id="contacto"`) {
-		t.Error("el contacto va al final del CV")
+	if strings.Contains(body, `id="contacto"`) {
+		t.Error("el CV no lleva sección de contacto: el contacto rápido son los botones fijos")
 	}
 	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	if resp, err := noFollow.Get(ts.URL + "/@alice/contacto"); err != nil || resp.StatusCode != http.StatusMovedPermanently || resp.Header.Get("Location") != "/@alice/cv#contacto" {
+	if resp, err := noFollow.Get(ts.URL + "/@alice/contacto"); err != nil || resp.StatusCode != http.StatusMovedPermanently || resp.Header.Get("Location") != "/@alice/cv" {
 		t.Errorf("/contacto debe redirigir al CV: %v %v", resp, err)
 	}
 
@@ -244,9 +244,13 @@ func TestAccionesDescargarCVyWhatsApp(t *testing.T) {
 	ts := newTestServerIn(t, fichaDoc, dir)
 
 	resp, body := get(t, ts.URL+"/@alice")
-	wa := `href="https://wa.me/573000000000?text=Hola+Alice%2C+vi+tu+perfil+en+Gremio`
-	if !strings.Contains(body, wa) || strings.Contains(body, "+57 300") || strings.Contains(body, "/@alice/cv.pdf") {
-		t.Errorf("sin PDF: debe estar WhatsApp (sin el número como texto) y no la descarga (HTTP %d)", resp.StatusCode)
+	if !strings.Contains(body, `href="/@alice/whatsapp"`) || strings.Contains(body, "wa.me") || strings.Contains(body, "300") || strings.Contains(body, "/@alice/cv.pdf") {
+		t.Errorf("sin PDF: debe estar WhatsApp, sin el número en el HTML, y no la descarga (HTTP %d)", resp.StatusCode)
+	}
+	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	if resp, err := noFollow.Get(ts.URL + "/@alice/whatsapp"); err != nil || resp.StatusCode != http.StatusFound ||
+		!strings.HasPrefix(resp.Header.Get("Location"), "https://wa.me/573000000000?text=Hola+Alice%2C+vi+tu+perfil+en+Gremio") {
+		t.Errorf("/whatsapp debe redirigir a wa.me: %v %v", resp, err)
 	}
 	if resp, _ := get(t, ts.URL+"/@alice/cv.pdf"); resp.StatusCode != http.StatusNotFound {
 		t.Errorf("cv.pdf sin subir: HTTP %d", resp.StatusCode)

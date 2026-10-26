@@ -112,10 +112,8 @@ templ cv(p Page) {
 			@experience(p)
 		}
 		if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
-			@formation(p.Resume)
+			@formation(p.Resume, "02")
 		}
-		// Los canales de contacto van al final del CV (la pestaña Contacto se fusionó aquí).
-		@contact(p)
 	</div>
 }
 
@@ -128,7 +126,7 @@ templ cvPage(p Page) {
 		@skills(p.Resume.Skills)
 	}
 	if len(p.Resume.Education) > 0 || len(p.Resume.Certificates) > 0 || len(p.Resume.Languages) > 0 {
-		@formation(p.Resume)
+		@formation(p.Resume, "03")
 	}
 	@contact(p)
 }
@@ -169,7 +167,7 @@ templ profileHeader(p Page) {
 }
 
 templ experience(p Page) {
-	<section id="experiencia" class={ section } aria-labelledby="experiencia-titulo" data-cinta>
+	<section id="experiencia" class={ section, "pb-0! sm:pb-0!" } aria-labelledby="experiencia-titulo" data-cinta>
 		<div class="flex flex-wrap items-end justify-between gap-2">
 			<div>
 				<p class={ eyebrow }>01 · Trayectoria</p>
@@ -302,9 +300,9 @@ templ skills(list []profile.Skill) {
 	</section>
 }
 
-templ formation(r *profile.Resume) {
+templ formation(r *profile.Resume, num string) {
 	<section class={ section } aria-labelledby="formacion-titulo">
-		<p class={ eyebrow }>03 · Formación</p>
+		<p class={ eyebrow }>{ num } · Formación</p>
 		<h2 id="formacion-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Estudios, certificados e idiomas</h2>
 		<div class="mt-8 grid gap-4 lg:grid-cols-3">
 			if len(r.Education) > 0 {
@@ -366,8 +364,8 @@ templ contact(p Page) {
 			if email := p.Email(); email != "" {
 				<p class="mt-2"><a href={ templ.SafeURL("mailto:" + email) }>{ email }</a></p>
 			} else {
-				if wa := p.WhatsApp(); wa != "" {
-					<p class="mt-2 text-muted">Escríbeme por <a href={ templ.SafeURL(wa) } rel="noopener" target="_blank">WhatsApp</a> o por cualquiera de estos canales.</p>
+				if p.WhatsApp() != "" {
+					<p class="mt-2 text-muted">Escríbeme por <a href={ templ.SafeURL(p.whatsappPath()) } rel="nofollow noopener" target="_blank">WhatsApp</a> o por cualquiera de estos canales.</p>
 				} else {
 					<p class="mt-2 text-muted">El email y el teléfono no son públicos. Escribe por cualquiera de estos canales.</p>
 				}

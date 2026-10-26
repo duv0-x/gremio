@@ -83,6 +83,8 @@ func (p Page) WhatsApp() string {
 	return "https://wa.me/" + digits + "?text=" + url.QueryEscape("Hola "+first+", vi tu perfil en Gremio ("+p.Handle+") y me gustaría conversar.")
 }
 
+func (p Page) whatsappPath() string { return "/@" + p.Username + "/whatsapp" }
+
 func (p Page) cvPDFPath() string { return "/@" + p.Username + "/cv.pdf" }
 
 // Email devuelve el email solo si el dueño lo hizo público (ADR-003 §4).
