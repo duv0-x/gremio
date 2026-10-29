@@ -12,7 +12,7 @@ const (
 	panel    = "rounded-lg border border-line bg-surface p-5 sm:p-8"
 	h2Ficha  = "font-display text-xl font-bold uppercase tracking-[0.01em]"
 	statTile = "rounded-lg border border-line bg-surface p-5"
-	infoChip = "inline-flex min-h-8 items-center gap-1.5 rounded-sm border border-line bg-surface-2 px-2.5 py-1 font-mono text-[13px] text-ink"
+	infoChip = "inline-flex items-center gap-1 rounded-sm border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-muted"
 	btnSec   = "inline-flex min-h-11 items-center justify-center rounded-md border-[1.5px] border-control px-[18px] text-[15px] font-semibold text-ink no-underline hover:bg-surface-2 hover:text-ink"
 )
 
@@ -35,7 +35,7 @@ templ profileCard(p Page) {
 	<section class="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6 sm:pt-12" aria-labelledby="nombre">
 		<div class={ panel, "flex flex-col gap-8 sm:flex-row sm:flex-wrap sm:items-center lg:flex-nowrap" }>
 			// La foto lleva debajo los datos de contexto: ubicación con zona horaria e idiomas.
-			<div class="flex shrink-0 flex-col items-center gap-6">
+			<div class="flex shrink-0 flex-col items-center gap-5 sm:items-start">
 				<div class="relative">
 					if img := p.Resume.Basics.Image; img != "" {
 						<img src={ img } alt="" width="160" height="160" class="size-32 rounded-lg border border-line object-cover sm:size-40"/>
@@ -51,7 +51,7 @@ templ profileCard(p Page) {
 						</p>
 					}
 				</div>
-				<ul class="flex flex-col items-center gap-2" aria-label="Datos">
+				<ul class="flex flex-col items-center gap-1.5 sm:items-start" aria-label="Datos">
 					if loc, tz := p.Location(), p.Resume.Gremio.Timezone; loc != "" || tz != "" {
 						<li class={ infoChip }>
 							@chipIcon("map-pin")
@@ -92,7 +92,7 @@ templ profileCard(p Page) {
 }
 
 templ chipIcon(name string) {
-	<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	<svg viewBox="0 0 24 24" class="size-3.5 shrink-0 text-faint" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 		@templ.Raw(icons.Inner(name))
 	</svg>
 }

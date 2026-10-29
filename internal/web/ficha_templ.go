@@ -20,7 +20,7 @@ const (
 	panel    = "rounded-lg border border-line bg-surface p-5 sm:p-8"
 	h2Ficha  = "font-display text-xl font-bold uppercase tracking-[0.01em]"
 	statTile = "rounded-lg border border-line bg-surface p-5"
-	infoChip = "inline-flex min-h-8 items-center gap-1.5 rounded-sm border border-line bg-surface-2 px-2.5 py-1 font-mono text-[13px] text-ink"
+	infoChip = "inline-flex items-center gap-1 rounded-sm border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-muted"
 	btnSec   = "inline-flex min-h-11 items-center justify-center rounded-md border-[1.5px] border-control px-[18px] text-[15px] font-semibold text-ink no-underline hover:bg-surface-2 hover:text-ink"
 )
 
@@ -124,7 +124,7 @@ func profileCard(p Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"flex shrink-0 flex-col items-center gap-6\"><div class=\"relative\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><div class=\"flex shrink-0 flex-col items-center gap-5 sm:items-start\"><div class=\"relative\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -198,7 +198,7 @@ func profileCard(p Page) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div><ul class=\"flex flex-col items-center gap-2\" aria-label=\"Datos\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div><ul class=\"flex flex-col items-center gap-1.5 sm:items-start\" aria-label=\"Datos\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -419,7 +419,7 @@ func chipIcon(name string) templ.Component {
 			templ_7745c5c3_Var19 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<svg viewBox=\"0 0 24 24\" class=\"size-4 shrink-0 text-muted\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<svg viewBox=\"0 0 24 24\" class=\"size-3.5 shrink-0 text-faint\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
