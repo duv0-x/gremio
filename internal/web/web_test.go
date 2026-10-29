@@ -277,7 +277,11 @@ func TestAccionesDescargarCVyWhatsApp(t *testing.T) {
 	}
 	_, body = get(t, ts.URL+"/@alice/cv")
 	if !strings.Contains(body, `href="/@alice/cv.pdf" download`) {
-		t.Error("con PDF, la barra de acciones debe ofrecer la descarga en todas las pestañas")
+		t.Error("con PDF, el recuadro debe ofrecer la descarga en todas las pestañas")
+	}
+	// Con ficha, las acciones van en el recuadro, debajo de Seguir: no hay barra flotante.
+	if strings.Contains(body, `aria-label="Acciones"`) || strings.Index(body, `href="#seguir"`) > strings.Index(body, `href="/@alice/cv.pdf"`) {
+		t.Error("con ficha, Descargar CV y WhatsApp van debajo de Seguir y sin barra flotante")
 	}
 	resp, pdf := get(t, ts.URL+"/@alice/cv.pdf")
 	if resp.StatusCode != http.StatusOK || pdf != "%PDF-1.7 hola" || !strings.HasPrefix(resp.Header.Get("Content-Disposition"), "attachment;") {

@@ -281,7 +281,7 @@ func layout(p Page, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var18 = []any{templ.KV("pb-20 sm:pb-0", p.HasCV || p.WhatsApp() != "")}
+		var templ_7745c5c3_Var18 = []any{templ.KV("pb-20 sm:pb-0", p.floatingActions())}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var18...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -315,7 +315,7 @@ func layout(p Page, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var20 = []any{"border-t border-line", templ.KV("sm:pb-20", p.HasCV || p.WhatsApp() != "")}
+		var templ_7745c5c3_Var20 = []any{"border-t border-line", templ.KV("sm:pb-20", p.floatingActions())}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var20...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
