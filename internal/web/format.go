@@ -130,6 +130,14 @@ func (p Page) currentWork() (profile.Work, bool) {
 	return profile.Work{}, false
 }
 
+// currentRoleTip explica la marca "Actual" del rol principal, con la empresa si hay un trabajo en curso.
+func currentRoleTip(p Page) string {
+	if w, ok := p.currentWork(); ok {
+		return "Rol que desempeña hoy, en " + w.Name
+	}
+	return "Rol que desempeña hoy"
+}
+
 func languageNames(r *profile.Resume) string {
 	names := make([]string, len(r.Languages))
 	for i, l := range r.Languages {
