@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"slices"
@@ -174,22 +175,33 @@ func positionTitle(v profile.View) string {
 func levelShort(v profile.View) string { return profile.Levels[v.Level][0] }
 func levelLong(v profile.View) string  { return profile.Levels[v.Level][1] }
 
-// radarSlots es cuántos ejes muestra el radar: los atributos son libres, pero en el radar van los mejores.
+// radarSlots es cuántos ejes muestra el radar: los atributos son libres, pero en el radar van los que más cuentan.
 const radarSlots = 6
 
-// topAttributes son los n atributos de mayor puntaje, en el orden del perfil para que la forma sea estable.
-func topAttributes(attrs []profile.Attribute, n int) []profile.Attribute {
-	if len(attrs) <= n {
-		return attrs
+// radarAttributes son los n atributos que más aportan al OVR de la vista (peso × puntaje), en el orden del perfil
+// para que la forma sea estable. Los de peso 0 no entran: no son parte del rol. Sin pesos, todos pesan igual y
+// salen los de mayor puntaje. Si el rol pondera menos de 3, el radar no tendría forma y se usan todos.
+func radarAttributes(attrs []profile.Attribute, v profile.View, n int) []profile.Attribute {
+	weight := func(a profile.Attribute) float64 {
+		if len(v.Weights) == 0 {
+			return 1
+		}
+		return v.Weights[a.Code]
 	}
-	idx := make([]int, len(attrs))
-	for i := range idx {
-		idx[i] = i
+	var idx []int
+	for i, a := range attrs {
+		if weight(a) > 0 {
+			idx = append(idx, i)
+		}
 	}
-	slices.SortStableFunc(idx, func(a, b int) int { return attrs[b].Score() - attrs[a].Score() })
-	idx = idx[:n]
+	if len(idx) < 3 {
+		return radarAttributes(attrs, profile.View{}, n)
+	}
+	contrib := func(i int) float64 { return weight(attrs[i]) * float64(attrs[i].Score()) }
+	slices.SortStableFunc(idx, func(a, b int) int { return cmp.Compare(contrib(b), contrib(a)) })
+	idx = idx[:min(n, len(idx))]
 	slices.Sort(idx)
-	out := make([]profile.Attribute, n)
+	out := make([]profile.Attribute, len(idx))
 	for i, j := range idx {
 		out[i] = attrs[j]
 	}

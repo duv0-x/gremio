@@ -29,6 +29,7 @@ templ layout(p Page, title string) {
 			<link rel="stylesheet" href={ "/static/app.css?v=" + p.Version }/>
 			<link rel="alternate" type="application/activity+json" href={ p.Actor }/>
 			<script src={ "/static/cinta.js?v=" + p.Version } defer></script>
+			<script src={ "/static/vista.js?v=" + p.Version } defer></script>
 		</head>
 		<body>
 			<a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-md focus:bg-surface focus:p-3">Saltar al contenido</a>
@@ -76,12 +77,15 @@ templ ProfilePage(p Page) {
 			case p.HasFicha():
 				// El recuadro y las pestañas son de las dos pestañas; debajo va solo la sección elegida.
 				@profileCard(p)
-				@profileTabs(p)
-				if p.Tab == "cv" {
-					@cv(p)
-				} else {
-					@ficha(p)
-				}
+				// #vista es lo que cambia al elegir rol o pestaña; static/vista.js lo reemplaza sin recargar la página.
+				<div id="vista">
+					@profileTabs(p)
+					if p.Tab == "cv" {
+						@cv(p)
+					} else {
+						@ficha(p)
+					}
+				</div>
 			case p.Tab == "cv":
 				@cv(p)
 			default:
@@ -112,12 +116,12 @@ templ profileTabs(p Page) {
 templ profileTab(p Page, tab, label, iconName string) {
 	<li class="flex">
 		if p.Tab == tab {
-			<a href={ templ.SafeURL(p.tabPath(tab)) } aria-current="page" class="-mb-px flex min-h-12 flex-1 items-center justify-center gap-2 border-b-2 border-accent font-semibold text-ink no-underline hover:text-ink">
+			<a href={ templ.SafeURL(p.tabPath(tab)) } aria-current="page" class="-mb-px flex min-h-12 flex-1 items-center justify-center gap-2 border-b-2 border-accent font-semibold text-ink no-underline hover:text-ink" data-swap>
 				@icon(iconName)
 				{ label }
 			</a>
 		} else {
-			<a href={ templ.SafeURL(p.tabPath(tab)) } class="-mb-px flex min-h-12 flex-1 items-center justify-center gap-2 border-b-2 border-transparent text-muted no-underline hover:text-ink">
+			<a href={ templ.SafeURL(p.tabPath(tab)) } class="-mb-px flex min-h-12 flex-1 items-center justify-center gap-2 border-b-2 border-transparent text-muted no-underline hover:text-ink" data-swap>
 				@icon(iconName)
 				{ label }
 			</a>

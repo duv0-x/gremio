@@ -139,6 +139,15 @@ func TestFichaDeJugador(t *testing.T) {
 		t.Error("la CSP no admite style inline")
 	}
 
+	// Rol y pestaña cambian #vista sin recargar (static/vista.js); sin JS, los enlaces navegan igual.
+	for _, want := range []string{`<div id="vista">`, `href="/@alice/platform-engineer" class=`, `data-swap>`, `src="/static/vista.js?v=`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("vista: falta %q", want)
+		}
+	}
+	if resp, js := get(t, ts.URL+"/static/vista.js"); resp.StatusCode != http.StatusOK || !strings.Contains(js, "startViewTransition") {
+		t.Errorf("vista.js: HTTP %d", resp.StatusCode)
+	}
 	// El recuadro de perfil: nombre, hora local, empresa actual y el panel para seguir desde otra instancia.
 	for _, want := range []string{`<h1 id="nombre"`, "UTC−5 · ", "Acme", `href="#seguir"`, `id="seguir"`, `action="/@alice/seguir"`} {
 		if !strings.Contains(body, want) {
@@ -209,18 +218,34 @@ func TestRutasDesconocidasYEstaticos(t *testing.T) {
 	}
 }
 
-func TestRadarMuestraLosMejores(t *testing.T) {
+func TestRadarSegunElRol(t *testing.T) {
 	var attrs []profile.Attribute
 	for i, score := range []int{50, 90, 10, 80, 70, 60, 95} {
 		attrs = append(attrs, profile.Attribute{Code: string(rune('A'+i)) + "X", Subs: []profile.Sub{{Score: score}}})
 	}
-	var got []string
-	for _, a := range topAttributes(attrs, 6) {
-		got = append(got, a.Code)
+	codes := func(v profile.View) string {
+		var got []string
+		for _, a := range radarAttributes(attrs, v, 6) {
+			got = append(got, a.Code)
+		}
+		return strings.Join(got, " ")
 	}
-	// Sale el de 10 (CX) y los demás conservan el orden del perfil.
-	if strings.Join(got, " ") != "AX BX DX EX FX GX" {
-		t.Errorf("topAttributes = %v", got)
+	for name, c := range map[string]struct {
+		weights map[string]float64
+		want    string
+	}{
+		// Sin pesos sale el de menor puntaje (CX) y los demás conservan el orden del perfil.
+		"sin pesos": {nil, "AX BX DX EX FX GX"},
+		// Un peso alto mete a CX (10 × 9 = 90) por encima de AX (50 × 1).
+		"peso alto": {map[string]float64{"AX": 1, "BX": 1, "CX": 9, "DX": 1, "EX": 1, "FX": 1, "GX": 1}, "BX CX DX EX FX GX"},
+		// Peso 0 o ausente: no es parte del rol, aunque sobre espacio.
+		"solo los del rol": {map[string]float64{"BX": 1, "DX": 2, "GX": 1, "AX": 0}, "BX DX GX"},
+		// Con menos de 3 el radar no tendría forma: se usan todos.
+		"muy pocos": {map[string]float64{"BX": 1}, "AX BX DX EX FX GX"},
+	} {
+		if got := codes(profile.View{Weights: c.weights}); got != c.want {
+			t.Errorf("%s: %q, quería %q", name, got, c.want)
+		}
 	}
 }
 
