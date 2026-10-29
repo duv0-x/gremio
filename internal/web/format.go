@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -86,6 +87,53 @@ func (p Page) WhatsApp() string {
 func (p Page) whatsappPath() string { return "/@" + p.Username + "/whatsapp" }
 
 func (p Page) cvPDFPath() string { return "/@" + p.Username + "/cv.pdf" }
+
+func (p Page) followPath() string { return "/@" + p.Username + "/seguir" }
+
+// followURL es la página de la instancia del visitante para seguir al Actor (authorize_interaction, que entienden
+// Mastodon y sus compatibles). instancia viene del formulario: acepta "mastodon.social", "https://mastodon.social/…"
+// o "@yo@mastodon.social", y devuelve false si no es un nombre de host.
+func (p Page) followURL(instancia string) (string, bool) {
+	s := strings.ToLower(strings.TrimSpace(instancia))
+	s = strings.TrimPrefix(strings.TrimPrefix(s, "https://"), "http://")
+	s, _, _ = strings.Cut(s, "/")
+	if i := strings.LastIndex(s, "@"); i >= 0 {
+		s = s[i+1:]
+	}
+	if !hostRe.MatchString(s) {
+		return "", false
+	}
+	return "https://" + s + "/authorize_interaction?uri=" + url.QueryEscape(p.Actor), true
+}
+
+var hostRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:[0-9]{1,5})?$`)
+
+// LocalTime es la hora del dueño en este momento ("14:32"), o vacío si no declaró zona horaria.
+func (p Page) LocalTime(now time.Time) string {
+	loc, err := time.LoadLocation(p.Resume.Gremio.Timezone)
+	if p.Resume.Gremio.Timezone == "" || err != nil {
+		return ""
+	}
+	return now.In(loc).Format("15:04")
+}
+
+// currentWork es el trabajo actual: el primero sin fecha de fin.
+func (p Page) currentWork() (profile.Work, bool) {
+	for _, w := range p.Resume.Work {
+		if w.EndDate == "" {
+			return w, true
+		}
+	}
+	return profile.Work{}, false
+}
+
+func languageNames(r *profile.Resume) string {
+	names := make([]string, len(r.Languages))
+	for i, l := range r.Languages {
+		names[i] = l.Language
+	}
+	return strings.Join(names, " · ")
+}
 
 // Email devuelve el email solo si el dueño lo hizo público (ADR-003 §4).
 func (p Page) Email() string {
