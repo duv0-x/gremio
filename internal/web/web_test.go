@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -138,6 +139,12 @@ func TestFichaDeJugador(t *testing.T) {
 		t.Error("la CSP no admite style inline")
 	}
 
+	// El recuadro de perfil: nombre, hora local, empresa actual y el panel para seguir desde otra instancia.
+	for _, want := range []string{`<h1 id="nombre"`, "UTC−5 · ", "Acme", `href="#seguir"`, `id="seguir"`, `action="/@alice/seguir"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("recuadro: falta %q", want)
+		}
+	}
 	// La ficha abre con la presentación (escapada), pero no trae el CV ni el contacto.
 	if !strings.Contains(body, "Presentación larga &lt;script&gt;") {
 		t.Error("la ficha no muestra la presentación escapada")
@@ -155,6 +162,9 @@ func TestFichaDeJugador(t *testing.T) {
 	}
 	if strings.Contains(body, "<polygon") {
 		t.Error("la pestaña CV no debe traer la ficha")
+	}
+	if !strings.Contains(body, `<h1 id="nombre"`) || strings.Count(body, "Presentación larga") != 1 {
+		t.Error("el CV comparte el recuadro de perfil y no repite la presentación")
 	}
 	if strings.Contains(body, `id="contacto"`) {
 		t.Error("el CV no lleva sección de contacto: el contacto rápido son los botones fijos")
@@ -272,5 +282,31 @@ func TestAccionesDescargarCVyWhatsApp(t *testing.T) {
 	resp, pdf := get(t, ts.URL+"/@alice/cv.pdf")
 	if resp.StatusCode != http.StatusOK || pdf != "%PDF-1.7 hola" || !strings.HasPrefix(resp.Header.Get("Content-Disposition"), "attachment;") {
 		t.Errorf("cv.pdf: HTTP %d %q %q", resp.StatusCode, resp.Header.Get("Content-Disposition"), pdf)
+	}
+}
+
+func TestSeguir(t *testing.T) {
+	ts := newTestServer(t, fichaDoc)
+	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	for in, host := range map[string]string{
+		"mastodon.social":                "mastodon.social",
+		" HTTPS://Mastodon.Social/@bob ": "mastodon.social",
+		"@bob@hachyderm.io":              "hachyderm.io",
+		"gts.ejemplo.org:8443":           "gts.ejemplo.org:8443",
+	} {
+		resp, err := noFollow.Get(ts.URL + "/@alice/seguir?instancia=" + url.QueryEscape(in))
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "https://" + host + "/authorize_interaction?uri=" + url.QueryEscape("https://gremio.ejemplo.org/users/alice")
+		if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != want {
+			t.Errorf("%q: HTTP %d → %q, quería %q", in, resp.StatusCode, resp.Header.Get("Location"), want)
+		}
+	}
+	// Solo nombres de host: nada que cambie el destino ni la ruta.
+	for _, in := range []string{"", "localhost", "evil.org?x=1", "evil.org#x", "a b.org", "javascript:alert(1)"} {
+		if resp, _ := noFollow.Get(ts.URL + "/@alice/seguir?instancia=" + url.QueryEscape(in)); resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("%q: HTTP %d, quería 400", in, resp.StatusCode)
+		}
 	}
 }

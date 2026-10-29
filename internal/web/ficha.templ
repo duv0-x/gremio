@@ -12,15 +12,13 @@ const (
 	panel    = "rounded-lg border border-line bg-surface p-5 sm:p-8"
 	h2Ficha  = "font-display text-xl font-bold uppercase tracking-[0.01em]"
 	statTile = "rounded-lg border border-line bg-surface p-5"
+	infoChip = "inline-flex min-h-8 items-center gap-1.5 rounded-sm border border-line bg-surface-2 px-2.5 py-1 font-mono text-[13px] text-ink"
 	btnSec   = "inline-flex min-h-11 items-center justify-center rounded-md border-[1.5px] border-control px-[18px] text-[15px] font-semibold text-ink no-underline hover:bg-surface-2 hover:text-ink"
 )
 
 templ ficha(p Page) {
-	<div id="ficha" class="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 pt-8 pb-8 sm:px-6 sm:pt-12">
-		if about := p.About(); about != "" {
-			<p class="max-w-[880px] text-lg leading-relaxed text-muted sm:text-xl">{ about }</p>
-		}
-		<div class="grid gap-6 lg:grid-cols-[5fr_7fr]">
+	<div id="ficha" class="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 pt-6 pb-8 sm:px-6">
+		<div class="grid gap-6 lg:grid-cols-2">
 			@fichaHero(p)
 			@fichaRadar(topAttributes(p.Resume.Gremio.Attributes, radarSlots), len(p.Resume.Gremio.Attributes))
 		</div>
@@ -28,6 +26,104 @@ templ ficha(p Page) {
 	</div>
 	for _, a := range p.Resume.Gremio.Attributes {
 		@attributeDetail(p, a)
+	}
+}
+
+// profileCard es el recuadro de perfil, como el de una red social: foto (o iniciales) con la hora local, nombre,
+// cargo, presentación, datos clave y el botón Seguir.
+templ profileCard(p Page) {
+	<section class="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6 sm:pt-12" aria-labelledby="nombre">
+		<div class={ panel, "flex flex-col gap-8 sm:flex-row sm:items-start" }>
+			<div class="relative shrink-0 self-center sm:self-start">
+				if img := p.Resume.Basics.Image; img != "" {
+					<img src={ img } alt="" width="160" height="160" class="size-32 rounded-lg border border-line object-cover sm:size-40"/>
+				} else {
+					<span aria-hidden="true" class="flex size-32 items-center justify-center rounded-lg border border-line bg-surface-2 font-display text-5xl font-bold text-accent sm:size-40">{ initials(p.Resume.Basics.Name) }</span>
+				}
+				if now := time.Now(); p.LocalTime(now) != "" {
+					{{ tz, _ := p.TimeZone(now) }}
+					<p class="absolute -bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-bg px-3 py-1 font-mono text-xs whitespace-nowrap text-ink">
+						<span aria-hidden="true" class="size-2 rounded-full bg-success"></span>
+						<span class="sr-only">Hora local:</span>
+						{ tz } · { p.LocalTime(now) }
+					</p>
+				}
+			</div>
+			<div class="min-w-0 flex-1">
+				<div class="flex flex-wrap items-start justify-between gap-4">
+					<div class="min-w-0">
+						<h1 id="nombre" class="font-display text-[32px] leading-[1.1] font-bold tracking-[-0.01em] sm:text-[40px]">{ p.Resume.Basics.Name }</h1>
+						if p.Resume.Basics.Label != "" {
+							<p class="mt-1 font-display text-lg font-semibold text-accent">{ p.Resume.Basics.Label }</p>
+						}
+					</div>
+					<a class={ btnSec, "gap-2" } href="#seguir">
+						@icon("user-plus")
+						Seguir
+					</a>
+				</div>
+				if about := p.About(); about != "" {
+					<p class="mt-4 max-w-[760px] text-[17px] leading-relaxed text-muted">{ about }</p>
+				}
+				<ul class="mt-5 flex flex-wrap gap-2" aria-label="Datos">
+					if loc, tz := p.Location(), p.Resume.Gremio.Timezone; loc != "" || tz != "" {
+						<li class={ infoChip }>
+							@chipIcon("map-pin")
+							{ loc }
+							if tz, tip := p.TimeZone(time.Now()); tz != "" {
+								if loc != "" {
+									·
+								}
+								@sigla(tz, tip, "", true)
+							}
+						</li>
+					}
+					if w, ok := p.currentWork(); ok {
+						<li class={ infoChip }>
+							@chipIcon("building")
+							if w.URL != "" {
+								<a href={ templ.SafeURL(w.URL) } rel="noopener" class="text-ink no-underline hover:text-accent">{ w.Name }</a>
+							} else {
+								{ w.Name }
+							}
+						</li>
+					}
+					if langs := languageNames(p.Resume); langs != "" {
+						<li class={ infoChip }>
+							@chipIcon("languages")
+							{ langs }
+						</li>
+					}
+				</ul>
+			</div>
+		</div>
+	</section>
+	@followDrawer(p)
+}
+
+templ chipIcon(name string) {
+	<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		@templ.Raw(icons.Inner(name))
+	</svg>
+}
+
+templ followHeader(p Page) {
+	<p class={ eyebrow }>Fediverso</p>
+	<h2 id="seguir-titulo" class="mt-2 font-display text-2xl font-bold">Seguir a { p.Resume.Basics.Name }</h2>
+}
+
+// followDrawer pide la instancia del visitante y lo manda allá a seguir el perfil (/@usuario/seguir).
+templ followDrawer(p Page) {
+	@drawer("seguir", "#nombre", followHeader(p)) {
+		<p class="text-muted">
+			Escribe tu instancia (Mastodon, GoToSocial…) y te llevamos allá para seguir a <span class="font-mono text-ink select-all">{ p.Handle }</span>.
+		</p>
+		<form method="get" action={ templ.SafeURL(p.followPath()) } class="flex flex-col gap-3">
+			<label for="instancia" class="font-semibold">Tu instancia</label>
+			<input id="instancia" name="instancia" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="mastodon.social" class="min-h-11 rounded-md border-[1.5px] border-control bg-surface px-3 font-mono text-ink"/>
+			<button type="submit" class={ btnPrimary }>Ir a seguir</button>
+		</form>
+		<p class="text-sm text-faint">También puedes buscar el handle en tu app del fediverso.</p>
 	}
 }
 
@@ -61,7 +157,7 @@ templ icon(name string) {
 }
 
 templ fichaHero(p Page) {
-	<section class={ panel, "flex flex-col gap-6" } aria-labelledby="nombre">
+	<section class={ panel, "flex flex-col gap-6" } aria-label="Ficha de jugador">
 		<div class="flex items-start gap-5">
 			<span class="tip shrink-0" data-tip={ ovrTitle } tabindex="0">
 				<svg viewBox="0 0 120 120" class="size-24 sm:size-28" role="img" aria-label={ "Índice general " + itoa(p.Overall()) + ". " + ovrTitle }>
@@ -92,25 +188,9 @@ templ fichaHero(p Page) {
 					</p>
 				}
 			</div>
-			<span aria-hidden="true" class="flex size-14 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-2 font-display text-xl font-bold text-accent">{ initials(p.Resume.Basics.Name) }</span>
-		</div>
-		<div class="border-t border-line pt-6">
-			<h1 id="nombre" class="font-display text-[34px] leading-[1.05] font-bold tracking-[-0.01em] uppercase sm:text-[44px]">{ p.Resume.Basics.Name }</h1>
-			<p class="mt-2 text-muted">{ p.Resume.Basics.Label }</p>
-			if loc, tz := p.Location(), p.Resume.Gremio.Timezone; loc != "" || tz != "" {
-				<p class="mt-1 font-mono text-sm text-faint">
-					{ loc }
-					if tz, tip := p.TimeZone(time.Now()); tz != "" {
-						if loc != "" {
-							·
-						}
-						@sigla(tz, tip, "", true)
-					}
-				</p>
-			}
 		</div>
 		if len(p.Resume.Gremio.Views) > 1 {
-			<div>
+			<div class="border-t border-line pt-6">
 				<p class={ eyebrow } id="roles">@sigla("OVR", ovrTitle, "", true) por rol</p>
 				<ul class="mt-3 flex flex-wrap gap-3" aria-labelledby="roles">
 					for i, v := range p.Resume.Gremio.Views {
@@ -158,7 +238,7 @@ templ fichaRadar(attrs []profile.Attribute, total int) {
 				· los { itoa(len(attrs)) } mejores de { itoa(total) }
 			}
 		</p>
-		<svg viewBox="-40 0 420 340" class="mx-auto mt-4 w-full max-w-[460px]" role="img" aria-labelledby="radar-desc">
+		<svg viewBox="-40 0 420 340" class="mx-auto mt-4 w-full max-w-[400px]" role="img" aria-labelledby="radar-desc">
 			<desc id="radar-desc">
 				for _, a := range attrs {
 					{ a.Name }: { itoa(a.Score()) }.
@@ -178,7 +258,7 @@ templ fichaRadar(attrs []profile.Attribute, total int) {
 				</text>
 			}
 		</svg>
-		<dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] sm:grid-cols-3">
+		<dl class="mt-4 grid grid-cols-1 gap-x-4 gap-y-1 border-t border-line pt-4 text-[13px] sm:grid-cols-2">
 			for _, a := range attrs {
 				<div class="flex gap-2">
 					<dt class="font-mono text-accent">{ a.Code }</dt>

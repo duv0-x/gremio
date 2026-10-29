@@ -33,19 +33,13 @@ templ layout(p Page, title string) {
 		<body>
 			<a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-md focus:bg-surface focus:p-3">Saltar al contenido</a>
 			<header class="border-b border-line">
-				<nav aria-label="Principal" class="mx-auto flex min-h-16 max-w-[1200px] flex-wrap items-end justify-between gap-x-6 px-4 sm:px-6">
-					<a href={ templ.SafeURL("/@" + p.Username) } class="flex min-h-11 items-center gap-3 self-center py-2 text-ink no-underline hover:text-ink">
-						<span class="font-display text-lg font-bold">{ p.Resume.Basics.Name }</span>
-						<span class={ dataChip, "hidden sm:inline" }>{ p.Handle }</span>
+				<nav aria-label="Principal" class="mx-auto flex min-h-16 max-w-[1200px] flex-wrap items-center justify-between gap-x-6 px-4 sm:px-6">
+					// El handle va arriba, como en una red social: dice de qué instancia es el perfil. El nombre está en el recuadro.
+					<a href={ templ.SafeURL("/@" + p.Username) } class="flex min-h-11 items-center gap-3 py-2 text-ink no-underline hover:text-ink" aria-label={ "Perfil de " + p.Resume.Basics.Name }>
+						@logo()
+						<span class={ dataChip }>{ p.Handle }</span>
 					</a>
-					if p.HasFicha() {
-						// Pestañas de carpeta, del mismo ancho y apoyadas en el borde del header; cada una tiene su URL
-						// y muestra solo su sección.
-						<ul class="-mb-px grid w-full grid-cols-2 gap-1.5 pt-2 font-mono text-[13px] uppercase tracking-[0.08em] sm:w-[320px]">
-							@navTab(p, "ficha", "Ficha")
-							@navTab(p, "cv", "CV")
-						</ul>
-					} else {
+					if !p.HasFicha() {
 						<ul class="flex flex-wrap gap-x-5 font-mono text-[13px] uppercase tracking-[0.08em]">
 							if len(p.Resume.Work) > 0 {
 								<li><a class={ navLink } href="#experiencia">Experiencia</a></li>
@@ -79,23 +73,54 @@ templ layout(p Page, title string) {
 templ ProfilePage(p Page) {
 	@layout(p, p.Title()) {
 		switch  {
+			case p.HasFicha():
+				// El recuadro y las pestañas son de las dos pestañas; debajo va solo la sección elegida.
+				@profileCard(p)
+				@profileTabs(p)
+				if p.Tab == "cv" {
+					@cv(p)
+				} else {
+					@ficha(p)
+				}
 			case p.Tab == "cv":
 				@cv(p)
-			case p.HasFicha():
-				@ficha(p)
 			default:
 				@cvPage(p)
 		}
 	}
 }
 
-templ navTab(p Page, tab, label string) {
-	<li class="flex flex-col justify-end">
+// logo es la marca de Gremio: un hexágono, como las insignias de la ficha.
+templ logo() {
+	<svg viewBox="0 0 24 24" class="size-7 shrink-0 text-accent" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<path d="M12 2 20.66 7v10L12 22l-8.66-5V7z"></path>
+		<path d="M15.5 9.5A4 4 0 1 0 16 13h-3.5"></path>
+	</svg>
+}
+
+// profileTabs son las pestañas bajo el recuadro, como en un perfil de Instagram: cada una tiene su URL y muestra
+// solo su sección.
+templ profileTabs(p Page) {
+	<nav aria-label="Secciones del perfil" class="mx-auto mt-6 max-w-[1200px] px-4 sm:px-6">
+		<ul class="grid grid-cols-2 border-b border-line font-mono text-[13px] uppercase tracking-[0.08em]">
+			@profileTab(p, "ficha", "Ficha", "layout-grid")
+			@profileTab(p, "cv", "CV", "file-text")
+		</ul>
+	</nav>
+}
+
+templ profileTab(p Page, tab, label, iconName string) {
+	<li class="flex">
 		if p.Tab == tab {
-			// La activa se une con la página: mismo fondo y sin borde inferior, con una franja de acento arriba.
-			<a href={ templ.SafeURL(p.tabPath(tab)) } aria-current="page" class="flex min-h-12 items-center justify-center rounded-t-lg border border-t-[3px] border-line border-t-accent border-b-bg bg-bg font-semibold text-ink no-underline hover:text-ink">{ label }</a>
+			<a href={ templ.SafeURL(p.tabPath(tab)) } aria-current="page" class="-mb-px flex min-h-12 flex-1 items-center justify-center gap-2 border-b-2 border-accent font-semibold text-ink no-underline hover:text-ink">
+				@icon(iconName)
+				{ label }
+			</a>
 		} else {
-			<a href={ templ.SafeURL(p.tabPath(tab)) } class="flex min-h-11 items-center justify-center rounded-t-lg border border-line bg-surface-2 text-muted no-underline hover:bg-surface hover:text-ink">{ label }</a>
+			<a href={ templ.SafeURL(p.tabPath(tab)) } class="-mb-px flex min-h-12 flex-1 items-center justify-center gap-2 border-b-2 border-transparent text-muted no-underline hover:text-ink">
+				@icon(iconName)
+				{ label }
+			</a>
 		}
 	</li>
 }
@@ -103,13 +128,16 @@ templ navTab(p Page, tab, label string) {
 // cv es el perfil completo, en su propia pestaña: la información no se pierde, solo deja de ir primero (ADR-010 §5).
 templ cv(p Page) {
 	<div id="cv">
-		<section class={ section, "pb-0! sm:pb-0!" } aria-labelledby="cv-titulo">
-			<p class={ eyebrow }>CV completo</p>
-			<h2 id="cv-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">{ p.Resume.Basics.Name }</h2>
-			if about := p.About(); about != "" {
-				<p class="mt-4 max-w-[720px] text-lg leading-relaxed text-muted">{ about }</p>
-			}
-		</section>
+		// Con ficha, el nombre y la presentación ya están en el recuadro de arriba.
+		if !p.HasFicha() {
+			<section class={ section, "pb-0! sm:pb-0!" } aria-labelledby="cv-titulo">
+				<p class={ eyebrow }>CV completo</p>
+				<h2 id="cv-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">{ p.Resume.Basics.Name }</h2>
+				if about := p.About(); about != "" {
+					<p class="mt-4 max-w-[720px] text-lg leading-relaxed text-muted">{ about }</p>
+				}
+			</section>
+		}
 		if len(p.Resume.Work) > 0 {
 			@experience(p)
 		}

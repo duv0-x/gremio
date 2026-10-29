@@ -112,6 +112,16 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Robots-Tag", "noindex")
 		http.Redirect(w, r, wa, http.StatusFound)
 		return
+	case "seguir":
+		target, ok := page.followURL(r.URL.Query().Get("instancia"))
+		if !ok {
+			http.Error(w, "Escribe el nombre de tu instancia, por ejemplo mastodon.social.", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Robots-Tag", "noindex")
+		http.Redirect(w, r, target, http.StatusFound)
+		return
 	case "cv":
 		page.Tab = slug
 	default:

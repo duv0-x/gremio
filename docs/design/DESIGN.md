@@ -159,7 +159,8 @@ Diseño vigente del módulo Perfil, en el proyecto de Stitch. Reemplaza a `docs/
 
 | Pantalla | Stitch (`screens/…`) | Captura |
 |----------|----------------------|---------|
-| **Ficha de jugador, desktop** (oscuro) | `50ca36da74d642fbb1acfc1c86344c8c` | [ficha-desktop](stitch/ficha-desktop.png) |
+| **Ficha con recuadro de perfil y pestañas** (oscuro, vigente desde v0.7) | `28a03c73bd4d479cbaf56771f5c14222` | [ficha-recuadro](stitch/ficha-recuadro.png) |
+| Ficha de jugador, desktop (oscuro, hasta v0.6) | `50ca36da74d642fbb1acfc1c86344c8c` | [ficha-desktop](stitch/ficha-desktop.png) |
 | **Ficha de jugador, móvil** (claro) | `fea526eaf1744082b58543e37e21d158` | [ficha-movil](stitch/ficha-movil.png) |
 | **Detalle de un atributo** | `72b1e5aaa4fb49a7b346d7273b48d99b` | [ficha-detalle](stitch/ficha-detalle.png) |
 | Perfil público, desktop (v0.2, reemplazado por la ficha) | `39d0ba8ef5124247b45542cec6023929` | [perfil-desktop](stitch/perfil-desktop.png) |
@@ -180,6 +181,7 @@ Notas para implementar:
   - **Sin años totales ni comparaciones** entre personas.
   - **Detalle sin JavaScript**: el panel es un `<section>` con `:target`, sin aria-modal (no atrapa el foco).
   - **Insignias de rasgos** (estilo "emblema plano", aprobado en Stitch, `screens/ec70dc1cdbc3436a8d9862ade06a3c82`): hexágono `surface-2` con borde de 3 px del color del rasgo y un ícono de trazo de [Lucide](https://lucide.dev) (ISC, embebido en `internal/icons`) del mismo color. Es la única excepción al acento único. Paleta de 6, todos ≥ 4.5:1 sobre `surface-2`. En claro: verde `#0F6E61`, azul `#1D4ED8`, ámbar `#9A4A06`, rojo `#B42318`, violeta `#6D28D9` y gris `#4D525A`. En oscuro: `#4FB8A6`, `#8AB4F8`, `#E0A256`, `#F08A7E`, `#B9A3F7` y `#A9AEB5`. Van en la carta del jugador, con el nombre y la descripción en el tooltip.
+  - **Recuadro de perfil** (gremio#69, aprobado el 2026-10-28): como el de una red social y común a Ficha y CV. Lleva foto (`basics.image`, o las iniciales) con una píldora de hora local, nombre, cargo, presentación, chips (ubicación y zona horaria, empresa actual, idiomas) y **Seguir**, que abre un panel `:target` con la instancia del visitante y redirige a su `authorize_interaction`. La barra superior lleva el logo y el handle, sin el nombre. Las pestañas FICHA / CV van debajo del recuadro, estilo Instagram: ícono y etiqueta, con subrayado de acento en la activa. La carta del jugador ya no repite nombre ni ubicación.
   - **Puntajes**: el color del número (acento ≥ 85, tinta 70–84, apagado < 70) nunca va solo, siempre con el número escrito.
 
 - **El contenido es ilustrativo.** Stitch completó logros, stacks y skills por su cuenta (p. ej. le puso Rust/Tokio/gRPC a Gremio, que es Go, y agregó GCP, PCI-DSS y BGP). El contenido real sale del perfil importado (`duv0-x.github.io/files/cv.yaml`). Tampoco vale el email que arma el botón "Mostrar email" del HTML.
