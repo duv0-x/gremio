@@ -88,6 +88,9 @@ func (p Page) whatsappPath() string { return "/@" + p.Username + "/whatsapp" }
 
 func (p Page) cvPDFPath() string { return "/@" + p.Username + "/cv.pdf" }
 
+// floatingActions dice si va la barra flotante: solo sin ficha, porque con ficha las acciones van en el recuadro.
+func (p Page) floatingActions() bool { return !p.HasFicha() && (p.HasCV || p.WhatsApp() != "") }
+
 func (p Page) followPath() string { return "/@" + p.Username + "/seguir" }
 
 // followURL es la página de la instancia del visitante para seguir al Actor (authorize_interaction, que entienden

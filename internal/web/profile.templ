@@ -52,13 +52,13 @@ templ layout(p Page, title string) {
 					}
 				</nav>
 			</header>
-			// La barra de acciones ocupa el borde inferior: en móvil se reserva su alto bajo el contenido y en desktop
-			// bajo el footer, para que el botón flotante no tape su texto.
-			<main id="contenido" class={ templ.KV("pb-20 sm:pb-0", p.HasCV || p.WhatsApp() != "") }>
+			// La barra flotante ocupa el borde inferior: en móvil se reserva su alto bajo el contenido y en desktop
+			// bajo el footer, para que no tape su texto.
+			<main id="contenido" class={ templ.KV("pb-20 sm:pb-0", p.floatingActions()) }>
 				{ children... }
 			</main>
 			@actions(p)
-			<footer class={ "border-t border-line", templ.KV("sm:pb-20", p.HasCV || p.WhatsApp() != "") }>
+			<footer class={ "border-t border-line", templ.KV("sm:pb-20", p.floatingActions()) }>
 				<div class="mx-auto flex max-w-[1200px] flex-wrap justify-between gap-2 px-4 py-6 text-sm text-faint sm:px-6">
 					<p>
 						Gremio <span class="font-mono">{ p.Version }</span> · AGPL-3.0 · <a href={ templ.SafeURL(p.SourceURL()) }>Source</a>
