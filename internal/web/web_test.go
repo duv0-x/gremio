@@ -138,8 +138,11 @@ func TestFichaDeJugador(t *testing.T) {
 		t.Error("la CSP no admite style inline")
 	}
 
-	// La ficha no trae el CV ni el contacto: cada pestaña muestra solo lo suyo.
-	for _, leak := range []string{"Presentación larga", `id="contacto"`, `id="trabajo-acme"`, "Línea de tiempo", "logros con contexto"} {
+	// La ficha abre con la presentación (escapada), pero no trae el CV ni el contacto.
+	if !strings.Contains(body, "Presentación larga &lt;script&gt;") {
+		t.Error("la ficha no muestra la presentación escapada")
+	}
+	for _, leak := range []string{`id="contacto"`, `id="trabajo-acme"`, "Línea de tiempo", "logros con contexto"} {
 		if strings.Contains(body, leak) {
 			t.Errorf("la pestaña Ficha muestra %q", leak)
 		}

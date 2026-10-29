@@ -17,6 +17,9 @@ const (
 
 templ ficha(p Page) {
 	<div id="ficha" class="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 pt-8 pb-8 sm:px-6 sm:pt-12">
+		if about := p.About(); about != "" {
+			<p class="max-w-[880px] text-lg leading-relaxed text-muted sm:text-xl">{ about }</p>
+		}
 		<div class="grid gap-6 lg:grid-cols-[5fr_7fr]">
 			@fichaHero(p)
 			@fichaRadar(topAttributes(p.Resume.Gremio.Attributes, radarSlots), len(p.Resume.Gremio.Attributes))
