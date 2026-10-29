@@ -33,35 +33,25 @@ templ ficha(p Page) {
 // cargo, presentación, datos clave y el botón Seguir.
 templ profileCard(p Page) {
 	<section class="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6 sm:pt-12" aria-labelledby="nombre">
-		<div class={ panel, "flex flex-col gap-8 sm:flex-row sm:flex-wrap sm:items-start lg:flex-nowrap" }>
-			<div class="relative shrink-0 self-center sm:self-start">
-				if img := p.Resume.Basics.Image; img != "" {
-					<img src={ img } alt="" width="160" height="160" class="size-32 rounded-lg border border-line object-cover sm:size-40"/>
-				} else {
-					<span aria-hidden="true" class="flex size-32 items-center justify-center rounded-lg border border-line bg-surface-2 font-display text-5xl font-bold text-accent sm:size-40">{ initials(p.Resume.Basics.Name) }</span>
-				}
-				if now := time.Now(); p.LocalTime(now) != "" {
-					{{ tz, _ := p.TimeZone(now) }}
-					<p class="absolute -bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-bg px-3 py-1 font-mono text-xs whitespace-nowrap text-ink">
-						<span aria-hidden="true" class="size-2 rounded-full bg-success"></span>
-						<span class="sr-only">Hora local:</span>
-						{ tz } · { p.LocalTime(now) }
-					</p>
-				}
-			</div>
-			<div class="min-w-0 flex-1">
-				<div class="flex flex-wrap items-start justify-between gap-4">
-					<div class="min-w-0">
-						<h1 id="nombre" class="font-display text-[32px] leading-[1.1] font-bold tracking-[-0.01em] sm:text-[40px]">{ p.Resume.Basics.Name }</h1>
-						if p.Resume.Basics.Label != "" {
-							<p class="mt-1 font-display text-lg font-semibold text-accent">{ p.Resume.Basics.Label }</p>
-						}
-					</div>
+		<div class={ panel, "flex flex-col gap-8 sm:flex-row sm:flex-wrap sm:items-center lg:flex-nowrap" }>
+			// La foto lleva debajo los datos de contexto: ubicación con zona horaria e idiomas.
+			<div class="flex shrink-0 flex-col items-center gap-6">
+				<div class="relative">
+					if img := p.Resume.Basics.Image; img != "" {
+						<img src={ img } alt="" width="160" height="160" class="size-32 rounded-lg border border-line object-cover sm:size-40"/>
+					} else {
+						<span aria-hidden="true" class="flex size-32 items-center justify-center rounded-lg border border-line bg-surface-2 font-display text-5xl font-bold text-accent sm:size-40">{ initials(p.Resume.Basics.Name) }</span>
+					}
+					if now := time.Now(); p.LocalTime(now) != "" {
+						{{ tz, _ := p.TimeZone(now) }}
+						<p class="absolute -bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-bg px-3 py-1 font-mono text-xs whitespace-nowrap text-ink">
+							<span aria-hidden="true" class="size-2 rounded-full bg-success"></span>
+							<span class="sr-only">Hora local:</span>
+							{ tz } · { p.LocalTime(now) }
+						</p>
+					}
 				</div>
-				if about := p.About(); about != "" {
-					<p class="mt-4 max-w-[760px] text-[17px] leading-relaxed text-muted">{ about }</p>
-				}
-				<ul class="mt-5 flex flex-wrap gap-2" aria-label="Datos">
+				<ul class="flex flex-col items-center gap-2" aria-label="Datos">
 					if loc, tz := p.Location(), p.Resume.Gremio.Timezone; loc != "" || tz != "" {
 						<li class={ infoChip }>
 							@chipIcon("map-pin")
@@ -74,16 +64,6 @@ templ profileCard(p Page) {
 							}
 						</li>
 					}
-					if w, ok := p.currentWork(); ok {
-						<li class={ infoChip }>
-							@chipIcon("building")
-							if w.URL != "" {
-								<a href={ templ.SafeURL(w.URL) } rel="noopener" class="text-ink no-underline hover:text-accent">{ w.Name }</a>
-							} else {
-								{ w.Name }
-							}
-						</li>
-					}
 					if langs := languageNames(p.Resume); langs != "" {
 						<li class={ infoChip }>
 							@chipIcon("languages")
@@ -91,6 +71,12 @@ templ profileCard(p Page) {
 						</li>
 					}
 				</ul>
+			</div>
+			<div class="min-w-0 flex-1">
+				<h1 id="nombre" class="font-display text-[32px] leading-[1.1] font-bold tracking-[-0.01em] sm:text-[40px]">{ p.Resume.Basics.Name }</h1>
+				if about := p.About(); about != "" {
+					<p class="mt-4 max-w-[760px] text-[17px] leading-relaxed text-muted">{ about }</p>
+				}
 			</div>
 			// Seguir y, debajo, las acciones de contacto: su propia columna, para no empujar la presentación.
 			<div class="flex flex-col gap-2 sm:w-full sm:flex-row lg:w-[220px] lg:shrink-0 lg:flex-col">
@@ -200,16 +186,20 @@ templ fichaHero(p Page) {
 		if len(p.Resume.Gremio.Views) > 1 {
 			<div class="border-t border-line pt-6">
 				<p class={ eyebrow } id="roles">@sigla("OVR", ovrTitle, "", true) por rol</p>
-				<ul class="mt-3 flex flex-wrap gap-3" aria-labelledby="roles">
+				<ul class="mt-4 flex flex-wrap gap-3" aria-labelledby="roles">
 					for i, v := range p.Resume.Gremio.Views {
-						<li class="shrink-0">
+						<li class="relative shrink-0">
+							// La primera vista es la posición principal: el rol que desempeña hoy, aunque se esté viendo otro.
+							if i == 0 {
+								<span class="tip absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 rounded-full border border-accent bg-surface px-1.5 font-mono text-[10px] leading-4 tracking-[0.08em] text-accent uppercase" data-tip={ currentRoleTip(p) } aria-hidden="true">Actual</span>
+							}
 							if i == p.View {
 								<a href={ templ.SafeURL(p.viewPath(i)) } aria-current="page" class="flex min-h-11 min-w-[84px] flex-col items-center rounded-md bg-accent px-3 py-2 text-on-accent no-underline hover:text-on-accent" data-swap>
-									@roleChip(p, v)
+									@roleChip(p, v, i == 0)
 								</a>
 							} else {
 								<a href={ templ.SafeURL(p.viewPath(i)) } class="flex min-h-11 min-w-[84px] flex-col items-center rounded-md border border-line px-3 py-2 text-ink no-underline hover:bg-surface-2 hover:text-ink" data-swap>
-									@roleChip(p, v)
+									@roleChip(p, v, i == 0)
 								</a>
 							}
 						</li>
@@ -232,8 +222,11 @@ templ fichaHero(p Page) {
 	</section>
 }
 
-templ roleChip(p Page, v profile.View) {
+templ roleChip(p Page, v profile.View, current bool) {
 	@sigla(viewCode(v), positionTitle(v), "font-mono text-[12px] uppercase", false)
+	if current {
+		<span class="sr-only">(rol actual)</span>
+	}
 	<span class="font-display text-2xl font-bold">{ itoa(p.Resume.Overall(v)) }</span>
 }
 

@@ -149,7 +149,9 @@ func TestFichaDeJugador(t *testing.T) {
 		t.Errorf("vista.js: HTTP %d", resp.StatusCode)
 	}
 	// El recuadro de perfil: nombre, hora local, empresa actual y el panel para seguir desde otra instancia.
-	for _, want := range []string{`<h1 id="nombre"`, "UTC−5 · ", "Acme", `href="#seguir"`, `id="seguir"`, `action="/@alice/seguir"`} {
+	for _, want := range []string{`<h1 id="nombre"`, "UTC−5 · ", `href="#seguir"`, `id="seguir"`, `action="/@alice/seguir"`,
+		// El rol actual (la primera vista) lleva su marca.
+		`data-tip="Rol que desempeña hoy, en Acme"`, "(rol actual)"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("recuadro: falta %q", want)
 		}
