@@ -20,7 +20,7 @@ templ ficha(p Page) {
 	<div id="ficha" class="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 pt-6 pb-8 sm:px-6">
 		<div class="grid gap-6 lg:grid-cols-2">
 			@fichaHero(p)
-			@fichaRadar(topAttributes(p.Resume.Gremio.Attributes, radarSlots), len(p.Resume.Gremio.Attributes))
+			@fichaRadar(p)
 		</div>
 		@fichaAttributes(p)
 	</div>
@@ -204,11 +204,11 @@ templ fichaHero(p Page) {
 					for i, v := range p.Resume.Gremio.Views {
 						<li class="shrink-0">
 							if i == p.View {
-								<a href={ templ.SafeURL(p.viewPath(i)) } aria-current="page" class="flex min-h-11 min-w-[84px] flex-col items-center rounded-md bg-accent px-3 py-2 text-on-accent no-underline hover:text-on-accent">
+								<a href={ templ.SafeURL(p.viewPath(i)) } aria-current="page" class="flex min-h-11 min-w-[84px] flex-col items-center rounded-md bg-accent px-3 py-2 text-on-accent no-underline hover:text-on-accent" data-swap>
 									@roleChip(p, v)
 								</a>
 							} else {
-								<a href={ templ.SafeURL(p.viewPath(i)) } class="flex min-h-11 min-w-[84px] flex-col items-center rounded-md border border-line px-3 py-2 text-ink no-underline hover:bg-surface-2 hover:text-ink">
+								<a href={ templ.SafeURL(p.viewPath(i)) } class="flex min-h-11 min-w-[84px] flex-col items-center rounded-md border border-line px-3 py-2 text-ink no-underline hover:bg-surface-2 hover:text-ink" data-swap>
 									@roleChip(p, v)
 								</a>
 							}
@@ -237,13 +237,16 @@ templ roleChip(p Page, v profile.View) {
 	<span class="font-display text-2xl font-bold">{ itoa(p.Resume.Overall(v)) }</span>
 }
 
-templ fichaRadar(attrs []profile.Attribute, total int) {
+// fichaRadar dibuja los atributos que más cuentan en el rol elegido: cambia con la vista.
+templ fichaRadar(p Page) {
+	{{ v, _ := p.Selected() }}
+	{{ attrs := radarAttributes(p.Resume.Gremio.Attributes, v, radarSlots) }}
 	<section class={ panel } aria-labelledby="radar-titulo">
 		<h2 id="radar-titulo" class={ h2Ficha }>Radar</h2>
 		<p class="mt-1 font-mono text-[13px] text-faint">
 			Puntajes de 0 a 99, autodeclarados
-			if total > len(attrs) {
-				· los { itoa(len(attrs)) } mejores de { itoa(total) }
+			if len(attrs) < len(p.Resume.Gremio.Attributes) {
+				· los { itoa(len(attrs)) } que más pesan en { viewCode(v) }
 			}
 		</p>
 		<svg viewBox="-40 0 420 340" class="mx-auto mt-4 w-full max-w-[400px]" role="img" aria-labelledby="radar-desc">

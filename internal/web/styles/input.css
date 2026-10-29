@@ -211,3 +211,9 @@
     display: none !important;
   }
 }
+
+/* Cambio de rol o pestaña (static/vista.js): un fundido corto en lugar del salto de una recarga. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}
