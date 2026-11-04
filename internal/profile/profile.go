@@ -119,6 +119,7 @@ type Project struct {
 	Description string   `json:"description,omitempty"`
 	URL         string   `json:"url,omitempty"`
 	Keywords    []string `json:"keywords,omitempty"`
+	Image       string   `json:"image,omitempty"` // captura del proyecto; JSON Resume no la tiene
 }
 
 // Extension son los datos propios de Gremio, que el JSON Resume estándar no tiene.

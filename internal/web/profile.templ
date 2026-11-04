@@ -231,7 +231,7 @@ templ projects(p Page) {
 
 templ projectCard(pr profile.Project) {
 	if host := urlHost(pr.URL); host != "" {
-		<a href={ pr.URL } rel="noopener" class="flex h-full flex-col rounded-md border border-line bg-surface p-4 text-ink no-underline hover:border-accent hover:text-ink">
+		<a href={ pr.URL } rel="noopener" class="flex h-full flex-col overflow-hidden rounded-md border border-line bg-surface p-4 text-ink no-underline hover:border-accent hover:text-ink">
 			@projectBody(pr)
 			<span class="mt-auto flex items-center justify-between gap-2 pt-4 font-mono text-[13px] text-faint">
 				<span class="truncate">{ host }</span>
@@ -239,13 +239,16 @@ templ projectCard(pr profile.Project) {
 			</span>
 		</a>
 	} else {
-		<div class="flex h-full flex-col rounded-md border border-line bg-surface p-4">
+		<div class="flex h-full flex-col overflow-hidden rounded-md border border-line bg-surface p-4">
 			@projectBody(pr)
 		</div>
 	}
 }
 
 templ projectBody(pr profile.Project) {
+	if urlHost(pr.Image) != "" {
+		<img src={ pr.Image } alt="" width="960" height="600" loading="lazy" decoding="async" class="-mx-4 -mt-4 mb-4 aspect-[16/10] w-[calc(100%+2rem)] max-w-none border-b border-line object-cover object-top"/>
+	}
 	<span class="font-display text-lg leading-snug font-semibold">{ pr.Name }</span>
 	if pr.Description != "" {
 		<span class="mt-3 line-clamp-4 border-t border-line pt-3 text-sm leading-relaxed text-muted">{ pr.Description }</span>
