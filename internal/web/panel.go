@@ -48,6 +48,7 @@ func (s *Server) registerPanel(mux *http.ServeMux) {
 	mux.HandleFunc("GET /panel/exportar", s.getExport)
 	post("/panel/importar", s.postImport)
 	post("/panel/importar/confirmar", s.postImportConfirm)
+	s.registerEditor(mux, post)
 }
 
 // owner exige sesión: si no la hay, lleva a /login y devuelve false.
