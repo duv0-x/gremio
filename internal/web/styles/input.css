@@ -281,3 +281,28 @@
 ::view-transition-new(root) {
   animation-duration: 180ms;
 }
+/* Lo que solo funciona con htmx, como "Agregar otra fila": static/panel.js marca html.js. */
+html:not(.js) .js-only {
+  display: none;
+}
+/* Spinner de 16 px en el botón de una petición de htmx (static/panel.js); quieto con reduced motion. */
+button[aria-busy="true"]::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button[aria-busy="true"]::after {
+    animation: none;
+  }
+}

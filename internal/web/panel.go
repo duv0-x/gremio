@@ -56,6 +56,12 @@ func (s *Server) owner(w http.ResponseWriter, r *http.Request) bool {
 	if s.loggedIn(w, r) {
 		return true
 	}
+	if isHTMX(r) {
+		// htmx seguiría el redirect y pondría el login dentro del formulario.
+		w.Header().Set("HX-Redirect", "/login")
+		w.WriteHeader(http.StatusNoContent)
+		return false
+	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 	return false
 }

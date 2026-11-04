@@ -10,6 +10,9 @@ templ panelLayout(version, title string) {
 			<meta name="robots" content="noindex"/>
 			<title>{ title } · Gremio</title>
 			<link rel="stylesheet" href={ "/static/app.css?v=" + version }/>
+			// htmx 4.0.1 (0BSD), dist/htmx.min.js del paquete de npm, sha256 a0abb04f2f45a1f89d1d4844023245537e5e6014c87b144553e0607b4cc32130.
+			<script src={ "/static/htmx.min.js?v=" + version } defer></script>
+			<script src={ "/static/panel.js?v=" + version } defer></script>
 		</head>
 		<body>
 			<header class="border-b border-line">
