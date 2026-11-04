@@ -10,6 +10,8 @@ User=gremio
 Group=gremio
 WorkingDirectory=/gremio
 EnvironmentFile=/gremio/gremio.env
+# Opcional: secretos fuera de gremio.env (p. ej. GREMIO_SMTP_PASSWORD), en /gremio/secrets.env con permisos 600 de root.
+EnvironmentFile=-/gremio/secrets.env
 ExecStart=/gremio/gremio serve
 Restart=on-failure
 RestartSec=5
