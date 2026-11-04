@@ -48,7 +48,7 @@ func newTestServerIn(t *testing.T, document, dataDir string) *httptest.Server {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	New(st, "1.2.3", nil).Register(mux)
+	New(st, "1.2.3", nil, nil).Register(mux)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 	return ts

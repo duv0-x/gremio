@@ -146,7 +146,7 @@ func serve(ctx context.Context, args []string) error {
 	if !inst.OwnerEmail.Valid {
 		slog.Warn("la instancia no tiene correo del dueño: no se puede entrar al panel", "arreglo", "gremio admin set-email <correo>")
 	}
-	web.New(st, version, mailer).Register(mux)
+	web.New(st, version, mailer, fed).Register(mux)
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := st.Ping(r.Context()); err != nil {
 			http.Error(w, "base no disponible", http.StatusServiceUnavailable)

@@ -46,7 +46,7 @@ go build ./cmd/gremio                         # Go 1.26, sin cgo
 | `--smtp-from` | `GREMIO_SMTP_FROM` | vacío, p. ej. `Gremio <gremio@ejemplo.org>` |
 | (solo entorno) | `GREMIO_SMTP_PASSWORD` | vacío |
 
-**Panel** ([ADR-009](docs/adr/ADR-009-autenticacion-del-panel.md)): `/login` envía un enlace de un solo uso (15 min) al correo del dueño, que se cambia con `gremio admin set-email <correo>`. No hay contraseña ni otro acceso: si el correo no llega, hay que arreglar el SMTP. Gremio nunca envía sin TLS.
+**Panel** ([ADR-009](docs/adr/ADR-009-autenticacion-del-panel.md)): `/login` envía un enlace de un solo uso (15 min) al correo del dueño, que se cambia con `gremio admin set-email <correo>`. No hay contraseña ni otro acceso: si el correo no llega, hay que arreglar el SMTP. Gremio nunca envía sin TLS. En `/panel` se importa (con vista previa) y se exporta el perfil, y se cierran las sesiones.
 
 **`--host` y `--account-domain` son permanentes**: se graban en la base en el primer `serve` y el binario se niega a arrancar con otros valores, porque las demás instancias cachean el Actor y sus llaves (ADR-001). Si `--account-domain` es distinto del dominio de `--host`, ese dominio tiene que redirigir `/.well-known/webfinger`, `host-meta` y `nodeinfo` al host.
 

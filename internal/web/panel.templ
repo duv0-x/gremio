@@ -20,10 +20,8 @@ templ panelLayout(version, title string) {
 					</a>
 				</nav>
 			</header>
-			<main id="contenido" class="mx-auto max-w-[520px] px-4 py-14 sm:px-6">
-				<div class={ card, "flex flex-col gap-4 sm:p-10" }>
-					{ children... }
-				</div>
+			<main id="contenido" class="mx-auto flex max-w-[720px] flex-col gap-6 px-4 py-14 sm:px-6">
+				{ children... }
 			</main>
 		</body>
 	</html>
@@ -41,26 +39,28 @@ const (
 
 templ LoginPage(version string, state loginState) {
 	@panelLayout(version, "Entrar") {
-		<p class={ eyebrow }>Panel</p>
-		switch state {
-			case loginSent:
-				<h1 class="font-display text-[28px] font-bold">Revisa tu correo</h1>
-				<p class="text-muted">Te enviamos un enlace al correo del dueño de la instancia. Vence en 15 minutos y sirve una sola vez.</p>
-				<p class="text-sm text-faint">Puedes abrirlo en cualquier dispositivo. Si pides otro, el anterior deja de servir.</p>
-			case loginLimited:
-				<h1 class="font-display text-[28px] font-bold">Espera un momento</h1>
-				<p class="text-muted">Ya se envió un enlace hace poco. Se puede pedir uno por minuto y cinco por hora.</p>
-				<a class={ btnSec } href="/login">Volver</a>
-			case loginUnavailable:
-				<h1 class="font-display text-[28px] font-bold">No se pudo enviar el enlace</h1>
-				<p class="text-muted">La instancia no tiene configurado el correo del dueño o el SMTP, o el envío falló. Quien administra el servidor lo ve en el log.</p>
-				<a class={ btnSec } href="/login">Volver</a>
-			default:
-				<h1 class="font-display text-[28px] font-bold">Entrar al panel</h1>
-				<p class="text-muted">El panel es solo para el dueño de la instancia. Te enviamos un enlace de un solo uso a su correo: no hay contraseña.</p>
-				<form method="post" action="/login">
-					<button type="submit" class={ btnPrimary, "w-full" }>Enviarme un enlace</button>
-				</form>
+		@authCard() {
+			<p class={ eyebrow }>Panel</p>
+			switch state {
+				case loginSent:
+					<h1 class="font-display text-[28px] font-bold">Revisa tu correo</h1>
+					<p class="text-muted">Te enviamos un enlace al correo del dueño de la instancia. Vence en 15 minutos y sirve una sola vez.</p>
+					<p class="text-sm text-faint">Puedes abrirlo en cualquier dispositivo. Si pides otro, el anterior deja de servir.</p>
+				case loginLimited:
+					<h1 class="font-display text-[28px] font-bold">Espera un momento</h1>
+					<p class="text-muted">Ya se envió un enlace hace poco. Se puede pedir uno por minuto y cinco por hora.</p>
+					<a class={ btnSec } href="/login">Volver</a>
+				case loginUnavailable:
+					<h1 class="font-display text-[28px] font-bold">No se pudo enviar el enlace</h1>
+					<p class="text-muted">La instancia no tiene configurado el correo del dueño o el SMTP, o el envío falló. Quien administra el servidor lo ve en el log.</p>
+					<a class={ btnSec } href="/login">Volver</a>
+				default:
+					<h1 class="font-display text-[28px] font-bold">Entrar al panel</h1>
+					<p class="text-muted">El panel es solo para el dueño de la instancia. Te enviamos un enlace de un solo uso a su correo: no hay contraseña.</p>
+					<form method="post" action="/login">
+						<button type="submit" class={ btnPrimary, "w-full" }>Enviarme un enlace</button>
+					</form>
+			}
 		}
 	}
 }
@@ -69,38 +69,114 @@ templ LoginPage(version string, state loginState) {
 // solo hacen GET, no gastan el token.
 templ LinkPage(version, token string) {
 	@panelLayout(version, "Entrar") {
-		<p class={ eyebrow }>Panel</p>
-		<h1 class="font-display text-[28px] font-bold">Entrar al panel</h1>
-		<p class="text-muted">Pulsa el botón para iniciar sesión en este navegador. La sesión dura 30 días.</p>
-		<form method="post" action={ templ.SafeURL("/login/" + token) }>
-			<button type="submit" class={ btnPrimary, "w-full" }>Entrar al panel</button>
-		</form>
+		@authCard() {
+			<p class={ eyebrow }>Panel</p>
+			<h1 class="font-display text-[28px] font-bold">Entrar al panel</h1>
+			<p class="text-muted">Pulsa el botón para iniciar sesión en este navegador. La sesión dura 30 días.</p>
+			<form method="post" action={ templ.SafeURL("/login/" + token) }>
+				<button type="submit" class={ btnPrimary, "w-full" }>Entrar al panel</button>
+			</form>
+		}
 	}
 }
 
 templ LinkInvalidPage(version string) {
 	@panelLayout(version, "Enlace vencido") {
-		<p class={ eyebrow }>Panel</p>
-		<h1 class="font-display text-[28px] font-bold">Este enlace ya no sirve</h1>
-		<p class="text-muted">Venció, ya se usó o se pidió uno más nuevo. Los enlaces duran 15 minutos y sirven una sola vez.</p>
-		<a class={ btnPrimary } href="/login">Pedir otro enlace</a>
+		@authCard() {
+			<p class={ eyebrow }>Panel</p>
+			<h1 class="font-display text-[28px] font-bold">Este enlace ya no sirve</h1>
+			<p class="text-muted">Venció, ya se usó o se pidió uno más nuevo. Los enlaces duran 15 minutos y sirven una sola vez.</p>
+			<a class={ btnPrimary } href="/login">Pedir otro enlace</a>
+		}
 	}
 }
 
-// PanelPage es el panel; el editor del perfil llega con gremio#28.
-templ PanelPage(version, handle string) {
-	@panelLayout(version, "Panel") {
-		<p class={ eyebrow }>Panel · { handle }</p>
-		<h1 class="font-display text-[28px] font-bold">Sesión iniciada</h1>
-		<p class="text-muted">Por ahora el perfil se edita con <code class="font-mono text-sm">gremio admin import</code>; el editor llega pronto.</p>
-		<a class={ btnSec } href="/">Ver el perfil</a>
-		<div class="mt-4 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row">
-			<form method="post" action="/logout" class="flex-1">
-				<button type="submit" class={ btnSec, "w-full" }>Cerrar sesión</button>
-			</form>
-			<form method="post" action="/panel/cerrar-sesiones" class="flex-1">
-				<button type="submit" class={ btnSec, "w-full" }>Cerrar todas las sesiones</button>
-			</form>
+templ authCard() {
+	<div class={ card, "mx-auto flex w-full max-w-[520px] flex-col gap-4 sm:p-10" }>
+		{ children... }
+	</div>
+}
+
+// panelData es lo que muestra /panel; Notice y Error son el resultado de la última acción.
+type panelData struct {
+	Version, Handle string
+	Notice, Error   string
+}
+
+templ panelSection(title string) {
+	<section class={ card, "flex flex-col gap-4" } aria-label={ title }>
+		<h2 class="font-display text-xl font-bold">{ title }</h2>
+		{ children... }
+	</section>
+}
+
+templ PanelPage(d panelData) {
+	@panelLayout(d.Version, "Panel") {
+		<div>
+			<p class={ eyebrow }>Panel · { d.Handle }</p>
+			<h1 class="mt-2 font-display text-[28px] font-bold">Tu perfil</h1>
 		</div>
+		if d.Notice != "" {
+			<p role="status" class="rounded-md border border-success p-4 text-sm text-ink">{ d.Notice }</p>
+		}
+		if d.Error != "" {
+			<p role="alert" class="rounded-md border border-danger p-4 text-sm text-ink">{ d.Error }</p>
+		}
+		@panelSection("Importar") {
+			<p class="text-muted">Sube un JSON Resume, o el que exportaste aquí. Antes de reemplazar el perfil verás qué cambia.</p>
+			<form method="post" action="/panel/importar" enctype="multipart/form-data" class="flex flex-col gap-3">
+				<label for="archivo" class="text-sm font-semibold">Archivo JSON</label>
+				<input id="archivo" name="archivo" type="file" accept=".json,application/json" required class="min-h-11 rounded-md border border-control bg-surface-2 p-2 text-sm text-ink file:mr-3 file:min-h-9 file:rounded-sm file:border-0 file:bg-surface file:px-3 file:text-ink"/>
+				<button type="submit" class={ btnPrimary, "sm:self-start" }>Ver qué cambia</button>
+			</form>
+		}
+		@panelSection("Exportar") {
+			<p class="text-muted">El archivo con extensiones guarda ids, evidencia, vistas y atributos: es el que se vuelve a importar. El estándar sirve para otras herramientas de JSON Resume.</p>
+			<div class="flex flex-col gap-3 sm:flex-row">
+				<a class={ btnSec } href="/panel/exportar" download>Con extensiones</a>
+				<a class={ btnSec } href="/panel/exportar?formato=estandar" download>JSON Resume estándar</a>
+			</div>
+		}
+		@panelSection("Sesiones") {
+			<p class="text-muted">La sesión dura 30 días en cada navegador. Cerrar todas saca también a los demás dispositivos.</p>
+			<div class="flex flex-col gap-3 sm:flex-row">
+				<a class={ btnSec } href="/">Ver el perfil</a>
+				<form method="post" action="/logout">
+					<button type="submit" class={ btnSec, "w-full" }>Cerrar sesión</button>
+				</form>
+				<form method="post" action="/panel/cerrar-sesiones">
+					<button type="submit" class={ btnSec, "w-full" }>Cerrar todas</button>
+				</form>
+			</div>
+		}
+	}
+}
+
+// ImportPreviewPage muestra qué cambia antes de reemplazar el perfil. El documento viaja en el formulario y se
+// vuelve a validar al confirmar.
+templ ImportPreviewPage(version string, diff, warnings []string, doc string) {
+	@panelLayout(version, "Importar") {
+		<section class={ card, "flex flex-col gap-4" } aria-labelledby="importar-titulo">
+			<p class={ eyebrow }>Panel · Importar</p>
+			<h1 id="importar-titulo" class="font-display text-[28px] font-bold">Revisa los cambios</h1>
+			<p class="text-muted">El perfil importado <strong class="text-ink">reemplaza</strong> al actual: no se mezcla. La foto se conserva si el archivo no trae una.</p>
+			<pre class="overflow-x-auto rounded-md bg-surface-2 p-4 font-mono text-[13px] leading-relaxed text-ink">
+				for _, line := range diff {
+					{ line + "\n" }
+				}
+			</pre>
+			if len(warnings) > 0 {
+				<ul class="list-disc pl-5 text-sm text-muted">
+					for _, w := range warnings {
+						<li>{ w }</li>
+					}
+				</ul>
+			}
+			<form method="post" action="/panel/importar/confirmar" class="flex flex-col gap-3 sm:flex-row">
+				<input type="hidden" name="documento" value={ doc }/>
+				<button type="submit" class={ btnPrimary }>Reemplazar el perfil</button>
+				<a class={ btnSec } href="/panel">Cancelar</a>
+			</form>
+		</section>
 	}
 }
