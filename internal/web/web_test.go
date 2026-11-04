@@ -341,3 +341,39 @@ func TestSeguir(t *testing.T) {
 		}
 	}
 }
+
+func TestPestanaProyectos(t *testing.T) {
+	// Sin proyectos no hay pestaña ni ruta.
+	ts := newTestServer(t, fichaDoc)
+	if _, body := get(t, ts.URL+"/@alice"); strings.Contains(body, `href="/@alice/proyectos"`) || !strings.Contains(body, "grid-cols-2") {
+		t.Error("sin proyectos no debe haber pestaña Proyectos")
+	}
+	if resp, _ := get(t, ts.URL+"/@alice/proyectos"); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("/proyectos sin proyectos: HTTP %d", resp.StatusCode)
+	}
+
+	withProjects := strings.Replace(fichaDoc, `"skills": [`, `"projects": [
+    {"id": "papiro", "name": "papiro", "description": "EPUB a tu Kindle", "url": "https://papiro.ejemplo.org/", "keywords": ["Go", "templ"]},
+    {"id": "malo", "name": "malo", "url": "javascript:alert(1)"}],
+  "skills": [`, 1)
+	ts = newTestServer(t, withProjects)
+	_, body := get(t, ts.URL+"/@alice")
+	if !strings.Contains(body, `href="/@alice/proyectos"`) || !strings.Contains(body, "grid-cols-3") || strings.Contains(body, `id="proyectos"`) {
+		t.Error("la ficha debe tener la pestaña Proyectos, sin su contenido")
+	}
+	resp, body := get(t, ts.URL+"/@alice/proyectos")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("HTTP %d", resp.StatusCode)
+	}
+	for _, want := range []string{`id="proyectos"`, "data-cinta-track", `href="https://papiro.ejemplo.org/"`, "papiro.ejemplo.org<", "EPUB a tu Kindle", ">templ<",
+		`href="/@alice/proyectos" aria-current="page"`, "<title>Alice Ejemplo · Proyectos</title>"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("Proyectos: falta %q", want)
+		}
+	}
+	for _, leak := range []string{"javascript:", "<polygon", `id="trabajo-acme"`} {
+		if strings.Contains(body, leak) {
+			t.Errorf("Proyectos muestra %q", leak)
+		}
+	}
+}
