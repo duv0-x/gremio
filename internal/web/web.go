@@ -23,17 +23,18 @@ var staticFS embed.FS
 
 // Server sirve la web pública de la instancia.
 type Server struct {
-	st      *store.Store
-	version string
-	auth    *auth.Auth
-	mail    Mailer // nil si el SMTP no está configurado: el login avisa que no puede enviar
+	st       *store.Store
+	version  string
+	auth     *auth.Auth
+	mail     Mailer   // nil si el SMTP no está configurado: el login avisa que no puede enviar
+	profiles Profiles // guarda los cambios del panel
 }
 
-func New(st *store.Store, version string, mail Mailer) *Server {
+func New(st *store.Store, version string, mail Mailer, profiles Profiles) *Server {
 	if version == "" {
 		version = "dev"
 	}
-	return &Server{st: st, version: version, auth: auth.New(st), mail: mail}
+	return &Server{st: st, version: version, auth: auth.New(st), mail: mail, profiles: profiles}
 }
 
 // Register agrega las rutas web al mux.

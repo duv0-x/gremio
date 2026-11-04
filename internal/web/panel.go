@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -11,12 +12,21 @@ import (
 
 	"github.com/duv0-x/gremio/internal/auth"
 	"github.com/duv0-x/gremio/internal/instance"
+	"github.com/duv0-x/gremio/internal/profile"
 )
 
 // Mailer envía el enlace para entrar; mail.SMTP lo implementa.
 type Mailer interface {
 	Send(ctx context.Context, to, subject, body string) error
 }
+
+// Profiles guarda el perfil y avisa a los seguidores; federation.Server lo implementa.
+type Profiles interface {
+	ReplaceProfile(ctx context.Context, r *profile.Resume) (int, error)
+}
+
+// maxImport es el tamaño máximo de un perfil importado; el de @root pesa unos 60 KB.
+const maxImport = 1 << 20
 
 // sessionCookie lleva el prefijo __Host-: el navegador la exige Secure, con Path=/ y sin Domain (ADR-009 §5).
 const sessionCookie = "__Host-gremio_session"
@@ -35,6 +45,120 @@ func (s *Server) registerPanel(mux *http.ServeMux) {
 	mux.HandleFunc("GET /panel", s.getPanel)
 	post("/logout", s.postLogout)
 	post("/panel/cerrar-sesiones", s.postLogoutAll)
+	mux.HandleFunc("GET /panel/exportar", s.getExport)
+	post("/panel/importar", s.postImport)
+	post("/panel/importar/confirmar", s.postImportConfirm)
+}
+
+// owner exige sesión: si no la hay, lleva a /login y devuelve false.
+func (s *Server) owner(w http.ResponseWriter, r *http.Request) bool {
+	if s.loggedIn(w, r) {
+		return true
+	}
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	return false
+}
+
+func (s *Server) panelPage(w http.ResponseWriter, r *http.Request, status int, d panelData) {
+	inst, err := instance.Load(r.Context(), s.st.Read)
+	if err != nil {
+		http.Error(w, "instancia no disponible", http.StatusInternalServerError)
+		return
+	}
+	d.Version, d.Handle = s.version, "@"+inst.Username+"@"+inst.AccountDomain.String
+	s.renderPanel(w, r, status, PanelPage(d))
+}
+
+func (s *Server) currentProfile(ctx context.Context) (*profile.Resume, error) {
+	doc, err := s.st.Read.GetProfile(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return profile.Load(doc)
+}
+
+func (s *Server) getExport(w http.ResponseWriter, r *http.Request) {
+	if !s.owner(w, r) {
+		return
+	}
+	cur, err := s.currentProfile(r.Context())
+	if err != nil {
+		slog.Error("exportar", "err", err)
+		http.Error(w, "perfil no disponible", http.StatusInternalServerError)
+		return
+	}
+	standard := r.URL.Query().Get("formato") == "estandar"
+	b, err := cur.Export(!standard)
+	if err != nil {
+		slog.Error("exportar", "err", err)
+		http.Error(w, "no se pudo exportar", http.StatusInternalServerError)
+		return
+	}
+	name := "perfil-gremio.json"
+	if standard {
+		name = "perfil-json-resume.json"
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write(b)
+}
+
+// postImport valida el archivo y muestra qué cambia; no guarda nada.
+func (s *Server) postImport(w http.ResponseWriter, r *http.Request) {
+	if !s.owner(w, r) {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxImport+64<<10)
+	f, _, err := r.FormFile("archivo")
+	if err != nil {
+		s.panelPage(w, r, http.StatusBadRequest, panelData{Error: "Elige un archivo JSON de hasta 1 MB."})
+		return
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, maxImport+1))
+	if err != nil || len(data) > maxImport {
+		s.panelPage(w, r, http.StatusBadRequest, panelData{Error: "Elige un archivo JSON de hasta 1 MB."})
+		return
+	}
+	next, warnings, err := profile.Parse(data)
+	if err != nil {
+		s.panelPage(w, r, http.StatusBadRequest, panelData{Error: "No se pudo importar: " + err.Error()})
+		return
+	}
+	cur, err := s.currentProfile(r.Context())
+	if err != nil {
+		slog.Error("importar", "err", err)
+		http.Error(w, "perfil no disponible", http.StatusInternalServerError)
+		return
+	}
+	s.renderPanel(w, r, http.StatusOK, ImportPreviewPage(s.version, profile.Diff(cur, next), warnings, string(data)))
+}
+
+// postImportConfirm vuelve a validar el documento, porque viene del navegador, y reemplaza el perfil.
+func (s *Server) postImportConfirm(w http.ResponseWriter, r *http.Request) {
+	if !s.owner(w, r) {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 4*maxImport) // urlencoded: el JSON crece al escaparse
+	next, _, err := profile.Parse([]byte(r.PostFormValue("documento")))
+	if err != nil {
+		s.panelPage(w, r, http.StatusBadRequest, panelData{Error: "No se pudo importar: " + err.Error()})
+		return
+	}
+	if s.profiles == nil {
+		http.Error(w, "la instancia no puede guardar el perfil", http.StatusServiceUnavailable)
+		return
+	}
+	queued, err := s.profiles.ReplaceProfile(r.Context(), next)
+	if err != nil {
+		slog.Error("importar", "err", err)
+		s.panelPage(w, r, http.StatusInternalServerError, panelData{Error: "No se pudo guardar el perfil."})
+		return
+	}
+	slog.Info("perfil importado desde el panel", "updates_encolados", queued)
+	http.Redirect(w, r, "/panel?ok=importado", http.StatusSeeOther)
 }
 
 func (s *Server) renderPanel(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
@@ -151,16 +275,14 @@ func (s *Server) postLoginLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getPanel(w http.ResponseWriter, r *http.Request) {
-	if !s.loggedIn(w, r) {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	if !s.owner(w, r) {
 		return
 	}
-	inst, err := instance.Load(r.Context(), s.st.Read)
-	if err != nil {
-		http.Error(w, "instancia no disponible", http.StatusInternalServerError)
-		return
+	var d panelData
+	if r.URL.Query().Get("ok") == "importado" {
+		d.Notice = "Perfil reemplazado. Los seguidores reciben la actualización en unos minutos."
 	}
-	s.renderPanel(w, r, http.StatusOK, PanelPage(s.version, "@"+inst.Username+"@"+inst.AccountDomain.String))
+	s.panelPage(w, r, http.StatusOK, d)
 }
 
 func (s *Server) postLogout(w http.ResponseWriter, r *http.Request) {
