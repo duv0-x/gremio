@@ -10,12 +10,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/duv0-x/gremio/internal/federation"
 	"github.com/duv0-x/gremio/internal/instance"
+	"github.com/duv0-x/gremio/internal/mail"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 	"github.com/duv0-x/gremio/internal/web"
@@ -26,6 +28,7 @@ const usage = `uso: gremio <comando> [flags]
 Comandos:
   serve        arranca el servidor
   admin init   crea al dueño de la instancia y su par de llaves
+  admin set-email cambia el correo al que llegan los enlaces para entrar al panel
   admin note   publica un Note público para los seguidores (lo entrega serve)
   admin profile cambia nombre, resumen o avatar del perfil (avisa a los seguidores)
   admin import reemplaza el perfil por un JSON Resume (muestra qué cambia y pide confirmar)
@@ -34,7 +37,9 @@ Comandos:
   backup       copia consistente de la base
 
 Variables de entorno: GREMIO_DATA_DIR (directorio de datos), GREMIO_ADDR (dirección de escucha),
-GREMIO_HOST (URL pública) y GREMIO_ACCOUNT_DOMAIN (dominio del handle).
+GREMIO_HOST (URL pública) y GREMIO_ACCOUNT_DOMAIN (dominio del handle). El login del panel envía el
+enlace por SMTP con TLS: GREMIO_SMTP_HOST, GREMIO_SMTP_PORT, GREMIO_SMTP_USERNAME, GREMIO_SMTP_FROM y
+GREMIO_SMTP_PASSWORD (la clave solo por entorno).
 Usa "gremio <comando> -h" para ver sus flags.
 `
 
@@ -60,6 +65,8 @@ func run(ctx context.Context, args []string) error {
 		return serve(ctx, args[1:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "init":
 		return adminInit(ctx, args[2:])
+	case args[0] == "admin" && len(args) > 1 && args[1] == "set-email":
+		return adminSetEmail(ctx, args[2:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "note":
 		return adminNote(ctx, args[2:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "profile":
@@ -96,6 +103,18 @@ func serve(ctx context.Context, args []string) error {
 	addr := fs.String("addr", envOr("GREMIO_ADDR", "127.0.0.1:8080"), "dirección de escucha")
 	host := fs.String("host", envOr("GREMIO_HOST", ""), "URL pública de la instancia, p. ej. https://gremio.ejemplo.org (permanente)")
 	accountDomain := fs.String("account-domain", envOr("GREMIO_ACCOUNT_DOMAIN", ""), "dominio del handle @usuario@dominio; por defecto el de --host (permanente)")
+	smtp := mail.SMTP{Password: os.Getenv("GREMIO_SMTP_PASSWORD")}
+	fs.StringVar(&smtp.Host, "smtp-host", envOr("GREMIO_SMTP_HOST", ""), "servidor SMTP para el enlace del panel")
+	fs.IntVar(&smtp.Port, "smtp-port", 587, "puerto SMTP: 587 con STARTTLS o 465 con TLS (o GREMIO_SMTP_PORT)")
+	fs.StringVar(&smtp.Username, "smtp-username", envOr("GREMIO_SMTP_USERNAME", ""), "usuario SMTP; la clave va en GREMIO_SMTP_PASSWORD")
+	fs.StringVar(&smtp.From, "smtp-from", envOr("GREMIO_SMTP_FROM", ""), "remitente, p. ej. Gremio <gremio@ejemplo.org>")
+	if p := os.Getenv("GREMIO_SMTP_PORT"); p != "" {
+		n, err := strconv.Atoi(p)
+		if err != nil {
+			return fmt.Errorf("GREMIO_SMTP_PORT=%q: %w", p, err)
+		}
+		smtp.Port = n
+	}
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -118,7 +137,16 @@ func serve(ctx context.Context, args []string) error {
 
 	mux := http.NewServeMux()
 	fed.Register(mux)
-	web.New(st, version).Register(mux)
+	var mailer web.Mailer
+	if smtp.Configured() {
+		mailer = smtp
+	} else {
+		slog.Warn("SMTP sin configurar: no se puede entrar al panel", "arreglo", "GREMIO_SMTP_HOST y GREMIO_SMTP_FROM")
+	}
+	if !inst.OwnerEmail.Valid {
+		slog.Warn("la instancia no tiene correo del dueño: no se puede entrar al panel", "arreglo", "gremio admin set-email <correo>")
+	}
+	web.New(st, version, mailer).Register(mux)
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := st.Ping(r.Context()); err != nil {
 			http.Error(w, "base no disponible", http.StatusServiceUnavailable)
@@ -147,6 +175,7 @@ func serve(ctx context.Context, args []string) error {
 func adminInit(ctx context.Context, args []string) error {
 	fs, dataDir := newFlags("admin init")
 	username := fs.String("username", "", "usuario del dueño (a-z, 0-9, _); es permanente una vez que la instancia federa")
+	email := fs.String("email", "", "correo del dueño, al que llegan los enlaces para entrar al panel")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -161,7 +190,32 @@ func adminInit(ctx context.Context, args []string) error {
 	if err := instance.Init(ctx, st, *username); err != nil {
 		return err
 	}
+	if *email != "" {
+		if err := instance.SetOwnerEmail(ctx, st, *email); err != nil {
+			return err
+		}
+	}
 	slog.Info("instancia creada", "usuario", *username)
+	return nil
+}
+
+func adminSetEmail(ctx context.Context, args []string) error {
+	fs, dataDir := newFlags("admin set-email")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 1 {
+		return errors.New("uso: gremio admin set-email <correo>")
+	}
+	st, err := store.Open(ctx, *dataDir)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	if err := instance.SetOwnerEmail(ctx, st, fs.Arg(0)); err != nil {
+		return err
+	}
+	slog.Info("correo del dueño actualizado", "nota", "no inicia sesión: pide el enlace en /login")
 	return nil
 }
 

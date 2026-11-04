@@ -17,7 +17,7 @@ Fase siguiente: armar equipos para proyectos complejos.
 
 - `docs/mockups/`: mockups de referencia (formato `.dc.html` del lienzo de diseño; no son HTML ejecutable).
 - `docs/adr/`: decisiones de arquitectura (ADR-001 a ADR-009).
-- `cmd/gremio/`: el binario (`serve`, `admin init`, `admin note`, `admin profile`, `backup`).
+- `cmd/gremio/`: el binario (`serve`, `admin init`, `admin set-email`, `admin note`, `admin profile`, `backup`).
 - `internal/store/`: SQLite, migraciones y consultas (sqlc).
 - `internal/instance/`: dueño, llaves y host de la instancia.
 - `internal/federation/`: WebFinger, host-meta, NodeInfo, Actor, colecciones, inbox, Notes y cola de entrega con reintentos.
@@ -27,7 +27,7 @@ Fase siguiente: armar equipos para proyectos complejos.
 
 ```bash
 go build ./cmd/gremio                         # Go 1.26, sin cgo
-./gremio admin init --username <usuario>      # crea la base, al dueño y su par de llaves
+./gremio admin init --username <usuario> --email <correo>   # crea la base, al dueño y su par de llaves
 ./gremio serve --host https://<tu-dominio>    # escucha en 127.0.0.1:8080 y federa como @<usuario>@<tu-dominio>
 ./gremio admin note --text "hola fediverso"   # publica un Note para los seguidores (lo entrega serve)
 ./gremio admin profile --name "Ana" --summary "…" --avatar foto.jpg   # nombre, bio y foto (PNG/JPEG/WebP ≤ 2 MB)
@@ -40,6 +40,13 @@ go build ./cmd/gremio                         # Go 1.26, sin cgo
 | `--addr` | `GREMIO_ADDR` | `127.0.0.1:8080` |
 | `--host` | `GREMIO_HOST` | obligatorio: URL pública (`https://…`) |
 | `--account-domain` | `GREMIO_ACCOUNT_DOMAIN` | el dominio de `--host` |
+| `--smtp-host` | `GREMIO_SMTP_HOST` | vacío: sin SMTP no se puede entrar al panel |
+| `--smtp-port` | `GREMIO_SMTP_PORT` | `587` (STARTTLS); `465` usa TLS implícito |
+| `--smtp-username` | `GREMIO_SMTP_USERNAME` | vacío |
+| `--smtp-from` | `GREMIO_SMTP_FROM` | vacío, p. ej. `Gremio <gremio@ejemplo.org>` |
+| (solo entorno) | `GREMIO_SMTP_PASSWORD` | vacío |
+
+**Panel** ([ADR-009](docs/adr/ADR-009-autenticacion-del-panel.md)): `/login` envía un enlace de un solo uso (15 min) al correo del dueño, que se cambia con `gremio admin set-email <correo>`. No hay contraseña ni otro acceso: si el correo no llega, hay que arreglar el SMTP. Gremio nunca envía sin TLS.
 
 **`--host` y `--account-domain` son permanentes**: se graban en la base en el primer `serve` y el binario se niega a arrancar con otros valores, porque las demás instancias cachean el Actor y sus llaves (ADR-001). Si `--account-domain` es distinto del dominio de `--host`, ese dominio tiene que redirigir `/.well-known/webfinger`, `host-meta` y `nodeinfo` al host.
 

@@ -1,0 +1,106 @@
+package web
+
+// Pantallas del login del panel (ADR-009): entrar, revisa tu correo, confirmar y enlace vencido.
+templ panelLayout(version, title string) {
+	<!DOCTYPE html>
+	<html lang="es">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex"/>
+			<title>{ title } · Gremio</title>
+			<link rel="stylesheet" href={ "/static/app.css?v=" + version }/>
+		</head>
+		<body>
+			<header class="border-b border-line">
+				<nav aria-label="Principal" class="mx-auto flex min-h-16 max-w-[1200px] items-center gap-3 px-4 sm:px-6">
+					<a href="/" class="flex min-h-11 items-center gap-3 text-ink no-underline hover:text-ink">
+						@logo()
+						<span class={ dataChip }>Panel</span>
+					</a>
+				</nav>
+			</header>
+			<main id="contenido" class="mx-auto max-w-[520px] px-4 py-14 sm:px-6">
+				<div class={ card, "flex flex-col gap-4 sm:p-10" }>
+					{ children... }
+				</div>
+			</main>
+		</body>
+	</html>
+}
+
+// loginState es lo que muestra /login: el botón, o el resultado de pedir el enlace.
+type loginState int
+
+const (
+	loginStart loginState = iota
+	loginSent
+	loginLimited
+	loginUnavailable
+)
+
+templ LoginPage(version string, state loginState) {
+	@panelLayout(version, "Entrar") {
+		<p class={ eyebrow }>Panel</p>
+		switch state {
+			case loginSent:
+				<h1 class="font-display text-[28px] font-bold">Revisa tu correo</h1>
+				<p class="text-muted">Te enviamos un enlace al correo del dueño de la instancia. Vence en 15 minutos y sirve una sola vez.</p>
+				<p class="text-sm text-faint">Puedes abrirlo en cualquier dispositivo. Si pides otro, el anterior deja de servir.</p>
+			case loginLimited:
+				<h1 class="font-display text-[28px] font-bold">Espera un momento</h1>
+				<p class="text-muted">Ya se envió un enlace hace poco. Se puede pedir uno por minuto y cinco por hora.</p>
+				<a class={ btnSec } href="/login">Volver</a>
+			case loginUnavailable:
+				<h1 class="font-display text-[28px] font-bold">No se pudo enviar el enlace</h1>
+				<p class="text-muted">La instancia no tiene configurado el correo del dueño o el SMTP, o el envío falló. Quien administra el servidor lo ve en el log.</p>
+				<a class={ btnSec } href="/login">Volver</a>
+			default:
+				<h1 class="font-display text-[28px] font-bold">Entrar al panel</h1>
+				<p class="text-muted">El panel es solo para el dueño de la instancia. Te enviamos un enlace de un solo uso a su correo: no hay contraseña.</p>
+				<form method="post" action="/login">
+					<button type="submit" class={ btnPrimary, "w-full" }>Enviarme un enlace</button>
+				</form>
+		}
+	}
+}
+
+// LinkPage es lo que abre el enlace del correo. Entrar exige pulsar el botón: así los escáneres de correo, que
+// solo hacen GET, no gastan el token.
+templ LinkPage(version, token string) {
+	@panelLayout(version, "Entrar") {
+		<p class={ eyebrow }>Panel</p>
+		<h1 class="font-display text-[28px] font-bold">Entrar al panel</h1>
+		<p class="text-muted">Pulsa el botón para iniciar sesión en este navegador. La sesión dura 30 días.</p>
+		<form method="post" action={ templ.SafeURL("/login/" + token) }>
+			<button type="submit" class={ btnPrimary, "w-full" }>Entrar al panel</button>
+		</form>
+	}
+}
+
+templ LinkInvalidPage(version string) {
+	@panelLayout(version, "Enlace vencido") {
+		<p class={ eyebrow }>Panel</p>
+		<h1 class="font-display text-[28px] font-bold">Este enlace ya no sirve</h1>
+		<p class="text-muted">Venció, ya se usó o se pidió uno más nuevo. Los enlaces duran 15 minutos y sirven una sola vez.</p>
+		<a class={ btnPrimary } href="/login">Pedir otro enlace</a>
+	}
+}
+
+// PanelPage es el panel; el editor del perfil llega con gremio#28.
+templ PanelPage(version, handle string) {
+	@panelLayout(version, "Panel") {
+		<p class={ eyebrow }>Panel · { handle }</p>
+		<h1 class="font-display text-[28px] font-bold">Sesión iniciada</h1>
+		<p class="text-muted">Por ahora el perfil se edita con <code class="font-mono text-sm">gremio admin import</code>; el editor llega pronto.</p>
+		<a class={ btnSec } href="/">Ver el perfil</a>
+		<div class="mt-4 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row">
+			<form method="post" action="/logout" class="flex-1">
+				<button type="submit" class={ btnSec, "w-full" }>Cerrar sesión</button>
+			</form>
+			<form method="post" action="/panel/cerrar-sesiones" class="flex-1">
+				<button type="submit" class={ btnSec, "w-full" }>Cerrar todas las sesiones</button>
+			</form>
+		</div>
+	}
+}

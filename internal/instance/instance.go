@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net/mail"
 	"net/url"
 	"regexp"
 
@@ -71,6 +72,22 @@ func Init(ctx context.Context, st *store.Store, username string) error {
 		}
 		return q.CreateProfile(ctx, string(doc))
 	})
+}
+
+// SetOwnerEmail fija el correo al que llegan los enlaces para entrar al panel (ADR-009). No inicia sesión.
+func SetOwnerEmail(ctx context.Context, st *store.Store, email string) error {
+	a, err := mail.ParseAddress(email)
+	if err != nil || a.Name != "" {
+		return fmt.Errorf("correo %q inválido: escribe solo la dirección, p. ej. yo@ejemplo.org", email)
+	}
+	n, err := st.Write.SetOwnerEmail(ctx, sql.NullString{String: a.Address, Valid: true})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotInitialized
+	}
+	return nil
 }
 
 // Load devuelve la instancia; ErrNotInitialized si todavía no tiene dueño.

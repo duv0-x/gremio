@@ -1,4 +1,4 @@
-// Package web sirve las páginas HTML de la instancia (ADR-008): por ahora, el perfil público.
+// Package web sirve las páginas HTML de la instancia (ADR-008): el perfil público y el login del panel (ADR-009).
 package web
 
 //go:generate go tool templ generate
@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/duv0-x/gremio/internal/auth"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
@@ -24,13 +25,15 @@ var staticFS embed.FS
 type Server struct {
 	st      *store.Store
 	version string
+	auth    *auth.Auth
+	mail    Mailer // nil si el SMTP no está configurado: el login avisa que no puede enviar
 }
 
-func New(st *store.Store, version string) *Server {
+func New(st *store.Store, version string, mail Mailer) *Server {
 	if version == "" {
 		version = "dev"
 	}
-	return &Server{st: st, version: version}
+	return &Server{st: st, version: version, auth: auth.New(st), mail: mail}
 }
 
 // Register agrega las rutas web al mux.
@@ -47,6 +50,7 @@ func (s *Server) Register(mux *http.ServeMux) {
 	// {view...} y no {view}: así /static/ es más específico y no choca.
 	mux.HandleFunc("GET /{handle}/{view...}", s.getProfile)
 	mux.HandleFunc("GET /{$}", s.getRoot)
+	s.registerPanel(mux)
 }
 
 // getRoot lleva al perfil: la instancia es de un solo usuario (ADR-001).

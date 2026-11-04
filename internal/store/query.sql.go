@@ -49,6 +49,17 @@ func (q *Queries) CountFollowers(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countLoginLinksSince = `-- name: CountLoginLinksSince :one
+SELECT count(*) FROM login_links WHERE created_at > ?
+`
+
+func (q *Queries) CountLoginLinksSince(ctx context.Context, createdAt string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLoginLinksSince, createdAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countNotes = `-- name: CountNotes :one
 SELECT count(*) FROM notes
 `
@@ -76,6 +87,20 @@ func (q *Queries) CreateInstance(ctx context.Context, arg CreateInstanceParams) 
 	return err
 }
 
+const createLoginLink = `-- name: CreateLoginLink :exec
+INSERT INTO login_links (token_hash, created_at) VALUES (?, ?)
+`
+
+type CreateLoginLinkParams struct {
+	TokenHash []byte
+	CreatedAt string
+}
+
+func (q *Queries) CreateLoginLink(ctx context.Context, arg CreateLoginLinkParams) error {
+	_, err := q.db.ExecContext(ctx, createLoginLink, arg.TokenHash, arg.CreatedAt)
+	return err
+}
+
 const createNote = `-- name: CreateNote :exec
 INSERT INTO notes (id, content, published_at) VALUES (?, ?, ?)
 `
@@ -100,12 +125,44 @@ func (q *Queries) CreateProfile(ctx context.Context, document string) error {
 	return err
 }
 
+const createSession = `-- name: CreateSession :exec
+INSERT INTO sessions (token_hash, expires_at) VALUES (?, ?)
+`
+
+type CreateSessionParams struct {
+	TokenHash []byte
+	ExpiresAt string
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createSession, arg.TokenHash, arg.ExpiresAt)
+	return err
+}
+
+const deleteAllSessions = `-- name: DeleteAllSessions :exec
+DELETE FROM sessions
+`
+
+func (q *Queries) DeleteAllSessions(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAllSessions)
+	return err
+}
+
 const deleteDelivery = `-- name: DeleteDelivery :exec
 DELETE FROM delivery_queue WHERE id = ?
 `
 
 func (q *Queries) DeleteDelivery(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteDelivery, id)
+	return err
+}
+
+const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
+DELETE FROM sessions WHERE expires_at <= ?
+`
+
+func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiresAt string) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredSessions, expiresAt)
 	return err
 }
 
@@ -119,6 +176,24 @@ func (q *Queries) DeleteFollower(ctx context.Context, actorIri string) (int64, e
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const deleteLoginLinksBefore = `-- name: DeleteLoginLinksBefore :exec
+DELETE FROM login_links WHERE created_at <= ?
+`
+
+func (q *Queries) DeleteLoginLinksBefore(ctx context.Context, createdAt string) error {
+	_, err := q.db.ExecContext(ctx, deleteLoginLinksBefore, createdAt)
+	return err
+}
+
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM sessions WHERE token_hash = ?
+`
+
+func (q *Queries) DeleteSession(ctx context.Context, tokenHash []byte) error {
+	_, err := q.db.ExecContext(ctx, deleteSession, tokenHash)
+	return err
 }
 
 const dueDeliveries = `-- name: DueDeliveries :many
@@ -194,7 +269,7 @@ func (q *Queries) GetFollower(ctx context.Context, actorIri string) (Follower, e
 }
 
 const getInstance = `-- name: GetInstance :one
-SELECT id, username, private_key_pem, public_key_pem, created_at, host, account_domain FROM instance WHERE id = 1
+SELECT id, username, private_key_pem, public_key_pem, created_at, host, account_domain, owner_email FROM instance WHERE id = 1
 `
 
 func (q *Queries) GetInstance(ctx context.Context) (Instance, error) {
@@ -208,6 +283,7 @@ func (q *Queries) GetInstance(ctx context.Context) (Instance, error) {
 		&i.CreatedAt,
 		&i.Host,
 		&i.AccountDomain,
+		&i.OwnerEmail,
 	)
 	return i, err
 }
@@ -232,6 +308,38 @@ func (q *Queries) GetProfile(ctx context.Context) (string, error) {
 	var document string
 	err := row.Scan(&document)
 	return document, err
+}
+
+const getSessionExpiry = `-- name: GetSessionExpiry :one
+SELECT expires_at FROM sessions WHERE token_hash = ? AND expires_at > ?
+`
+
+type GetSessionExpiryParams struct {
+	TokenHash []byte
+	ExpiresAt string
+}
+
+func (q *Queries) GetSessionExpiry(ctx context.Context, arg GetSessionExpiryParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getSessionExpiry, arg.TokenHash, arg.ExpiresAt)
+	var expires_at string
+	err := row.Scan(&expires_at)
+	return expires_at, err
+}
+
+const latestLoginLink = `-- name: LatestLoginLink :one
+SELECT id, token_hash, created_at, used_at FROM login_links ORDER BY id DESC LIMIT 1
+`
+
+func (q *Queries) LatestLoginLink(ctx context.Context) (LoginLink, error) {
+	row := q.db.QueryRowContext(ctx, latestLoginLink)
+	var i LoginLink
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.CreatedAt,
+		&i.UsedAt,
+	)
+	return i, err
 }
 
 const listFollowerInboxes = `-- name: ListFollowerInboxes :many
@@ -293,6 +401,20 @@ func (q *Queries) ListNotes(ctx context.Context, limit int64) ([]Note, error) {
 	return items, nil
 }
 
+const renewSession = `-- name: RenewSession :exec
+UPDATE sessions SET expires_at = ? WHERE token_hash = ?
+`
+
+type RenewSessionParams struct {
+	ExpiresAt string
+	TokenHash []byte
+}
+
+func (q *Queries) RenewSession(ctx context.Context, arg RenewSessionParams) error {
+	_, err := q.db.ExecContext(ctx, renewSession, arg.ExpiresAt, arg.TokenHash)
+	return err
+}
+
 const rescheduleDelivery = `-- name: RescheduleDelivery :exec
 UPDATE delivery_queue SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?
 `
@@ -312,6 +434,18 @@ func (q *Queries) RescheduleDelivery(ctx context.Context, arg RescheduleDelivery
 		arg.ID,
 	)
 	return err
+}
+
+const setOwnerEmail = `-- name: SetOwnerEmail :execrows
+UPDATE instance SET owner_email = ? WHERE id = 1
+`
+
+func (q *Queries) SetOwnerEmail(ctx context.Context, ownerEmail sql.NullString) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setOwnerEmail, ownerEmail)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateProfile = `-- name: UpdateProfile :exec
@@ -347,4 +481,21 @@ func (q *Queries) UpsertFollower(ctx context.Context, arg UpsertFollowerParams) 
 		arg.FollowIri,
 	)
 	return err
+}
+
+const useLoginLink = `-- name: UseLoginLink :execrows
+UPDATE login_links SET used_at = ? WHERE id = ? AND used_at IS NULL
+`
+
+type UseLoginLinkParams struct {
+	UsedAt sql.NullString
+	ID     int64
+}
+
+func (q *Queries) UseLoginLink(ctx context.Context, arg UseLoginLinkParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, useLoginLink, arg.UsedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
