@@ -243,7 +243,7 @@ func TestEditorListas(t *testing.T) {
 
 	// Skills: la que existe conserva su id; borrar k8s quita su referencia del atributo CNT.
 	_, body := p.do("/panel/skills", nil, true)
-	if !strings.Contains(body, `name="skill.0.id" value="k8s"`) || !strings.Contains(body, `value="EKS"`) {
+	if !strings.Contains(body, `name="skill.0.id" value="k8s"`) || !strings.Contains(body, ">EKS<") {
 		t.Fatal("el formulario trae las skills con su id y keywords")
 	}
 	if resp, _ := p.do("/panel/skills", url.Values{"skill.0.id": {"k8s"}, "skill.0.name": {"Kubernetes"}, "skill.0.borrar": {"1"},
