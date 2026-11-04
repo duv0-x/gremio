@@ -22,19 +22,34 @@ templ editorLayout(e editPage, title string) {
 			<a href="/panel" class="inline-flex min-h-11 items-center font-mono text-[13px] text-muted no-underline hover:text-ink">‹ Panel</a>
 			<h1 class="mt-1 font-display text-[28px] font-bold">{ title }</h1>
 		</div>
-		if e.Notice != "" {
-			<p role="status" class="rounded-md border border-success p-4 text-sm text-ink">{ e.Notice }</p>
-		}
-		if e.Error != "" {
-			<p role="alert" class="rounded-md border border-danger p-4 text-sm text-ink">{ e.Error }</p>
-		}
-		<form method="post" action={ templ.SafeURL(e.Path) } class="flex flex-col gap-6">
-			{ children... }
-			<div class="sticky bottom-0 -mx-4 flex gap-3 border-t border-line bg-bg px-4 py-3">
-				<button type="submit" class={ btnPrimary, "flex-1 sm:flex-none" }>Guardar</button>
-				<a class={ btnSec, "flex-1 sm:flex-none" } href="/panel">Cancelar</a>
-			</div>
-		</form>
+		// editor-aviso recibe los errores sin formulario (editorError); el formulario y lo escrito se quedan.
+		<div id="editor-aviso" class="empty:hidden"></div>
+		// Con htmx, guardar reemplaza solo #editor con el de la respuesta (gremio#90); sin JavaScript es un POST normal.
+		<div id="editor" class="flex flex-col gap-6">
+			if e.Notice != "" {
+				<p role="status" tabindex="-1" autofocus class="rounded-md border border-success p-4 text-sm text-ink">{ e.Notice }</p>
+			}
+			if e.Error != "" {
+				<p role="alert" tabindex="-1" autofocus class="rounded-md border border-danger p-4 text-sm text-ink">{ e.Error }</p>
+			}
+			<form
+				method="post"
+				action={ templ.SafeURL(e.Path) }
+				hx-post={ e.Path }
+				hx-target="#editor"
+				hx-select="#editor"
+				hx-select-oob="#editor-aviso"
+				hx-swap="outerHTML"
+				hx-disable="find button[type=submit]"
+				class="flex flex-col gap-6"
+			>
+				{ children... }
+				<div class="sticky bottom-0 -mx-4 flex gap-3 border-t border-line bg-bg px-4 py-3">
+					<button type="submit" class={ btnPrimary, "flex-1 sm:flex-none" }>Guardar</button>
+					<a class={ btnSec, "flex-1 sm:flex-none" } href="/panel">Cancelar</a>
+				</div>
+			</form>
+		</div>
 	}
 }
 
@@ -98,8 +113,16 @@ templ rowControls(prefix string, i int, isNew bool) {
 	</div>
 }
 
-templ rowBox(i, n int) {
-	<div class={ "flex flex-col gap-4 rounded-md border p-4", templ.KV("border-line", i < n), templ.KV("border-dashed border-control", i >= n) }>
+// rowBox es una fila de una lista. La que agrega "Agregar otra fila" toma el foco al llegar.
+templ rowBox(e editPage, prefix string, i, n int) {
+	<div
+		id={ "fila-" + prefix + "-" + itoa(i) }
+		class={ "flex flex-col gap-4 rounded-md border p-4", templ.KV("border-line", i < n), templ.KV("border-dashed border-control", i >= n) }
+		if e.more(prefix) > 0 && i >= n+blankRows {
+			tabindex="-1"
+			autofocus
+		}
+	>
 		if i >= n {
 			<p class={ eyebrow }>Nuevo</p>
 		}
@@ -133,8 +156,8 @@ templ BasicsForm(e editPage) {
 			@checkField("Botón de WhatsApp con este teléfono", "whatsapp_publico", e.R.Gremio.Contact.Whatsapp == "public")
 		}
 		@fieldset("Redes") {
-			for i := range pad(len(e.R.Basics.Profiles)) {
-				@rowBox(i, len(e.R.Basics.Profiles)) {
+			for i := range e.pad("red", len(e.R.Basics.Profiles)) {
+				@rowBox(e, "red", i, len(e.R.Basics.Profiles)) {
 					<div class="grid gap-4 sm:grid-cols-3">
 						@textField("Red", field("red", i, "network"), social(e.R, i).Network, "")
 						@textField("Usuario", field("red", i, "username"), social(e.R, i).Username, "")
@@ -143,6 +166,7 @@ templ BasicsForm(e editPage) {
 					@rowControls("red", i, i >= len(e.R.Basics.Profiles))
 				}
 			}
+			@addRow(e, "red", len(e.R.Basics.Profiles))
 		}
 	}
 }
@@ -182,7 +206,7 @@ templ WorkListForm(e editPage) {
 				<p class="text-sm text-faint">Todavía no hay trabajos.</p>
 			}
 			for i, w := range e.R.Work {
-				@rowBox(i, len(e.R.Work)) {
+				@rowBox(e, "trabajo", i, len(e.R.Work)) {
 					<input type="hidden" name={ field("trabajo", i, "id") } value={ w.ID }/>
 					<div class="flex flex-wrap items-start justify-between gap-3">
 						<div>
@@ -219,8 +243,8 @@ templ WorkForm(e editPage) {
 		}
 		@fieldset("Logros") {
 			<p class="text-sm text-muted">Un logro por recuadro. La evidencia son enlaces que lo respaldan (charlas, repos, artículos), uno por línea.</p>
-			for i := range pad(len(work(e).Highlights)) {
-				@rowBox(i, len(work(e).Highlights)) {
+			for i := range e.pad("logro", len(work(e).Highlights)) {
+				@rowBox(e, "logro", i, len(work(e).Highlights)) {
 					if i < len(work(e).Highlights) {
 						<input type="hidden" name={ field("logro", i, "id") } value={ work(e).Highlights[i].ID }/>
 					}
@@ -229,6 +253,7 @@ templ WorkForm(e editPage) {
 					@rowControls("logro", i, i >= len(work(e).Highlights))
 				}
 			}
+			@addRow(e, "logro", len(work(e).Highlights))
 		}
 	}
 }
@@ -244,8 +269,8 @@ templ SkillsForm(e editPage) {
 	@editorLayout(e, "Skills") {
 		@fieldset("Skills") {
 			<p class="text-sm text-muted">Las palabras clave van separadas por comas. La evidencia son enlaces, uno por línea.</p>
-			for i := range pad(len(e.R.Skills)) {
-				@rowBox(i, len(e.R.Skills)) {
+			for i := range e.pad("skill", len(e.R.Skills)) {
+				@rowBox(e, "skill", i, len(e.R.Skills)) {
 					@hiddenID("skill", i, at(e.R.Skills, i).ID)
 					<div class="grid gap-4 sm:grid-cols-2">
 						@textField("Nombre", field("skill", i, "name"), at(e.R.Skills, i).Name, "")
@@ -256,6 +281,7 @@ templ SkillsForm(e editPage) {
 					@rowControls("skill", i, i >= len(e.R.Skills))
 				}
 			}
+			@addRow(e, "skill", len(e.R.Skills))
 		}
 	}
 }
@@ -264,8 +290,8 @@ templ ProjectsForm(e editPage) {
 	@editorLayout(e, "Proyectos") {
 		@fieldset("Proyectos") {
 			<p class="text-sm text-muted">Se muestran en la pestaña Proyectos. El stack va separado por comas; la captura es la URL de una imagen.</p>
-			for i := range pad(len(e.R.Projects)) {
-				@rowBox(i, len(e.R.Projects)) {
+			for i := range e.pad("proyecto", len(e.R.Projects)) {
+				@rowBox(e, "proyecto", i, len(e.R.Projects)) {
 					@hiddenID("proyecto", i, at(e.R.Projects, i).ID)
 					@textField("Nombre", field("proyecto", i, "name"), at(e.R.Projects, i).Name, "")
 					@textArea("Descripción", field("proyecto", i, "description"), at(e.R.Projects, i).Description, "", 3)
@@ -277,6 +303,7 @@ templ ProjectsForm(e editPage) {
 					@rowControls("proyecto", i, i >= len(e.R.Projects))
 				}
 			}
+			@addRow(e, "proyecto", len(e.R.Projects))
 		}
 	}
 }
@@ -284,8 +311,8 @@ templ ProjectsForm(e editPage) {
 templ FormationForm(e editPage) {
 	@editorLayout(e, "Educación, idiomas y certificados") {
 		@fieldset("Educación") {
-			for i := range pad(len(e.R.Education)) {
-				@rowBox(i, len(e.R.Education)) {
+			for i := range e.pad("estudio", len(e.R.Education)) {
+				@rowBox(e, "estudio", i, len(e.R.Education)) {
 					@hiddenID("estudio", i, at(e.R.Education, i).ID)
 					@textField("Institución", field("estudio", i, "institution"), at(e.R.Education, i).Institution, "")
 					<div class="grid gap-4 sm:grid-cols-2">
@@ -297,10 +324,11 @@ templ FormationForm(e editPage) {
 					@rowControls("estudio", i, i >= len(e.R.Education))
 				}
 			}
+			@addRow(e, "estudio", len(e.R.Education))
 		}
 		@fieldset("Idiomas") {
-			for i := range pad(len(e.R.Languages)) {
-				@rowBox(i, len(e.R.Languages)) {
+			for i := range e.pad("idioma", len(e.R.Languages)) {
+				@rowBox(e, "idioma", i, len(e.R.Languages)) {
 					<div class="grid gap-4 sm:grid-cols-2">
 						@textField("Idioma", field("idioma", i, "language"), at(e.R.Languages, i).Language, "")
 						@textField("Nivel", field("idioma", i, "fluency"), at(e.R.Languages, i).Fluency, "p. ej. Nativo, B2.")
@@ -308,10 +336,11 @@ templ FormationForm(e editPage) {
 					@rowControls("idioma", i, i >= len(e.R.Languages))
 				}
 			}
+			@addRow(e, "idioma", len(e.R.Languages))
 		}
 		@fieldset("Certificados") {
-			for i := range pad(len(e.R.Certificates)) {
-				@rowBox(i, len(e.R.Certificates)) {
+			for i := range e.pad("certificado", len(e.R.Certificates)) {
+				@rowBox(e, "certificado", i, len(e.R.Certificates)) {
 					@textField("Nombre", field("certificado", i, "name"), at(e.R.Certificates, i).Name, "")
 					<div class="grid gap-4 sm:grid-cols-2">
 						@textField("Emisor", field("certificado", i, "issuer"), at(e.R.Certificates, i).Issuer, "")
@@ -321,6 +350,7 @@ templ FormationForm(e editPage) {
 					@rowControls("certificado", i, i >= len(e.R.Certificates))
 				}
 			}
+			@addRow(e, "certificado", len(e.R.Certificates))
 		}
 	}
 }
@@ -338,8 +368,8 @@ templ checkList(name string, opts []option, selected []string) {
 }
 
 // listItem es una fila de las listas de vistas y atributos: título, detalle, Editar, orden y borrar.
-templ listItem(prefix string, i, n int, id, title, detail, href string) {
-	@rowBox(i, n) {
+templ listItem(e editPage, prefix string, i, n int, id, title, detail, href string) {
+	@rowBox(e, prefix, i, n) {
 		<input type="hidden" name={ field(prefix, i, "id") } value={ id }/>
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<div>
@@ -358,7 +388,7 @@ templ ViewListForm(e editPage) {
 		@fieldset("Vistas") {
 			<p class="text-sm text-muted">La primera es la principal: la que abre /@usuario y lleva la marca de rol actual.</p>
 			for i, v := range e.R.Gremio.Views {
-				@listItem("vista", i, len(e.R.Gremio.Views), v.Slug, v.Name, v.Code+" · /"+v.Slug+" · OVR "+itoa(e.R.Overall(v)), "/panel/vistas/"+v.Slug)
+				@listItem(e, "vista", i, len(e.R.Gremio.Views), v.Slug, v.Name, v.Code+" · /"+v.Slug+" · OVR "+itoa(e.R.Overall(v)), "/panel/vistas/"+v.Slug)
 			}
 		}
 	}
@@ -413,7 +443,7 @@ templ AttributeListForm(e editPage) {
 		@fieldset("Atributos") {
 			<p class="text-sm text-muted">Los ejes del radar: hacen falta al menos 3. Borrar uno lo quita también de los pesos de las vistas.</p>
 			for i, a := range e.R.Gremio.Attributes {
-				@listItem("atributo", i, len(e.R.Gremio.Attributes), a.Code, a.Code+" · "+a.Name, "Puntaje "+itoa(a.Score())+" · "+itoa(len(a.Subs))+" sub-atributos", "/panel/atributos/"+a.Code)
+				@listItem(e, "atributo", i, len(e.R.Gremio.Attributes), a.Code, a.Code+" · "+a.Name, "Puntaje "+itoa(a.Score())+" · "+itoa(len(a.Subs))+" sub-atributos", "/panel/atributos/"+a.Code)
 			}
 		}
 	}
@@ -431,8 +461,8 @@ templ AttributeForm(e editPage) {
 		}
 		@fieldset("Sub-atributos") {
 			<p class="text-sm text-muted">El puntaje del atributo es el promedio de estos, de 0 a 99.</p>
-			for i := range pad(len(attribute(e).Subs)) {
-				@rowBox(i, len(attribute(e).Subs)) {
+			for i := range e.pad("sub", len(attribute(e).Subs)) {
+				@rowBox(e, "sub", i, len(attribute(e).Subs)) {
 					<div class="grid gap-4 sm:grid-cols-3">
 						<div class="sm:col-span-2">
 							@textField("Nombre", field("sub", i, "name"), at(attribute(e).Subs, i).Name, "")
@@ -446,6 +476,7 @@ templ AttributeForm(e editPage) {
 					@rowControls("sub", i, i >= len(attribute(e).Subs))
 				}
 			}
+			@addRow(e, "sub", len(attribute(e).Subs))
 		}
 		@fieldset("Lo respaldan") {
 			<h3 class={ eyebrow }>Skills</h3>
@@ -460,8 +491,8 @@ templ TraitsForm(e editPage) {
 	@editorLayout(e, "Rasgos") {
 		@fieldset("Rasgos") {
 			<p class="text-sm text-muted">Insignias de la ficha. El ícono es un nombre de lucide.dev/icons, p. ej. bot.</p>
-			for i := range pad(len(e.R.Gremio.Traits)) {
-				@rowBox(i, len(e.R.Gremio.Traits)) {
+			for i := range e.pad("rasgo", len(e.R.Gremio.Traits)) {
+				@rowBox(e, "rasgo", i, len(e.R.Gremio.Traits)) {
 					@textField("Nombre", field("rasgo", i, "name"), at(e.R.Gremio.Traits, i).Name, "")
 					@textArea("Descripción", field("rasgo", i, "summary"), at(e.R.Gremio.Traits, i).Summary, "", 2)
 					<div class="grid gap-4 sm:grid-cols-2">
@@ -471,6 +502,24 @@ templ TraitsForm(e editPage) {
 					@rowControls("rasgo", i, i >= len(e.R.Gremio.Traits))
 				}
 			}
+			@addRow(e, "rasgo", len(e.R.Gremio.Traits))
 		}
 	}
+}
+
+// addRow pide a htmx una fila vacía más para la lista prefix, sin recargar ni perder lo escrito: el servidor
+// arma la página con una fila extra y htmx se queda con ella y con el botón siguiente. Sin JavaScript no se
+// muestra: están las blankRows filas vacías.
+templ addRow(e editPage, prefix string, n int) {
+	<div id={ "mas-" + prefix } class="js-only flex">
+		<button
+			type="button"
+			class={ btnSec }
+			hx-get={ e.Path + "?mas=" + prefix + "&n=" + itoa(e.more(prefix)+1) }
+			hx-target={ "#mas-" + prefix }
+			hx-select={ "#fila-" + prefix + "-" + itoa(e.pad(prefix, n)) + ", #mas-" + prefix }
+			hx-swap="outerHTML"
+			hx-disable="this"
+		>Agregar otra fila</button>
+	</div>
 }

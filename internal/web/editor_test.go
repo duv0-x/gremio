@@ -365,3 +365,64 @@ func TestKeepOrder(t *testing.T) {
 		t.Errorf("desmarcar: %v", got)
 	}
 }
+
+// Con htmx (gremio#90): las mismas rutas, con respuestas que htmx sabe poner en la página sin recargarla.
+func TestEditorConHTMX(t *testing.T) {
+	p := newPanelServer(t, fichaDoc)
+	hx := []string{"HX-Request", "true"}
+
+	// Sin sesión no hay redirect a seguir: htmx navega al login.
+	if resp, _ := p.do("/panel/skills", url.Values{"skill.0.name": {"x"}}, false, hx...); resp.StatusCode != http.StatusNoContent || resp.Header.Get("HX-Redirect") != "/login" {
+		t.Errorf("sin sesión: %d %q", resp.StatusCode, resp.Header.Get("HX-Redirect"))
+	}
+
+	// Una sección se guarda como sin JavaScript: htmx sigue el redirect y toma el #editor con el aviso.
+	_, body := p.do("/panel/skills", nil, true)
+	for _, want := range []string{`<div id="editor"`, `hx-post="/panel/skills"`, `hx-select="#editor"`, `id="editor-aviso"`, `/static/htmx.min.js?v=1.2.3`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("el formulario no trae %s", want)
+		}
+	}
+	if resp, _ := p.do("/panel/skills", url.Values{"skill.0.id": {"k8s"}, "skill.0.name": {"Kubernetes"}}, true, hx...); resp.StatusCode != http.StatusSeeOther {
+		t.Errorf("guardar una sección: %d", resp.StatusCode)
+	}
+	if _, body := p.do("/panel/skills?ok=guardado", nil, true); !strings.Contains(body, `role="status" tabindex="-1" autofocus`) {
+		t.Error("el aviso de guardado toma el foco")
+	}
+
+	// Un elemento vuelve a su lista con HX-Location, que cambia la URL como el redirect.
+	if resp, _ := p.do("/panel/experiencia/acme", url.Values{"name": {"Acme"}, "start": {"2020-01"}}, true, hx...); resp.StatusCode != http.StatusNoContent || resp.Header.Get("HX-Location") != "/panel/experiencia?ok=guardado" {
+		t.Errorf("guardar un elemento: %d %q", resp.StatusCode, resp.Header.Get("HX-Location"))
+	}
+
+	// Inválido: 400 con el formulario y lo escrito, que htmx también pone en la página.
+	if resp, body := p.do("/panel/experiencia/acme", url.Values{"name": {""}, "summary": {"No se pierde"}}, true, hx...); resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, "No se pierde") || !strings.Contains(body, `role="alert" tabindex="-1" autofocus`) {
+		t.Errorf("elemento inválido: %d", resp.StatusCode)
+	}
+
+	// Un error sin formulario va a #editor-aviso, sin reemplazar lo escrito.
+	resp, body := p.do("/panel/experiencia/no-existe", url.Values{"name": {"x"}}, true, hx...)
+	if resp.StatusCode != http.StatusNotFound || resp.Header.Get("HX-Retarget") != "#editor-aviso" || !strings.Contains(body, "ya no existe") {
+		t.Errorf("error sin formulario: %d %q %q", resp.StatusCode, resp.Header.Get("HX-Retarget"), body)
+	}
+
+	// Agregar otra fila: ?mas=skill&n=1 trae una fila vacía extra con foco y el botón que pide la siguiente.
+	n := len(p.profile().Skills)
+	nueva := "fila-skill-" + itoa(n+blankRows)
+	_, body = p.do("/panel/skills", nil, true)
+	if !strings.Contains(body, `hx-get="/panel/skills?mas=skill&amp;n=1"`) || !strings.Contains(body, `hx-select="#`+nueva+`, #mas-skill"`) || strings.Contains(body, `id="`+nueva+`"`) {
+		t.Fatal("el botón pide la fila siguiente y la página no la trae todavía")
+	}
+	_, body = p.do("/panel/skills?mas=skill&n=1", nil, true, hx...)
+	if !strings.Contains(body, `id="`+nueva+`" class="flex flex-col gap-4 rounded-md border p-4 border-dashed border-control" tabindex="-1" autofocus`) ||
+		!strings.Contains(body, `name="skill.`+itoa(n+blankRows)+`.name"`) || !strings.Contains(body, `hx-get="/panel/skills?mas=skill&amp;n=2"`) {
+		t.Error("la respuesta trae la fila nueva con foco y el botón para la siguiente")
+	}
+	// La fila nueva se guarda como cualquier otra.
+	if resp, _ := p.do("/panel/skills", url.Values{"skill." + itoa(n+blankRows) + ".name": {"Rust"}}, true, hx...); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("guardar la fila nueva: %d", resp.StatusCode)
+	}
+	if r := p.profile(); r.Skills[len(r.Skills)-1].Name != "Rust" {
+		t.Errorf("fila nueva: %+v", r.Skills)
+	}
+}

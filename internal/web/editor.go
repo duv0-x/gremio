@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"html"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -28,6 +29,10 @@ type editPage struct {
 	Error   string
 	ID      string // elemento que se edita en las páginas de un solo trabajo, vista o atributo
 	Path    string // la URL de la página, que es también el action del formulario
+	// More y MoreN vienen de ?mas=<prefijo>&n=<N>: la lista More muestra N filas vacías extra. Es lo que pide
+	// el botón "Agregar otra fila" con htmx, que se queda solo con la fila nueva.
+	More  string
+	MoreN int
 }
 
 // editSection es una página del editor: su formulario y cómo aplicarlo al perfil.
@@ -57,15 +62,18 @@ func (s *Server) getSection(w http.ResponseWriter, r *http.Request, sec editSect
 	res, err := s.currentProfile(r.Context())
 	if err != nil {
 		slog.Error("editor", "err", err)
-		http.Error(w, "perfil no disponible", http.StatusInternalServerError)
+		editorError(w, r, "perfil no disponible", http.StatusInternalServerError)
 		return
 	}
 	id := r.PathValue("id")
 	if sec.exists != nil && id != "nuevo" && !sec.exists(res, id) {
-		http.NotFound(w, r)
+		editorError(w, r, "Este elemento ya no existe.", http.StatusNotFound)
 		return
 	}
 	e := editPage{Version: s.version, R: res, ID: id, Path: r.URL.Path}
+	if n, err := strconv.Atoi(r.URL.Query().Get("n")); err == nil && n > 0 {
+		e.More, e.MoreN = r.URL.Query().Get("mas"), min(n, maxMoreRows)
+	}
 	if r.URL.Query().Get("ok") == "guardado" {
 		e.Notice = "Guardado. Los seguidores reciben la actualización en unos minutos."
 	}
@@ -78,18 +86,18 @@ func (s *Server) postSection(w http.ResponseWriter, r *http.Request, sec editSec
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxImport)
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "formulario inválido", http.StatusBadRequest)
+		editorError(w, r, "formulario inválido", http.StatusBadRequest)
 		return
 	}
 	res, err := s.currentProfile(r.Context())
 	if err != nil {
 		slog.Error("editor", "err", err)
-		http.Error(w, "perfil no disponible", http.StatusInternalServerError)
+		editorError(w, r, "perfil no disponible", http.StatusInternalServerError)
 		return
 	}
 	id := r.PathValue("id")
 	if sec.exists != nil && id != "nuevo" && !sec.exists(res, id) {
-		http.NotFound(w, r)
+		editorError(w, r, "Este elemento ya no existe.", http.StatusNotFound)
 		return
 	}
 	e := editPage{Version: s.version, R: res, ID: id, Path: r.URL.Path}
@@ -105,7 +113,7 @@ func (s *Server) postSection(w http.ResponseWriter, r *http.Request, sec editSec
 		return
 	}
 	if s.profiles == nil {
-		http.Error(w, "la instancia no puede guardar el perfil", http.StatusServiceUnavailable)
+		editorError(w, r, "la instancia no puede guardar el perfil", http.StatusServiceUnavailable)
 		return
 	}
 	if _, err := s.profiles.ReplaceProfile(r.Context(), res); err != nil {
@@ -119,7 +127,14 @@ func (s *Server) postSection(w http.ResponseWriter, r *http.Request, sec editSec
 	back := r.URL.Path
 	if sec.exists != nil {
 		back = back[:strings.LastIndex(back, "/")]
+		// Con htmx, la lista reemplaza el body y queda en la barra de direcciones, como con el redirect.
+		if isHTMX(r) {
+			w.Header().Set("HX-Location", back+"?ok=guardado")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 	}
+	// Sin cambiar de página, htmx sigue el redirect y se queda con el #editor de la respuesta.
 	http.Redirect(w, r, back+"?ok=guardado", http.StatusSeeOther)
 }
 
@@ -224,8 +239,20 @@ func field(prefix string, i int, name string) string {
 	return prefix + "." + strconv.Itoa(i) + "." + name
 }
 
-// pad devuelve n + blankRows, el número de filas que muestra una lista con n elementos.
-func pad(n int) int { return n + blankRows }
+const maxMoreRows = 100
+
+// pad es el número de filas que muestra la lista prefix con n elementos: n, blankRows vacías y las extra.
+func (e editPage) pad(prefix string, n int) int { return n + blankRows + e.more(prefix) }
+
+func (e editPage) more(prefix string) int {
+	if prefix == e.More {
+		return e.MoreN
+	}
+	return 0
+}
+
+// isHTMX dice si la petición la hizo htmx, que no navega: un redirect o un error en texto plano no le sirven.
+func isHTMX(r *http.Request) bool { return r.Header.Get("HX-Request") == "true" }
 
 // editorLinks son las secciones del editor que lista /panel.
 var editorLinks = []option{
@@ -627,4 +654,20 @@ func keepOrder(old, selected []string) []string {
 		}
 	}
 	return out
+}
+
+// editorError responde un error que no trae el formulario. A htmx le llega como aviso encima del formulario,
+// que no se reemplaza: así no se pierde lo escrito.
+func editorError(w http.ResponseWriter, r *http.Request, msg string, code int) {
+	if !isHTMX(r) {
+		http.Error(w, msg, code)
+		return
+	}
+	h := w.Header()
+	h.Set("Content-Type", "text/html; charset=utf-8")
+	h.Set("HX-Retarget", "#editor-aviso")
+	h.Set("HX-Reswap", "innerHTML")
+	h.Set("HX-Reselect", "p")
+	w.WriteHeader(code)
+	fmt.Fprintf(w, `<p role="alert" tabindex="-1" autofocus class="rounded-md border border-danger p-4 text-sm text-ink">%s</p>`, html.EscapeString(msg))
 }
