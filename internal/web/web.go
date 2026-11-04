@@ -146,7 +146,7 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	// Sin scripts de terceros ni inline: solo static/cinta.js, que es opcional.
+	// Sin scripts de terceros ni inline: solo static/cinta.js, vista.js y tip.js, todos opcionales.
 	w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 	// El handle @usuario@dominio parece un email: no-transform evita que un proxy como Cloudflare lo ofusque.

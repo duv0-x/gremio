@@ -153,12 +153,13 @@ templ icon(name string) {
 templ fichaHero(p Page) {
 	<section class={ panel, "flex flex-col gap-6" } aria-label="Ficha de jugador">
 		<div class="flex items-start gap-5">
-			<span class="tip shrink-0" data-tip={ ovrTitle } tabindex="0">
+			<span class="tip tip-start shrink-0" data-tip={ ovrTitle } tabindex="0">
 				<svg viewBox="0 0 120 120" class="size-24 sm:size-28" role="img" aria-label={ "Índice general " + itoa(p.Overall()) + ". " + ovrTitle }>
 					<polygon points={ hexagon(60, 60, 54) } class="fill-accent-soft stroke-accent" stroke-width="3"></polygon>
 					<text x="60" y="40" text-anchor="middle" class="fill-accent font-mono text-[13px] font-medium">OVR</text>
 					<text x="60" y="80" text-anchor="middle" class="fill-ink font-display text-[44px] font-bold">{ itoa(p.Overall()) }</text>
 				</svg>
+				@tipBox("OVR", ovrTitle)
 			</span>
 			<div class="min-w-0 flex-1">
 				if v, ok := p.Selected(); ok {
@@ -191,7 +192,10 @@ templ fichaHero(p Page) {
 						<li class="relative shrink-0">
 							// La primera vista es la posición principal: el rol que desempeña hoy, aunque se esté viendo otro.
 							if i == 0 {
-								<span class="tip absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 rounded-full border border-accent bg-surface px-1.5 font-mono text-[10px] leading-4 tracking-[0.08em] text-accent uppercase" data-tip={ currentRoleTip(p) } aria-hidden="true">Actual</span>
+								<span class="tip absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 rounded-full border border-accent bg-surface px-1.5 font-mono text-[10px] leading-4 tracking-[0.08em] text-accent uppercase" data-tip={ currentRoleTip(p) } aria-hidden="true">
+									Actual
+									@tipBox("Actual", currentRoleTip(p))
+								</span>
 							}
 							if i == p.View {
 								<a href={ templ.SafeURL(p.viewPath(i)) } aria-current="page" class="flex min-h-11 min-w-[84px] flex-col items-center rounded-md bg-accent px-3 py-2 text-on-accent no-underline hover:text-on-accent" data-swap>
@@ -442,11 +446,12 @@ templ traitBadge(t profile.Trait) {
 			}
 		</svg>
 		<span class="sr-only">{ traitTip(t) }</span>
+		@tipBox("Rasgo", traitTip(t))
 	</span>
 }
 
-// sigla muestra una abreviatura con su significado en un tooltip CSS inmediato (el title nativo tarda o no aparece,
-// y no existe en pantallas táctiles). Dentro de un enlace no lleva tabindex, para no anidar elementos enfocables.
+// sigla muestra una abreviatura con su significado en un tooltip propio (el title nativo tarda o no aparece, y no
+// existe en pantallas táctiles). Dentro de un enlace no lleva tabindex, para no anidar elementos enfocables.
 templ sigla(code, tip, class string, focusable bool) {
 	<abbr
 		class={ "tip", class }
@@ -454,7 +459,22 @@ templ sigla(code, tip, class string, focusable bool) {
 		if focusable {
 			tabindex="0"
 		}
-	>{ code }<span class="sr-only">{ " (" + tip + ")" }</span></abbr>
+	>{ code }<span class="sr-only">{ " (" + tip + ")" }</span>@tipBox(code, tip)</abbr>
+}
+
+// tipBox es el tooltip de una sigla o insignia (DESIGN.md): código, nombre y descripción. Es solo visual: los lectores
+// de pantalla leen el texto sr-only de al lado. static/tip.js lo mantiene dentro de la pantalla y lo cierra con Esc.
+templ tipBox(code, tip string) {
+	{{ eyebrow, title, body := tipParts(code, tip) }}
+	<span class="tip-box" aria-hidden="true">
+		if eyebrow != "" {
+			<span class="tip-eyebrow">{ eyebrow }</span>
+		}
+		<span class="tip-title">{ title }</span>
+		if body != "" {
+			<span>{ body }</span>
+		}
+	</span>
 }
 
 // cintaArrows son las flechas de una cinta [data-cinta]. Aparecen solo con JavaScript (static/cinta.js)

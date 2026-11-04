@@ -131,7 +131,9 @@
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  /* Siglas con su significado: tooltip propio al pasar el mouse o al enfocar (también con un toque en móvil). */
+  /* Siglas e insignias con su significado (tipBox, DESIGN.md): superficie con borde y la sombra de los flotantes,
+     flecha hacia la sigla, y código, nombre y descripción. Aparece al pasar el mouse o al enfocar (un toque en
+     móvil). static/tip.js lo mantiene dentro de la pantalla (--tip-dx, .tip-up) y lo cierra con Esc. */
   .tip {
     position: relative;
     cursor: help;
@@ -139,46 +141,108 @@
     text-decoration-color: var(--faint);
     text-underline-offset: 3px;
   }
-  .tip:hover::after,
-  .tip:focus-visible::after,
-  .tip:focus::after {
-    content: attr(data-tip);
+  .tip-box {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 10px);
     left: 50%;
     z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     width: max-content;
-    max-width: 280px;
-    transform: translateX(-50%);
-    padding: 8px 12px;
+    max-width: min(300px, calc(100vw - 16px));
+    transform: translateX(calc(-50% + var(--tip-dx, 0px)));
+    padding: 10px 12px;
+    border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background: var(--ink);
-    color: var(--bg);
-    font: 400 13px/1.45 var(--font-sans);
+    background: var(--surface);
+    box-shadow: 0 8px 24px rgb(22 24 27 / 0.12);
+    color: var(--muted);
+    font: 400 14px/1.45 var(--font-sans);
     letter-spacing: normal;
     text-align: left;
     text-transform: none;
     white-space: normal;
+    opacity: 0;
+    visibility: hidden;
     pointer-events: none;
+    transition:
+      opacity 120ms ease-out,
+      visibility 120ms;
   }
-  /* Alineado al borde izquierdo de la sigla, para las que van al inicio de una fila. */
-  .tip-start:hover::after,
-  .tip-start:focus-visible::after,
-  .tip-start:focus::after {
+  /* La flecha: un cuadrado girado con el borde de la caja; sigue apuntando a la sigla aunque la caja se corra. */
+  .tip-box::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: calc(50% - var(--tip-dx, 0px));
+    width: 10px;
+    height: 10px;
+    transform: translateX(-50%) rotate(45deg);
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .tip-eyebrow {
+    font: 500 12px/1.4 var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .tip-title {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .tip:hover > .tip-box,
+  .tip:focus-visible > .tip-box,
+  .tip:focus > .tip-box,
+  a:focus-visible .tip > .tip-box {
+    opacity: 1;
+    visibility: visible;
+  }
+  .tip[data-tip-off] > .tip-box {
+    opacity: 0;
+    visibility: hidden;
+  }
+  /* Alineado al borde izquierdo, para las siglas que van al inicio de una fila. */
+  .tip-start > .tip-box {
     left: 0;
-    transform: none;
+    transform: translateX(var(--tip-dx, 0px));
   }
+  .tip-start > .tip-box::before {
+    left: calc(20px - var(--tip-dx, 0px));
+  }
+  /* Arriba de la sigla, cuando abajo no cabe (lo decide tip.js). */
+  .tip-up > .tip-box {
+    top: auto;
+    bottom: calc(100% + 10px);
+  }
+  .tip-up > .tip-box::before {
+    top: auto;
+    bottom: -6px;
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tip-box {
+      transition: none;
+    }
+  }
+  /* Sin JavaScript no se puede medir: en móvil va fijo abajo, a lo ancho, para que no se salga. */
   @media (max-width: 639px) {
-    .tip:hover::after,
-    .tip:focus-visible::after,
-    .tip:focus::after {
+    html:not(.tip-js) .tip-box {
       position: fixed;
       top: auto;
       right: 16px;
       bottom: 84px;
       left: 16px;
+      width: auto;
       max-width: none;
       transform: none;
+    }
+    html:not(.tip-js) .tip-box::before {
+      display: none;
     }
   }
   a {
