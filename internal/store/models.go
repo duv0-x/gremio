@@ -34,6 +34,14 @@ type Instance struct {
 	CreatedAt     string
 	Host          sql.NullString
 	AccountDomain sql.NullString
+	OwnerEmail    sql.NullString
+}
+
+type LoginLink struct {
+	ID        int64
+	TokenHash []byte
+	CreatedAt string
+	UsedAt    sql.NullString
 }
 
 type Note struct {
@@ -46,4 +54,10 @@ type Profile struct {
 	ID        int64
 	Document  string
 	UpdatedAt string
+}
+
+type Session struct {
+	TokenHash []byte
+	ExpiresAt string
+	CreatedAt string
 }

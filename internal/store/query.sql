@@ -63,3 +63,39 @@ SELECT count(*) FROM delivery_queue;
 
 -- name: UpdateProfile :exec
 UPDATE profile SET document = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = 1;
+
+-- name: SetOwnerEmail :execrows
+UPDATE instance SET owner_email = ? WHERE id = 1;
+
+-- name: CreateLoginLink :exec
+INSERT INTO login_links (token_hash, created_at) VALUES (?, ?);
+
+-- name: CountLoginLinksSince :one
+SELECT count(*) FROM login_links WHERE created_at > ?;
+
+-- name: DeleteLoginLinksBefore :exec
+DELETE FROM login_links WHERE created_at <= ?;
+
+-- name: LatestLoginLink :one
+SELECT * FROM login_links ORDER BY id DESC LIMIT 1;
+
+-- name: UseLoginLink :execrows
+UPDATE login_links SET used_at = ? WHERE id = ? AND used_at IS NULL;
+
+-- name: CreateSession :exec
+INSERT INTO sessions (token_hash, expires_at) VALUES (?, ?);
+
+-- name: GetSessionExpiry :one
+SELECT expires_at FROM sessions WHERE token_hash = ? AND expires_at > ?;
+
+-- name: RenewSession :exec
+UPDATE sessions SET expires_at = ? WHERE token_hash = ?;
+
+-- name: DeleteSession :exec
+DELETE FROM sessions WHERE token_hash = ?;
+
+-- name: DeleteAllSessions :exec
+DELETE FROM sessions;
+
+-- name: DeleteExpiredSessions :exec
+DELETE FROM sessions WHERE expires_at <= ?;
