@@ -353,8 +353,8 @@ func TestPestanaProyectos(t *testing.T) {
 	}
 
 	withProjects := strings.Replace(fichaDoc, `"skills": [`, `"projects": [
-    {"id": "papiro", "name": "papiro", "description": "EPUB a tu Kindle", "url": "https://papiro.ejemplo.org/", "keywords": ["Go", "templ"]},
-    {"id": "malo", "name": "malo", "url": "javascript:alert(1)"}],
+    {"id": "papiro", "name": "papiro", "description": "EPUB a tu Kindle", "url": "https://papiro.ejemplo.org/", "keywords": ["Go", "templ"], "image": "https://ejemplo.org/papiro.jpg"},
+    {"id": "malo", "name": "malo", "url": "javascript:alert(1)", "image": "javascript:alert(2)"}],
   "skills": [`, 1)
 	ts = newTestServer(t, withProjects)
 	_, body := get(t, ts.URL+"/@alice")
@@ -365,7 +365,7 @@ func TestPestanaProyectos(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("HTTP %d", resp.StatusCode)
 	}
-	for _, want := range []string{`id="proyectos"`, "data-cinta-track", `href="https://papiro.ejemplo.org/"`, "papiro.ejemplo.org<", "EPUB a tu Kindle", ">templ<",
+	for _, want := range []string{`id="proyectos"`, "data-cinta-track", `href="https://papiro.ejemplo.org/"`, `src="https://ejemplo.org/papiro.jpg"`, "papiro.ejemplo.org<", "EPUB a tu Kindle", ">templ<",
 		`href="/@alice/proyectos" aria-current="page"`, "<title>Alice Ejemplo · Proyectos</title>"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("Proyectos: falta %q", want)
