@@ -276,3 +276,92 @@ func TestEditorListas(t *testing.T) {
 		t.Errorf("fecha inválida: %d", resp.StatusCode)
 	}
 }
+
+func TestEditorVistasAtributosYRasgos(t *testing.T) {
+	p := newPanelServer(t, fichaDoc)
+	p.requireOwner("/panel/vistas", url.Values{"vista.0.id": {"sre"}, "vista.0.borrar": {"1"}})
+	p.requireOwner("/panel/vistas/sre", url.Values{"name": {"x"}, "slug": {"sre"}})
+	p.requireOwner("/panel/atributos/CNT", url.Values{"code": {"CNT"}, "name": {"x"}})
+	p.requireOwner("/panel/rasgos", url.Values{"rasgo.0.name": {"x"}})
+	if resp, _ := p.do("/panel/vistas/no-existe", nil, true); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("vista inexistente: %d", resp.StatusCode)
+	}
+
+	// Editar una vista: pesos (vacío excluye), qué incluye y datos.
+	_, body := p.do("/panel/vistas/sre", nil, true)
+	if !strings.Contains(body, `name="peso.OBS"`) || !strings.Contains(body, `value="2"`) || !strings.Contains(body, `<datalist id="posiciones">`) {
+		t.Fatal("formulario de vista")
+	}
+	if resp, _ := p.do("/panel/vistas/sre", url.Values{"name": {"Site Reliability"}, "slug": {"sre"}, "code": {"sre"}, "level": {"sr"},
+		"peso.OBS": {"3"}, "peso.CNT": {""}, "peso.COD": {"0,5"}, "work": {"acme"}, "skill": {"k8s"}, "highlight": {"h1"}}, true); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("editar vista: %d", resp.StatusCode)
+	}
+	v := p.profile().Gremio.Views[0]
+	if v.Name != "Site Reliability" || v.Code != "SRE" || len(v.Weights) != 2 || v.Weights["COD"] != 0.5 || len(v.Work) != 1 || len(v.Highlights) != 1 {
+		t.Errorf("vista: %+v", v)
+	}
+
+	// Nueva: va al final; inválida, vuelve con lo escrito.
+	resp, body := p.do("/panel/vistas/nuevo", url.Values{"name": {"DevOps"}, "slug": {"Mal Slug"}}, true)
+	if resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, `value="Mal Slug"`) || !strings.Contains(body, `value="DevOps"`) {
+		t.Errorf("vista nueva inválida: %d", resp.StatusCode)
+	}
+	p.do("/panel/vistas/nuevo", url.Values{"name": {"DevOps"}, "slug": {"devops"}, "code": {"DVO"}, "peso.CNT": {"1"}}, true)
+	if vs := p.profile().Gremio.Views; len(vs) != 3 || vs[2].Slug != "devops" {
+		t.Fatalf("vista nueva: %+v", vs)
+	}
+	// La lista ordena: la principal pasa a ser devops.
+	p.do("/panel/vistas", url.Values{"vista.0.id": {"sre"}, "vista.0.orden": {"3"}, "vista.1.id": {"platform-engineer"}, "vista.1.orden": {"2"},
+		"vista.2.id": {"devops"}, "vista.2.orden": {"1"}}, true)
+	if vs := p.profile().Gremio.Views; vs[0].Slug != "devops" || vs[2].Slug != "sre" {
+		t.Errorf("orden de vistas: %s %s %s", vs[0].Slug, vs[1].Slug, vs[2].Slug)
+	}
+
+	// Renombrar un atributo mueve sus pesos en todas las vistas.
+	if resp, _ := p.do("/panel/atributos/CNT", url.Values{"code": {"cnx"}, "name": {"Contenedores"}, "sub.0.name": {"Kubernetes"}, "sub.0.score": {"95"},
+		"sub.1.name": {"EKS"}, "sub.1.score": {"85"}, "sub.1.learning": {"1"}, "skill": {"k8s"}}, true); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("editar atributo: %d", resp.StatusCode)
+	}
+	r := p.profile()
+	if a := r.Gremio.Attributes[0]; a.Code != "CNX" || a.Score() != 90 || !a.Subs[1].Learning || len(a.Highlights) != 0 {
+		t.Errorf("atributo: %+v", a)
+	}
+	for _, v := range r.Gremio.Views {
+		if _, ok := v.Weights["CNT"]; ok {
+			t.Errorf("la vista %s conserva el código viejo: %v", v.Slug, v.Weights)
+		}
+	}
+	if r.Gremio.Views[0].Weights["CNX"] != 1 || r.Gremio.Views[1].Weights["CNX"] != 2 {
+		t.Errorf("pesos renombrados: %v %v", r.Gremio.Views[0].Weights, r.Gremio.Views[1].Weights)
+	}
+	if resp, _ := p.do("/panel/atributos/nuevo", url.Values{"code": {"IAC"}, "name": {"IaC"}, "sub.0.name": {"Terraform"}, "sub.0.score": {"mucho"}}, true); resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("puntaje inválido: %d", resp.StatusCode)
+	}
+	p.do("/panel/atributos/nuevo", url.Values{"code": {"IAC"}, "name": {"IaC"}, "sub.0.name": {"Terraform"}, "sub.0.score": {"88"}}, true)
+	// Borrar OBS lo quita de los pesos; quedarse con 2 no se permite.
+	p.do("/panel/atributos", url.Values{"atributo.0.id": {"CNX"}, "atributo.1.id": {"OBS"}, "atributo.1.borrar": {"1"}, "atributo.2.id": {"COD"}, "atributo.3.id": {"IAC"}}, true)
+	r = p.profile()
+	if len(r.Gremio.Attributes) != 3 || r.Gremio.Views[2].Weights["OBS"] != 0 {
+		t.Errorf("borrar atributo: %d atributos, pesos sre %v", len(r.Gremio.Attributes), r.Gremio.Views[2].Weights)
+	}
+	if resp, _ := p.do("/panel/atributos", url.Values{"atributo.0.id": {"CNX"}, "atributo.1.id": {"COD"}, "atributo.2.id": {"IAC"}, "atributo.2.borrar": {"1"}}, true); resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("con 2 atributos el radar no se arma: %d", resp.StatusCode)
+	}
+
+	if resp, _ := p.do("/panel/rasgos", url.Values{"rasgo.0.name": {"Automatizadora"}, "rasgo.0.icon": {"no-existe"}}, true); resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("ícono inexistente: %d", resp.StatusCode)
+	}
+	p.do("/panel/rasgos", url.Values{"rasgo.0.name": {"Automatizadora"}, "rasgo.0.icon": {"bot"}, "rasgo.0.color": {"violeta"}}, true)
+	if ts := p.profile().Gremio.Traits; len(ts) != 1 || ts[0].Color != "violeta" {
+		t.Errorf("rasgos: %+v", ts)
+	}
+}
+
+func TestKeepOrder(t *testing.T) {
+	if got := keepOrder([]string{"c", "a", "b"}, []string{"a", "b", "d", "c"}); strings.Join(got, ",") != "c,a,b,d" {
+		t.Errorf("keepOrder = %v", got)
+	}
+	if got := keepOrder([]string{"c", "a"}, []string{"a"}); strings.Join(got, ",") != "a" {
+		t.Errorf("desmarcar: %v", got)
+	}
+}
