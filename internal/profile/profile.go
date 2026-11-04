@@ -520,6 +520,9 @@ func countHighlights(r *Resume) int {
 	return n
 }
 
+// NewID es un id nuevo para un elemento del perfil.
+func NewID() string { return newID() }
+
 func newID() string {
 	b := make([]byte, 6)
 	_, _ = rand.Read(b)

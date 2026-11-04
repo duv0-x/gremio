@@ -169,3 +169,65 @@ func TestEditorBasico(t *testing.T) {
 		t.Errorf("borrar: %+v", rs)
 	}
 }
+
+func TestEditorExperiencia(t *testing.T) {
+	p := newPanelServer(t, fichaDoc)
+	p.requireOwner("/panel/experiencia", url.Values{"trabajo.0.id": {"acme"}, "trabajo.0.borrar": {"1"}})
+	p.requireOwner("/panel/experiencia/acme", url.Values{"name": {"Otra"}})
+	if resp, _ := p.do("/panel/experiencia/no-existe", nil, true); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("trabajo inexistente: %d", resp.StatusCode)
+	}
+
+	// Uno nuevo va primero, con sus logros y su evidencia.
+	nuevo := url.Values{"name": {"Globex"}, "position": {"SRE"}, "start": {"2024-01"},
+		"logro.0.text": {"Migró 40 servicios a EKS"}, "logro.0.evidence": {"https://ejemplo.org/a\n\nhttps://ejemplo.org/b"}}
+	resp, _ := p.do("/panel/experiencia/nuevo", nuevo, true)
+	if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != "/panel/experiencia?ok=guardado" {
+		t.Fatalf("nuevo: %d %s", resp.StatusCode, resp.Header.Get("Location"))
+	}
+	r := p.profile()
+	if len(r.Work) != 2 || r.Work[0].Name != "Globex" || len(r.Work[0].Highlights) != 1 || len(r.Work[0].Highlights[0].Evidence) != 2 {
+		t.Fatalf("nuevo guardado: %+v", r.Work)
+	}
+	globex := r.Work[0].ID
+
+	// Inválido: vuelve con lo escrito, sin guardar.
+	resp, body := p.do("/panel/experiencia/nuevo", url.Values{"name": {""}, "logro.0.text": {"Texto que no se pierde"}}, true)
+	if resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, "Texto que no se pierde") || !strings.Contains(body, `action="/panel/experiencia/nuevo"`) {
+		t.Errorf("nuevo inválido: %d", resp.StatusCode)
+	}
+	if len(p.profile().Work) != 2 {
+		t.Error("un trabajo inválido no se guarda")
+	}
+
+	// Borrar un logro que respalda un atributo quita también la referencia.
+	_, body = p.do("/panel/experiencia/acme", nil, true)
+	if !strings.Contains(body, `name="logro.0.id" value="h1"`) || !strings.Contains(body, "Bajó el MTTR") {
+		t.Fatal("el formulario trae los logros con su id")
+	}
+	edit := url.Values{"name": {"Acme Corp"}, "position": {"SRE"}, "start": {"2021-05"},
+		"logro.0.id": {"h1"}, "logro.0.text": {"Bajó el MTTR 23 %"}, "logro.0.borrar": {"1"}, "logro.1.text": {"Otro logro"}}
+	if resp, _ := p.do("/panel/experiencia/acme", edit, true); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("editar: %d", resp.StatusCode)
+	}
+	r = p.profile()
+	acme := r.Work[1]
+	if acme.ID != "acme" || acme.Name != "Acme Corp" || len(acme.Highlights) != 1 || acme.Highlights[0].Text != "Otro logro" {
+		t.Errorf("editado: %+v", acme)
+	}
+	if hs := r.Gremio.Attributes[0].Highlights; len(hs) != 0 {
+		t.Errorf("la referencia al logro borrado sigue en el atributo: %v", hs)
+	}
+
+	// La lista ordena y borra.
+	if resp, _ := p.do("/panel/experiencia", url.Values{"trabajo.0.id": {globex}, "trabajo.0.orden": {"2"}, "trabajo.1.id": {"acme"}, "trabajo.1.orden": {"1"}}, true); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("ordenar: %d", resp.StatusCode)
+	}
+	if r := p.profile(); r.Work[0].ID != "acme" || r.Work[1].ID != globex {
+		t.Errorf("orden: %s, %s", r.Work[0].ID, r.Work[1].ID)
+	}
+	p.do("/panel/experiencia", url.Values{"trabajo.0.id": {"acme"}, "trabajo.1.id": {globex}, "trabajo.1.borrar": {"1"}}, true)
+	if r := p.profile(); len(r.Work) != 1 || r.Work[0].ID != "acme" {
+		t.Errorf("borrar: %+v", r.Work)
+	}
+}
