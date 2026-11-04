@@ -1,6 +1,7 @@
 package web
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/duv0-x/gremio/internal/profile"
@@ -318,6 +319,156 @@ templ FormationForm(e editPage) {
 					</div>
 					@textField("URL", field("certificado", i, "url"), at(e.R.Certificates, i).URL, "")
 					@rowControls("certificado", i, i >= len(e.R.Certificates))
+				}
+			}
+		}
+	}
+}
+
+// checkList es un grupo de casillas con el mismo name, una por opción.
+templ checkList(name string, opts []option, selected []string) {
+	<div class="grid gap-x-4 sm:grid-cols-2">
+		for _, o := range opts {
+			<label class="flex min-h-11 items-start gap-3 py-2 text-sm">
+				<input type="checkbox" name={ name } value={ o.Value } checked?={ slices.Contains(selected, o.Value) } class="mt-0.5 size-5 shrink-0 accent-accent"/>
+				<span>{ o.Label }</span>
+			</label>
+		}
+	</div>
+}
+
+// listItem es una fila de las listas de vistas y atributos: título, detalle, Editar, orden y borrar.
+templ listItem(prefix string, i, n int, id, title, detail, href string) {
+	@rowBox(i, n) {
+		<input type="hidden" name={ field(prefix, i, "id") } value={ id }/>
+		<div class="flex flex-wrap items-start justify-between gap-3">
+			<div>
+				<p class="font-display text-lg font-semibold">{ title }</p>
+				<p class="text-sm text-muted">{ detail }</p>
+			</div>
+			@itemLink(href, "Editar")
+		</div>
+		@rowControls(prefix, i, false)
+	}
+}
+
+templ ViewListForm(e editPage) {
+	@editorLayout(e, "Vistas por rol") {
+		@itemLink("/panel/vistas/nuevo", "Agregar vista")
+		@fieldset("Vistas") {
+			<p class="text-sm text-muted">La primera es la principal: la que abre /@usuario y lleva la marca de rol actual.</p>
+			for i, v := range e.R.Gremio.Views {
+				@listItem("vista", i, len(e.R.Gremio.Views), v.Slug, v.Name, v.Code+" · /"+v.Slug+" · OVR "+itoa(e.R.Overall(v)), "/panel/vistas/"+v.Slug)
+			}
+		}
+	}
+}
+
+templ ViewForm(e editPage) {
+	@editorLayout(e, titleOr(view(e).Name, "Nueva vista")) {
+		@fieldset("Vista") {
+			@textField("Nombre", "name", view(e).Name, "p. ej. Platform Engineer.")
+			<div class="grid gap-4 sm:grid-cols-3">
+				<div class="flex flex-col gap-1.5">
+					<label for="code" class={ labelCls }>Posición</label>
+					<input id="code" name="code" type="text" list="posiciones" value={ view(e).Code } class={ inputCls } aria-describedby="code-ayuda"/>
+					<p id="code-ayuda" class={ hintCls }>Código del catálogo, p. ej. PLE.</p>
+					<datalist id="posiciones">
+						for _, pos := range profile.Positions {
+							<option value={ pos.Code }>{ pos.Name }</option>
+						}
+					</datalist>
+				</div>
+				@selectField("Nivel", "level", view(e).Level, viewLevels)
+				@textField("Slug", "slug", view(e).Slug, "La URL: /@usuario/<slug>.")
+			</div>
+			@textArea("Resumen", "summary", view(e).Summary, "", 3)
+		}
+		@fieldset("Pesos") {
+			<p class="text-sm text-muted">Cuánto pesa cada atributo en el OVR de esta vista. Vacío o 0 lo excluye; si todos quedan vacíos, todos pesan igual.</p>
+			<div class="grid items-end gap-4 sm:grid-cols-3">
+				for _, a := range e.R.Gremio.Attributes {
+					<div class="flex flex-col gap-1.5">
+						<label for={ "peso." + a.Code } class={ labelCls }>{ a.Code } · { a.Name }</label>
+						<input id={ "peso." + a.Code } name={ "peso." + a.Code } type="number" step="any" min="0" value={ weightValue(view(e), a.Code) } class={ inputCls }/>
+					</div>
+				}
+			</div>
+		}
+		@fieldset("Qué incluye") {
+			<p class="text-sm text-muted">Los trabajos, logros y skills que destaca esta vista.</p>
+			<h3 class={ eyebrow }>Trabajos</h3>
+			@checkList("work", workOptions(e.R), view(e).Work)
+			<h3 class={ eyebrow }>Logros</h3>
+			@checkList("highlight", highlightOptions(e.R), view(e).Highlights)
+			<h3 class={ eyebrow }>Skills</h3>
+			@checkList("skill", skillOptions(e.R), view(e).Skills)
+		}
+	}
+}
+
+templ AttributeListForm(e editPage) {
+	@editorLayout(e, "Atributos de la ficha") {
+		@itemLink("/panel/atributos/nuevo", "Agregar atributo")
+		@fieldset("Atributos") {
+			<p class="text-sm text-muted">Los ejes del radar: hacen falta al menos 3. Borrar uno lo quita también de los pesos de las vistas.</p>
+			for i, a := range e.R.Gremio.Attributes {
+				@listItem("atributo", i, len(e.R.Gremio.Attributes), a.Code, a.Code+" · "+a.Name, "Puntaje "+itoa(a.Score())+" · "+itoa(len(a.Subs))+" sub-atributos", "/panel/atributos/"+a.Code)
+			}
+		}
+	}
+}
+
+templ AttributeForm(e editPage) {
+	@editorLayout(e, titleOr(attribute(e).Name, "Nuevo atributo")) {
+		@fieldset("Atributo") {
+			<div class="grid gap-4 sm:grid-cols-3">
+				@textField("Código", "code", attribute(e).Code, "2 a 4 letras, p. ej. IAC.")
+				<div class="sm:col-span-2">
+					@textField("Nombre", "name", attribute(e).Name, "")
+				</div>
+			</div>
+		}
+		@fieldset("Sub-atributos") {
+			<p class="text-sm text-muted">El puntaje del atributo es el promedio de estos, de 0 a 99.</p>
+			for i := range pad(len(attribute(e).Subs)) {
+				@rowBox(i, len(attribute(e).Subs)) {
+					<div class="grid gap-4 sm:grid-cols-3">
+						<div class="sm:col-span-2">
+							@textField("Nombre", field("sub", i, "name"), at(attribute(e).Subs, i).Name, "")
+						</div>
+						<div class="flex flex-col gap-1.5">
+							<label for={ field("sub", i, "score") } class={ labelCls }>Puntaje</label>
+							<input id={ field("sub", i, "score") } name={ field("sub", i, "score") } type="number" min="0" max="99" value={ scoreValue(at(attribute(e).Subs, i), i >= len(attribute(e).Subs)) } class={ inputCls }/>
+						</div>
+					</div>
+					@checkField("Lo estoy aprendiendo", field("sub", i, "learning"), at(attribute(e).Subs, i).Learning)
+					@rowControls("sub", i, i >= len(attribute(e).Subs))
+				}
+			}
+		}
+		@fieldset("Lo respaldan") {
+			<h3 class={ eyebrow }>Skills</h3>
+			@checkList("skill", skillOptions(e.R), attribute(e).Skills)
+			<h3 class={ eyebrow }>Logros</h3>
+			@checkList("highlight", highlightOptions(e.R), attribute(e).Highlights)
+		}
+	}
+}
+
+templ TraitsForm(e editPage) {
+	@editorLayout(e, "Rasgos") {
+		@fieldset("Rasgos") {
+			<p class="text-sm text-muted">Insignias de la ficha. El ícono es un nombre de lucide.dev/icons, p. ej. bot.</p>
+			for i := range pad(len(e.R.Gremio.Traits)) {
+				@rowBox(i, len(e.R.Gremio.Traits)) {
+					@textField("Nombre", field("rasgo", i, "name"), at(e.R.Gremio.Traits, i).Name, "")
+					@textArea("Descripción", field("rasgo", i, "summary"), at(e.R.Gremio.Traits, i).Summary, "", 2)
+					<div class="grid gap-4 sm:grid-cols-2">
+						@textField("Ícono", field("rasgo", i, "icon"), at(e.R.Gremio.Traits, i).Icon, "")
+						@selectField("Color", field("rasgo", i, "color"), at(e.R.Gremio.Traits, i).Color, traitColors)
+					</div>
+					@rowControls("rasgo", i, i >= len(e.R.Gremio.Traits))
 				}
 			}
 		}

@@ -3,6 +3,7 @@ package web
 import (
 	"cmp"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -233,6 +234,9 @@ var editorLinks = []option{
 	{"/panel/skills", "Skills"},
 	{"/panel/proyectos", "Proyectos"},
 	{"/panel/formacion", "Educación, idiomas y certificados"},
+	{"/panel/vistas", "Vistas por rol"},
+	{"/panel/atributos", "Atributos de la ficha"},
+	{"/panel/rasgos", "Rasgos"},
 }
 
 func (s *Server) sections() []editSection {
@@ -242,6 +246,15 @@ func (s *Server) sections() []editSection {
 		{path: "/panel/skills", form: SkillsForm, apply: applySkills},
 		{path: "/panel/proyectos", form: ProjectsForm, apply: applyProjects},
 		{path: "/panel/formacion", form: FormationForm, apply: applyFormation},
+		{path: "/panel/vistas", form: ViewListForm, apply: applyViewList},
+		{path: "/panel/vistas/{id}", form: ViewForm, apply: applyView, exists: func(r *profile.Resume, id string) bool {
+			return viewIndex(r, id) >= 0
+		}},
+		{path: "/panel/atributos", form: AttributeListForm, apply: applyAttributeList},
+		{path: "/panel/atributos/{id}", form: AttributeForm, apply: applyAttribute, exists: func(r *profile.Resume, id string) bool {
+			return attributeIndex(r, id) >= 0
+		}},
+		{path: "/panel/rasgos", form: TraitsForm, apply: applyTraits},
 		{path: "/panel/experiencia/{id}", form: WorkForm, apply: applyWork, exists: func(r *profile.Resume, id string) bool {
 			return slices.ContainsFunc(r.Work, func(w profile.Work) bool { return w.ID == id })
 		}},
@@ -395,3 +408,223 @@ func applyFormation(r *http.Request, res *profile.Resume, _ *string) error {
 }
 
 func joinComma(xs []string) string { return strings.Join(xs, ", ") }
+
+// viewIndex y attributeIndex buscan desde el final: un elemento /nuevo se agrega al final y, si su slug o su
+// código repite uno existente, el formulario debe volver con el nuevo.
+func viewIndex(r *profile.Resume, slug string) int {
+	for i := len(r.Gremio.Views) - 1; i >= 0; i-- {
+		if r.Gremio.Views[i].Slug == slug {
+			return i
+		}
+	}
+	return -1
+}
+
+func attributeIndex(r *profile.Resume, code string) int {
+	for i := len(r.Gremio.Attributes) - 1; i >= 0; i-- {
+		if r.Gremio.Attributes[i].Code == code {
+			return i
+		}
+	}
+	return -1
+}
+
+func view(e editPage) profile.View {
+	if i := viewIndex(e.R, e.ID); i >= 0 {
+		return e.R.Gremio.Views[i]
+	}
+	return profile.View{}
+}
+
+func attribute(e editPage) profile.Attribute {
+	if i := attributeIndex(e.R, e.ID); i >= 0 {
+		return e.R.Gremio.Attributes[i]
+	}
+	return profile.Attribute{}
+}
+
+func titleOr(name, fallback string) string {
+	if name != "" {
+		return name
+	}
+	return fallback
+}
+
+func applyViewList(r *http.Request, res *profile.Resume, _ *string) error {
+	bySlug := map[string]profile.View{}
+	for _, v := range res.Gremio.Views {
+		bySlug[v.Slug] = v
+	}
+	res.Gremio.Views = nil
+	for _, x := range rows(r, "vista") {
+		if v, ok := bySlug[x.get("id")]; ok {
+			res.Gremio.Views = append(res.Gremio.Views, v)
+		}
+	}
+	return nil
+}
+
+// applyView guarda una vista: sus datos, los pesos de cada atributo y qué trabajos, logros y skills incluye.
+func applyView(r *http.Request, res *profile.Resume, id *string) error {
+	f := func(k string) string { return strings.TrimSpace(r.PostFormValue(k)) }
+	old := profile.View{}
+	if i := viewIndex(res, *id); i >= 0 {
+		old = res.Gremio.Views[i]
+	}
+	v := profile.View{Slug: f("slug"), Code: strings.ToUpper(f("code")), Level: f("level"), Name: f("name"), Summary: f("summary"),
+		Work: keepOrder(old.Work, r.PostForm["work"]), Highlights: keepOrder(old.Highlights, r.PostForm["highlight"]),
+		Skills: keepOrder(old.Skills, r.PostForm["skill"])}
+	var bad error
+	for _, a := range res.Gremio.Attributes {
+		raw := f("peso." + a.Code)
+		if raw == "" {
+			continue
+		}
+		w, err := strconv.ParseFloat(strings.ReplaceAll(raw, ",", "."), 64)
+		if err != nil || w < 0 {
+			bad = fmt.Errorf("el peso de %s debe ser un número positivo (vacío o 0 lo excluye)", a.Code)
+			continue
+		}
+		if w > 0 {
+			if v.Weights == nil {
+				v.Weights = map[string]float64{}
+			}
+			v.Weights[a.Code] = w
+		}
+	}
+	if i := viewIndex(res, *id); i >= 0 && *id != "nuevo" {
+		res.Gremio.Views[i] = v
+	} else {
+		res.Gremio.Views = append(res.Gremio.Views, v)
+	}
+	*id = v.Slug
+	return bad
+}
+
+func applyAttributeList(r *http.Request, res *profile.Resume, _ *string) error {
+	byCode := map[string]profile.Attribute{}
+	for _, a := range res.Gremio.Attributes {
+		byCode[a.Code] = a
+	}
+	res.Gremio.Attributes = nil
+	for _, x := range rows(r, "atributo") {
+		if a, ok := byCode[x.get("id")]; ok {
+			res.Gremio.Attributes = append(res.Gremio.Attributes, a)
+		}
+	}
+	return nil
+}
+
+// applyAttribute guarda un atributo con sus sub-atributos y lo que lo respalda. Si cambia el código, los pesos
+// de las vistas lo siguen.
+func applyAttribute(r *http.Request, res *profile.Resume, id *string) error {
+	f := func(k string) string { return strings.TrimSpace(r.PostFormValue(k)) }
+	old := profile.Attribute{}
+	if i := attributeIndex(res, *id); i >= 0 {
+		old = res.Gremio.Attributes[i]
+	}
+	a := profile.Attribute{Code: strings.ToUpper(f("code")), Name: f("name"),
+		Skills: keepOrder(old.Skills, r.PostForm["skill"]), Highlights: keepOrder(old.Highlights, r.PostForm["highlight"])}
+	var bad error
+	for _, x := range rows(r, "sub") {
+		score, err := strconv.Atoi(x.get("score"))
+		if err != nil {
+			bad = fmt.Errorf("el puntaje de %q debe ser un número de 0 a 99", x.get("name"))
+		}
+		a.Subs = append(a.Subs, profile.Sub{Name: x.get("name"), Score: score, Learning: x.get("learning") != ""})
+	}
+	if i := attributeIndex(res, *id); i >= 0 && *id != "nuevo" {
+		res.Gremio.Attributes[i] = a
+		if a.Code != *id {
+			for _, v := range res.Gremio.Views {
+				if w, ok := v.Weights[*id]; ok {
+					delete(v.Weights, *id)
+					v.Weights[a.Code] = w
+				}
+			}
+		}
+	} else {
+		res.Gremio.Attributes = append(res.Gremio.Attributes, a)
+	}
+	*id = a.Code
+	return bad
+}
+
+var traitColors = func() []option {
+	out := []option{{"", "Sin color"}}
+	for _, c := range profile.TraitColors {
+		out = append(out, option{c, c})
+	}
+	return out
+}()
+
+func applyTraits(r *http.Request, res *profile.Resume, _ *string) error {
+	res.Gremio.Traits = nil
+	for _, x := range rows(r, "rasgo") {
+		if x.get("name") == "" {
+			return errors.New("cada rasgo necesita un nombre; para quitarlo, marca Borrar")
+		}
+		res.Gremio.Traits = append(res.Gremio.Traits, profile.Trait{Name: x.get("name"), Summary: x.get("summary"), Icon: x.get("icon"), Color: x.get("color")})
+	}
+	return nil
+}
+
+var viewLevels = []option{{"", "Sin nivel"}, {"jr", "Junior"}, {"semi-sr", "Semi Senior"}, {"sr", "Senior"}}
+
+func weightValue(v profile.View, code string) string {
+	if w, ok := v.Weights[code]; ok {
+		return strconv.FormatFloat(w, 'f', -1, 64)
+	}
+	return ""
+}
+
+func scoreValue(s profile.Sub, isNew bool) string {
+	if isNew {
+		return ""
+	}
+	return strconv.Itoa(s.Score)
+}
+
+func workOptions(r *profile.Resume) []option {
+	var out []option
+	for _, w := range r.Work {
+		out = append(out, option{w.ID, w.Name})
+	}
+	return out
+}
+
+// highlightOptions son los logros con su trabajo, para reconocerlos fuera de contexto.
+func highlightOptions(r *profile.Resume) []option {
+	var out []option
+	for _, w := range r.Work {
+		for _, h := range w.Highlights {
+			out = append(out, option{h.ID, w.Name + ": " + h.Text})
+		}
+	}
+	return out
+}
+
+func skillOptions(r *profile.Resume) []option {
+	var out []option
+	for _, s := range r.Skills {
+		out = append(out, option{s.ID, s.Name})
+	}
+	return out
+}
+
+// keepOrder devuelve los ids marcados: los que ya estaban, en su orden (que pudo elegirse a mano en el JSON), y
+// después los nuevos, en el orden de las casillas.
+func keepOrder(old, selected []string) []string {
+	var out []string
+	for _, id := range old {
+		if slices.Contains(selected, id) {
+			out = append(out, id)
+		}
+	}
+	for _, id := range selected {
+		if !slices.Contains(out, id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
