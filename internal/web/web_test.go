@@ -128,7 +128,7 @@ func TestFichaDeJugador(t *testing.T) {
 		"<polygon", `data-tip="Zona horaria: America/Bogota (UTC−5 hoy)"`, "data-cinta-track", `href="/@alice/cv"`,
 		// Toda sigla explica su significado al pasar el mouse.
 		`data-tip="SRE · Site Reliability Engineer: Mantiene`, `data-tip="Senior"`, "· Senior",
-		`data-tip="Contenedores"`, `<dt class="font-mono text-accent">CNT</dt>`, `data-tip="OVR (overall)`,
+		`data-tip="Contenedores"`, `<dt class="font-mono text-accent">CNT</dt>`, `data-tip="OVR · Overall:`,
 		`<span class="sr-only"> (Contenedores)</span>`,
 	} {
 		if !strings.Contains(body, want) {
@@ -374,6 +374,20 @@ func TestPestanaProyectos(t *testing.T) {
 	for _, leak := range []string{"javascript:", "<polygon", `id="trabajo-acme"`} {
 		if strings.Contains(body, leak) {
 			t.Errorf("Proyectos muestra %q", leak)
+		}
+	}
+}
+
+func TestTipParts(t *testing.T) {
+	for _, c := range []struct{ code, tip, eyebrow, title, body string }{
+		{"SRE", "SRE · Site Reliability Engineer: Mantiene servicios.", "SRE", "Site Reliability Engineer", "Mantiene servicios."},
+		{"UTC−5", "Zona horaria: America/Bogota (UTC−5 hoy)", "UTC−5", "Zona horaria", "America/Bogota (UTC−5 hoy)"},
+		{"CNT", "Contenedores", "CNT", "Contenedores", ""},
+		{"Rasgo", "Automatizadora: Todo pasa por un pipeline.", "Rasgo", "Automatizadora", "Todo pasa por un pipeline."},
+	} {
+		e, ti, b := tipParts(c.code, c.tip)
+		if e != c.eyebrow || ti != c.title || b != c.body {
+			t.Errorf("tipParts(%q) = %q, %q, %q", c.tip, e, ti, b)
 		}
 	}
 }

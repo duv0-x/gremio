@@ -121,7 +121,17 @@ func barClass(s profile.Sub) string {
 }
 
 // ovrTitle explica la sigla OVR (ADR-010 §3).
-const ovrTitle = "OVR (overall): índice general del rol, el promedio de los atributos ponderado por su peso en ese rol"
+const ovrTitle = "OVR · Overall: Índice general del rol, el promedio de los atributos ponderado por su peso en ese rol"
+
+// tipParts separa el texto de un tooltip, "CÓDIGO · Nombre: descripción", en sus tres niveles. El código repetido al
+// inicio del nombre se quita; sin ": " todo es nombre.
+func tipParts(code, tip string) (eyebrow, title, body string) {
+	title, body, _ = strings.Cut(tip, ": ")
+	if rest, ok := strings.CutPrefix(title, code+" · "); ok {
+		title = rest
+	}
+	return code, title, body
+}
 
 func workAnchor(w profile.Work) string { return "trabajo-" + w.ID }
 
