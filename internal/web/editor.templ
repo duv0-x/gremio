@@ -231,3 +231,95 @@ templ WorkForm(e editPage) {
 		}
 	}
 }
+
+// hiddenID guarda el id de una fila que ya existe, para no romper las referencias de vistas y atributos.
+templ hiddenID(prefix string, i int, id string) {
+	if id != "" {
+		<input type="hidden" name={ field(prefix, i, "id") } value={ id }/>
+	}
+}
+
+templ SkillsForm(e editPage) {
+	@editorLayout(e, "Skills") {
+		@fieldset("Skills") {
+			<p class="text-sm text-muted">Las palabras clave van separadas por comas. La evidencia son enlaces, uno por línea.</p>
+			for i := range pad(len(e.R.Skills)) {
+				@rowBox(i, len(e.R.Skills)) {
+					@hiddenID("skill", i, at(e.R.Skills, i).ID)
+					<div class="grid gap-4 sm:grid-cols-2">
+						@textField("Nombre", field("skill", i, "name"), at(e.R.Skills, i).Name, "")
+						@selectField("Nivel", field("skill", i, "level"), at(e.R.Skills, i).Level, skillLevels)
+					</div>
+					@textArea("Palabras clave", field("skill", i, "keywords"), joinComma(at(e.R.Skills, i).Keywords), "", 2)
+					@textArea("Evidencia", field("skill", i, "evidence"), joinLines(at(e.R.Skills, i).Evidence), "", 2)
+					@rowControls("skill", i, i >= len(e.R.Skills))
+				}
+			}
+		}
+	}
+}
+
+templ ProjectsForm(e editPage) {
+	@editorLayout(e, "Proyectos") {
+		@fieldset("Proyectos") {
+			<p class="text-sm text-muted">Se muestran en la pestaña Proyectos. El stack va separado por comas; la captura es la URL de una imagen.</p>
+			for i := range pad(len(e.R.Projects)) {
+				@rowBox(i, len(e.R.Projects)) {
+					@hiddenID("proyecto", i, at(e.R.Projects, i).ID)
+					@textField("Nombre", field("proyecto", i, "name"), at(e.R.Projects, i).Name, "")
+					@textArea("Descripción", field("proyecto", i, "description"), at(e.R.Projects, i).Description, "", 3)
+					<div class="grid gap-4 sm:grid-cols-2">
+						@textField("URL", field("proyecto", i, "url"), at(e.R.Projects, i).URL, "")
+						@textField("Captura", field("proyecto", i, "image"), at(e.R.Projects, i).Image, "")
+					</div>
+					@textField("Stack", field("proyecto", i, "keywords"), joinComma(at(e.R.Projects, i).Keywords), "")
+					@rowControls("proyecto", i, i >= len(e.R.Projects))
+				}
+			}
+		}
+	}
+}
+
+templ FormationForm(e editPage) {
+	@editorLayout(e, "Educación, idiomas y certificados") {
+		@fieldset("Educación") {
+			for i := range pad(len(e.R.Education)) {
+				@rowBox(i, len(e.R.Education)) {
+					@hiddenID("estudio", i, at(e.R.Education, i).ID)
+					@textField("Institución", field("estudio", i, "institution"), at(e.R.Education, i).Institution, "")
+					<div class="grid gap-4 sm:grid-cols-2">
+						@textField("Título o tipo", field("estudio", i, "studyType"), at(e.R.Education, i).StudyType, "p. ej. Ingeniería, Maestría.")
+						@textField("Área", field("estudio", i, "area"), at(e.R.Education, i).Area, "")
+						@textField("Inicio", field("estudio", i, "start"), at(e.R.Education, i).StartDate, "AAAA o AAAA-MM.")
+						@textField("Fin", field("estudio", i, "end"), at(e.R.Education, i).EndDate, "")
+					</div>
+					@rowControls("estudio", i, i >= len(e.R.Education))
+				}
+			}
+		}
+		@fieldset("Idiomas") {
+			for i := range pad(len(e.R.Languages)) {
+				@rowBox(i, len(e.R.Languages)) {
+					<div class="grid gap-4 sm:grid-cols-2">
+						@textField("Idioma", field("idioma", i, "language"), at(e.R.Languages, i).Language, "")
+						@textField("Nivel", field("idioma", i, "fluency"), at(e.R.Languages, i).Fluency, "p. ej. Nativo, B2.")
+					</div>
+					@rowControls("idioma", i, i >= len(e.R.Languages))
+				}
+			}
+		}
+		@fieldset("Certificados") {
+			for i := range pad(len(e.R.Certificates)) {
+				@rowBox(i, len(e.R.Certificates)) {
+					@textField("Nombre", field("certificado", i, "name"), at(e.R.Certificates, i).Name, "")
+					<div class="grid gap-4 sm:grid-cols-2">
+						@textField("Emisor", field("certificado", i, "issuer"), at(e.R.Certificates, i).Issuer, "")
+						@textField("Fecha", field("certificado", i, "date"), at(e.R.Certificates, i).Date, "AAAA-MM.")
+					</div>
+					@textField("URL", field("certificado", i, "url"), at(e.R.Certificates, i).URL, "")
+					@rowControls("certificado", i, i >= len(e.R.Certificates))
+				}
+			}
+		}
+	}
+}

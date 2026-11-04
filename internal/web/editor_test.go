@@ -231,3 +231,48 @@ func TestEditorExperiencia(t *testing.T) {
 		t.Errorf("borrar: %+v", r.Work)
 	}
 }
+
+func TestEditorListas(t *testing.T) {
+	p := newPanelServer(t, fichaDoc)
+	for _, path := range []string{"/panel/skills", "/panel/proyectos", "/panel/formacion"} {
+		p.requireOwner(path, url.Values{"skill.0.name": {"x"}})
+		if resp, _ := p.do(path, nil, true); resp.StatusCode != http.StatusOK {
+			t.Errorf("GET %s: %d", path, resp.StatusCode)
+		}
+	}
+
+	// Skills: la que existe conserva su id; borrar k8s quita su referencia del atributo CNT.
+	_, body := p.do("/panel/skills", nil, true)
+	if !strings.Contains(body, `name="skill.0.id" value="k8s"`) || !strings.Contains(body, ">EKS<") {
+		t.Fatal("el formulario trae las skills con su id y keywords")
+	}
+	if resp, _ := p.do("/panel/skills", url.Values{"skill.0.id": {"k8s"}, "skill.0.name": {"Kubernetes"}, "skill.0.borrar": {"1"},
+		"skill.1.name": {"Go"}, "skill.1.level": {"learning"}, "skill.1.keywords": {"templ, sqlc"}}, true); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("skills: %d", resp.StatusCode)
+	}
+	r := p.profile()
+	if len(r.Skills) != 1 || r.Skills[0].Name != "Go" || r.Skills[0].Level != "learning" || len(r.Skills[0].Keywords) != 2 || len(r.Gremio.Attributes[0].Skills) != 0 {
+		t.Errorf("skills: %+v, atributo %v", r.Skills, r.Gremio.Attributes[0].Skills)
+	}
+	if resp, _ := p.do("/panel/skills", url.Values{"skill.0.name": {"Go"}, "skill.0.level": {"guru"}}, true); resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("nivel inválido: %d", resp.StatusCode)
+	}
+
+	if resp, _ := p.do("/panel/proyectos", url.Values{"proyecto.0.name": {"papiro"}, "proyecto.0.url": {"https://papiro.ejemplo.org"},
+		"proyecto.0.keywords": {"Go, HTMX"}, "proyecto.1.description": {"sin nombre"}}, true); resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("proyecto sin nombre: %d", resp.StatusCode)
+	}
+	p.do("/panel/proyectos", url.Values{"proyecto.0.name": {"papiro"}, "proyecto.0.url": {"https://papiro.ejemplo.org"}, "proyecto.0.keywords": {"Go, HTMX"}}, true)
+	if r := p.profile(); len(r.Projects) != 1 || r.Projects[0].ID == "" || len(r.Projects[0].Keywords) != 2 {
+		t.Errorf("proyectos: %+v", r.Projects)
+	}
+
+	p.do("/panel/formacion", url.Values{"estudio.0.institution": {"UdeA"}, "estudio.0.start": {"2005"},
+		"idioma.0.language": {"Español"}, "idioma.0.fluency": {"Nativo"}, "certificado.0.name": {"CKA"}, "certificado.0.date": {"2023-04"}}, true)
+	if r := p.profile(); len(r.Education) != 1 || len(r.Languages) != 1 || len(r.Certificates) != 1 || r.Certificates[0].Name != "CKA" {
+		t.Errorf("formación: %+v %+v %+v", r.Education, r.Languages, r.Certificates)
+	}
+	if resp, _ := p.do("/panel/formacion", url.Values{"estudio.0.institution": {"UdeA"}, "estudio.0.start": {"ayer"}}, true); resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("fecha inválida: %d", resp.StatusCode)
+	}
+}

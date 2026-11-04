@@ -230,12 +230,18 @@ func pad(n int) int { return n + blankRows }
 var editorLinks = []option{
 	{"/panel/basico", "Básico y contacto"},
 	{"/panel/experiencia", "Experiencia"},
+	{"/panel/skills", "Skills"},
+	{"/panel/proyectos", "Proyectos"},
+	{"/panel/formacion", "Educación, idiomas y certificados"},
 }
 
 func (s *Server) sections() []editSection {
 	return []editSection{
 		{path: "/panel/basico", form: BasicsForm, apply: applyBasics},
 		{path: "/panel/experiencia", form: WorkListForm, apply: applyWorkList},
+		{path: "/panel/skills", form: SkillsForm, apply: applySkills},
+		{path: "/panel/proyectos", form: ProjectsForm, apply: applyProjects},
+		{path: "/panel/formacion", form: FormationForm, apply: applyFormation},
 		{path: "/panel/experiencia/{id}", form: WorkForm, apply: applyWork, exists: func(r *profile.Resume, id string) bool {
 			return slices.ContainsFunc(r.Work, func(w profile.Work) bool { return w.ID == id })
 		}},
@@ -328,3 +334,64 @@ func highlight(e editPage, i int) profile.Highlight {
 }
 
 func joinLines(xs []string) string { return strings.Join(xs, "\n") }
+
+// at devuelve xs[i], o el valor vacío para las filas nuevas del final.
+func at[T any](xs []T, i int) T {
+	if i < len(xs) {
+		return xs[i]
+	}
+	var zero T
+	return zero
+}
+
+var skillLevels = []option{{"", "Sin nivel"}, {"expert", "Experto"}, {"solid", "Sólido"}, {"learning", "Aprendiendo"}}
+
+func applySkills(r *http.Request, res *profile.Resume, _ *string) error {
+	res.Skills = nil
+	for _, x := range rows(r, "skill") {
+		if x.get("name") == "" {
+			return errors.New("cada skill necesita un nombre; para quitarla, marca Borrar")
+		}
+		res.Skills = append(res.Skills, profile.Skill{ID: x.get("id"), Name: x.get("name"), Level: x.get("level"),
+			Keywords: splitList(x.get("keywords")), Evidence: lines(x.get("evidence"))})
+	}
+	return nil
+}
+
+func applyProjects(r *http.Request, res *profile.Resume, _ *string) error {
+	res.Projects = nil
+	for _, x := range rows(r, "proyecto") {
+		if x.get("name") == "" {
+			return errors.New("cada proyecto necesita un nombre; para quitarlo, marca Borrar")
+		}
+		res.Projects = append(res.Projects, profile.Project{ID: x.get("id"), Name: x.get("name"), Description: x.get("description"),
+			URL: x.get("url"), Image: x.get("image"), Keywords: splitList(x.get("keywords"))})
+	}
+	return nil
+}
+
+func applyFormation(r *http.Request, res *profile.Resume, _ *string) error {
+	res.Education, res.Languages, res.Certificates = nil, nil, nil
+	for _, x := range rows(r, "estudio") {
+		if x.get("institution") == "" {
+			return errors.New("cada estudio necesita la institución; para quitarlo, marca Borrar")
+		}
+		res.Education = append(res.Education, profile.Education{ID: x.get("id"), Institution: x.get("institution"), Area: x.get("area"),
+			StudyType: x.get("studyType"), StartDate: x.get("start"), EndDate: x.get("end")})
+	}
+	for _, x := range rows(r, "idioma") {
+		if x.get("language") == "" {
+			return errors.New("cada idioma necesita un nombre; para quitarlo, marca Borrar")
+		}
+		res.Languages = append(res.Languages, profile.Language{Language: x.get("language"), Fluency: x.get("fluency")})
+	}
+	for _, x := range rows(r, "certificado") {
+		if x.get("name") == "" {
+			return errors.New("cada certificado necesita un nombre; para quitarlo, marca Borrar")
+		}
+		res.Certificates = append(res.Certificates, profile.Certificate{Name: x.get("name"), Date: x.get("date"), Issuer: x.get("issuer"), URL: x.get("url")})
+	}
+	return nil
+}
+
+func joinComma(xs []string) string { return strings.Join(xs, ", ") }
