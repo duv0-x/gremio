@@ -122,6 +122,18 @@ templ PanelPage(d panelData) {
 		if d.Error != "" {
 			<p role="alert" class="rounded-md border border-danger p-4 text-sm text-ink">{ d.Error }</p>
 		}
+		@panelSection("Editar") {
+			<ul class="grid gap-3 sm:grid-cols-2">
+				for _, l := range editorLinks {
+					<li>
+						<a href={ templ.SafeURL(l.Value) } class="flex min-h-11 items-center justify-between rounded-md border border-line px-4 py-3 text-ink no-underline hover:border-accent hover:text-ink">
+							{ l.Label }
+							<span aria-hidden="true">›</span>
+						</a>
+					</li>
+				}
+			</ul>
+		}
 		@panelSection("Importar") {
 			<p class="text-muted">Sube un JSON Resume, o el que exportaste aquí. Antes de reemplazar el perfil verás qué cambia.</p>
 			<form method="post" action="/panel/importar" enctype="multipart/form-data" class="flex flex-col gap-3">

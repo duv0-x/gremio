@@ -1,0 +1,168 @@
+package web
+
+import (
+	"strconv"
+
+	"github.com/duv0-x/gremio/internal/profile"
+)
+
+const (
+	inputCls = "min-h-11 w-full rounded-md border border-control bg-surface-2 px-3 text-ink"
+	labelCls = "text-sm font-semibold"
+	hintCls  = "text-[13px] text-faint"
+)
+
+type option struct{ Value, Label string }
+
+// editorLayout es una página del editor: volver al panel, título, resultado del último guardado y el formulario.
+templ editorLayout(e editPage, title, action string) {
+	@panelLayout(e.Version, title) {
+		<div>
+			<a href="/panel" class="inline-flex min-h-11 items-center font-mono text-[13px] text-muted no-underline hover:text-ink">‹ Panel</a>
+			<h1 class="mt-1 font-display text-[28px] font-bold">{ title }</h1>
+		</div>
+		if e.Notice != "" {
+			<p role="status" class="rounded-md border border-success p-4 text-sm text-ink">{ e.Notice }</p>
+		}
+		if e.Error != "" {
+			<p role="alert" class="rounded-md border border-danger p-4 text-sm text-ink">{ e.Error }</p>
+		}
+		<form method="post" action={ templ.SafeURL(action) } class="flex flex-col gap-6">
+			{ children... }
+			<div class="sticky bottom-0 -mx-4 flex gap-3 border-t border-line bg-bg px-4 py-3">
+				<button type="submit" class={ btnPrimary, "flex-1 sm:flex-none" }>Guardar</button>
+				<a class={ btnSec, "flex-1 sm:flex-none" } href="/panel">Cancelar</a>
+			</div>
+		</form>
+	}
+}
+
+templ fieldset(legend string) {
+	<fieldset class={ card, "flex min-w-0 flex-col gap-4" }>
+		<legend class="float-left mb-2 w-full font-display text-xl font-bold">{ legend }</legend>
+		{ children... }
+	</fieldset>
+}
+
+templ textField(label, name, value, hint string) {
+	<div class="flex flex-col gap-1.5">
+		<label for={ name } class={ labelCls }>{ label }</label>
+		<input id={ name } name={ name } type="text" value={ value } class={ inputCls } aria-describedby={ hintID(name, hint) }/>
+		@fieldHint(name, hint)
+	</div>
+}
+
+templ textArea(label, name, value, hint string, rows int) {
+	<div class="flex flex-col gap-1.5">
+		<label for={ name } class={ labelCls }>{ label }</label>
+		<textarea id={ name } name={ name } rows={ strconv.Itoa(rows) } class={ inputCls, "py-2 leading-relaxed" } aria-describedby={ hintID(name, hint) }>{ value }</textarea>
+		@fieldHint(name, hint)
+	</div>
+}
+
+templ selectField(label, name, value string, opts []option) {
+	<div class="flex flex-col gap-1.5">
+		<label for={ name } class={ labelCls }>{ label }</label>
+		<select id={ name } name={ name } class={ inputCls }>
+			for _, o := range opts {
+				<option value={ o.Value } selected?={ o.Value == value }>{ o.Label }</option>
+			}
+		</select>
+	</div>
+}
+
+templ checkField(label, name string, on bool) {
+	<label class="flex min-h-11 items-center gap-3 text-sm">
+		<input type="checkbox" name={ name } value="1" checked?={ on } class="size-5 accent-accent"/>
+		{ label }
+	</label>
+}
+
+templ fieldHint(name, hint string) {
+	if hint != "" {
+		<p id={ name + "-ayuda" } class={ hintCls }>{ hint }</p>
+	}
+}
+
+// rowControls son el orden y la casilla de borrar de una fila de lista; las filas nuevas no tienen qué borrar.
+templ rowControls(prefix string, i int, isNew bool) {
+	<div class="flex flex-wrap items-end gap-4">
+		<div class="flex w-24 flex-col gap-1.5">
+			<label for={ field(prefix, i, "orden") } class={ labelCls }>Orden</label>
+			<input id={ field(prefix, i, "orden") } name={ field(prefix, i, "orden") } type="number" step="any" value={ strconv.Itoa(i + 1) } class={ inputCls }/>
+		</div>
+		if !isNew {
+			@checkField("Borrar", field(prefix, i, "borrar"), false)
+		}
+	</div>
+}
+
+templ rowBox(i, n int) {
+	<div class={ "flex flex-col gap-4 rounded-md border p-4", templ.KV("border-line", i < n), templ.KV("border-dashed border-control", i >= n) }>
+		if i >= n {
+			<p class={ eyebrow }>Nuevo</p>
+		}
+		{ children... }
+	</div>
+}
+
+templ BasicsForm(e editPage) {
+	@editorLayout(e, "Básico y contacto", "/panel/basico") {
+		@fieldset("Identidad") {
+			@textField("Nombre", "name", e.R.Basics.Name, "")
+			@textField("Título", "label", e.R.Basics.Label, "Lo que va junto al nombre, p. ej. Senior Platform Engineer.")
+			@textArea("Bio corta", "summary", e.R.Basics.Summary, "La muestran Mastodon y las demás instancias.", 3)
+			@textArea("Presentación", "about", e.R.Gremio.About, "El texto largo de la ficha. Si queda vacío se usa la bio.", 6)
+			@textField("Sitio web", "url", e.R.Basics.URL, "")
+		}
+		@fieldset("Ubicación") {
+			<div class="grid gap-4 sm:grid-cols-3">
+				@textField("Ciudad", "city", loc(e.R).City, "")
+				@textField("Región", "region", loc(e.R).Region, "")
+				@textField("País", "country", loc(e.R).CountryCode, "Código ISO, p. ej. CO.")
+			</div>
+			@textField("Zona horaria", "timezone", e.R.Gremio.Timezone, "Nombre IANA, p. ej. America/Bogota.")
+		}
+		@fieldset("Contacto") {
+			<p class="text-sm text-muted">El correo y el teléfono son privados salvo que los marques. WhatsApp publica el teléfono solo como enlace, nunca como texto.</p>
+			@textField("Correo", "email", e.R.Basics.Email, "")
+			@checkField("Mostrar el correo en el perfil", "email_publico", e.R.Gremio.Contact.Email == "public")
+			@textField("Teléfono", "phone", e.R.Basics.Phone, "Con indicativo, p. ej. +57 300 000 0000.")
+			@checkField("Mostrar el teléfono en el perfil", "telefono_publico", e.R.Gremio.Contact.Phone == "public")
+			@checkField("Botón de WhatsApp con este teléfono", "whatsapp_publico", e.R.Gremio.Contact.Whatsapp == "public")
+		}
+		@fieldset("Redes") {
+			for i := range pad(len(e.R.Basics.Profiles)) {
+				@rowBox(i, len(e.R.Basics.Profiles)) {
+					<div class="grid gap-4 sm:grid-cols-3">
+						@textField("Red", field("red", i, "network"), social(e.R, i).Network, "")
+						@textField("Usuario", field("red", i, "username"), social(e.R, i).Username, "")
+						@textField("URL", field("red", i, "url"), social(e.R, i).URL, "")
+					</div>
+					@rowControls("red", i, i >= len(e.R.Basics.Profiles))
+				}
+			}
+		}
+	}
+}
+
+func hintID(name, hint string) string {
+	if hint == "" {
+		return ""
+	}
+	return name + "-ayuda"
+}
+
+func loc(r *profile.Resume) profile.Location {
+	if r.Basics.Location == nil {
+		return profile.Location{}
+	}
+	return *r.Basics.Location
+}
+
+func social(r *profile.Resume, i int) profile.Social {
+	if i < len(r.Basics.Profiles) {
+		return r.Basics.Profiles[i]
+	}
+	return profile.Social{}
+}
