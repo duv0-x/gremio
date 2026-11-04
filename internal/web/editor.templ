@@ -15,7 +15,7 @@ const (
 type option struct{ Value, Label string }
 
 // editorLayout es una página del editor: volver al panel, título, resultado del último guardado y el formulario.
-templ editorLayout(e editPage, title, action string) {
+templ editorLayout(e editPage, title string) {
 	@panelLayout(e.Version, title) {
 		<div>
 			<a href="/panel" class="inline-flex min-h-11 items-center font-mono text-[13px] text-muted no-underline hover:text-ink">‹ Panel</a>
@@ -27,7 +27,7 @@ templ editorLayout(e editPage, title, action string) {
 		if e.Error != "" {
 			<p role="alert" class="rounded-md border border-danger p-4 text-sm text-ink">{ e.Error }</p>
 		}
-		<form method="post" action={ templ.SafeURL(action) } class="flex flex-col gap-6">
+		<form method="post" action={ templ.SafeURL(e.Path) } class="flex flex-col gap-6">
 			{ children... }
 			<div class="sticky bottom-0 -mx-4 flex gap-3 border-t border-line bg-bg px-4 py-3">
 				<button type="submit" class={ btnPrimary, "flex-1 sm:flex-none" }>Guardar</button>
@@ -107,7 +107,7 @@ templ rowBox(i, n int) {
 }
 
 templ BasicsForm(e editPage) {
-	@editorLayout(e, "Básico y contacto", "/panel/basico") {
+	@editorLayout(e, "Básico y contacto") {
 		@fieldset("Identidad") {
 			@textField("Nombre", "name", e.R.Basics.Name, "")
 			@textField("Título", "label", e.R.Basics.Label, "Lo que va junto al nombre, p. ej. Senior Platform Engineer.")
@@ -165,4 +165,69 @@ func social(r *profile.Resume, i int) profile.Social {
 		return r.Basics.Profiles[i]
 	}
 	return profile.Social{}
+}
+
+// itemLink es el enlace a la página de un elemento de una lista, o para agregar uno.
+templ itemLink(href, label string) {
+	<a href={ templ.SafeURL(href) } class={ btnSec, "self-start" }>{ label }</a>
+}
+
+templ WorkListForm(e editPage) {
+	@editorLayout(e, "Experiencia") {
+		@itemLink("/panel/experiencia/nuevo", "Agregar trabajo")
+		@fieldset("Trabajos") {
+			<p class="text-sm text-muted">El primero sin fecha de fin es el trabajo actual. Cambia el orden o marca Borrar y guarda; los datos y los logros de cada trabajo se editan en su página.</p>
+			if len(e.R.Work) == 0 {
+				<p class="text-sm text-faint">Todavía no hay trabajos.</p>
+			}
+			for i, w := range e.R.Work {
+				@rowBox(i, len(e.R.Work)) {
+					<input type="hidden" name={ field("trabajo", i, "id") } value={ w.ID }/>
+					<div class="flex flex-wrap items-start justify-between gap-3">
+						<div>
+							<p class="font-display text-lg font-semibold">{ w.Name }</p>
+							<p class="text-sm text-muted">
+								{ w.Position }
+								if w.Position != "" {
+									·
+								}
+								{ dateRange(w.StartDate, w.EndDate) } · { itoa(len(w.Highlights)) } { plural(len(w.Highlights), "logro", "logros") }
+							</p>
+						</div>
+						@itemLink("/panel/experiencia/"+w.ID, "Editar")
+					</div>
+					@rowControls("trabajo", i, false)
+				}
+			}
+		}
+	}
+}
+
+templ WorkForm(e editPage) {
+	@editorLayout(e, workTitle(e)) {
+		@fieldset("Trabajo") {
+			@textField("Empresa u organización", "name", work(e).Name, "")
+			@textField("Cargo", "position", work(e).Position, "")
+			<div class="grid gap-4 sm:grid-cols-2">
+				@textField("Inicio", "start", work(e).StartDate, "AAAA-MM, p. ej. 2021-05.")
+				@textField("Fin", "end", work(e).EndDate, "Vacío si es el trabajo actual.")
+			</div>
+			@textField("Ubicación", "location", work(e).Location, "")
+			@textField("Sitio web", "url", work(e).URL, "")
+			@textArea("Resumen", "summary", work(e).Summary, "", 3)
+		}
+		@fieldset("Logros") {
+			<p class="text-sm text-muted">Un logro por recuadro. La evidencia son enlaces que lo respaldan (charlas, repos, artículos), uno por línea.</p>
+			for i := range pad(len(work(e).Highlights)) {
+				@rowBox(i, len(work(e).Highlights)) {
+					if i < len(work(e).Highlights) {
+						<input type="hidden" name={ field("logro", i, "id") } value={ work(e).Highlights[i].ID }/>
+					}
+					@textArea("Logro", field("logro", i, "text"), highlight(e, i).Text, "", 4)
+					@textArea("Evidencia", field("logro", i, "evidence"), joinLines(highlight(e, i).Evidence), "", 2)
+					@rowControls("logro", i, i >= len(work(e).Highlights))
+				}
+			}
+		}
+	}
 }

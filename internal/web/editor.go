@@ -26,13 +26,16 @@ type editPage struct {
 	Notice  string
 	Error   string
 	ID      string // elemento que se edita en las páginas de un solo trabajo, vista o atributo
+	Path    string // la URL de la página, que es también el action del formulario
 }
 
 // editSection es una página del editor: su formulario y cómo aplicarlo al perfil.
 type editSection struct {
-	path  string
-	form  func(editPage) templ.Component
-	apply func(r *http.Request, res *profile.Resume, id string) error
+	path string
+	form func(editPage) templ.Component
+	// apply aplica el formulario. En /nuevo, cambia *id por el del elemento creado, para que si el perfil no
+	// valida el formulario vuelva con lo escrito.
+	apply func(r *http.Request, res *profile.Resume, id *string) error
 	// exists dice si id existe, en las secciones de un elemento; nil en las demás.
 	exists func(res *profile.Resume, id string) bool
 }
@@ -61,7 +64,7 @@ func (s *Server) getSection(w http.ResponseWriter, r *http.Request, sec editSect
 		http.NotFound(w, r)
 		return
 	}
-	e := editPage{Version: s.version, R: res, ID: id}
+	e := editPage{Version: s.version, R: res, ID: id, Path: r.URL.Path}
 	if r.URL.Query().Get("ok") == "guardado" {
 		e.Notice = "Guardado. Los seguidores reciben la actualización en unos minutos."
 	}
@@ -88,8 +91,8 @@ func (s *Server) postSection(w http.ResponseWriter, r *http.Request, sec editSec
 		http.NotFound(w, r)
 		return
 	}
-	e := editPage{Version: s.version, R: res, ID: id}
-	if err := sec.apply(r, res, id); err != nil {
+	e := editPage{Version: s.version, R: res, ID: id, Path: r.URL.Path}
+	if err := sec.apply(r, res, &e.ID); err != nil {
 		e.Error = err.Error()
 		s.renderPanel(w, r, http.StatusBadRequest, sec.form(e))
 		return
@@ -111,9 +114,10 @@ func (s *Server) postSection(w http.ResponseWriter, r *http.Request, sec editSec
 		return
 	}
 	slog.Info("perfil editado desde el panel", "sección", sec.path)
+	// Un elemento (un trabajo, una vista) vuelve a su lista: su URL puede haber cambiado o ser /nuevo.
 	back := r.URL.Path
-	if r.FormValue("despues") == "lista" {
-		back = strings.TrimSuffix(back, "/"+id)
+	if sec.exists != nil {
+		back = back[:strings.LastIndex(back, "/")]
 	}
 	http.Redirect(w, r, back+"?ok=guardado", http.StatusSeeOther)
 }
@@ -168,10 +172,11 @@ func rows(r *http.Request, prefix string) []row {
 	return rs
 }
 
-// empty dice si la fila no tiene datos: id, orden y las casillas no cuentan.
+// empty dice si la fila no tiene datos: el orden y la casilla de borrar no cuentan, el id oculto sí (una fila
+// que ya existía nunca se descarta por vacía).
 func empty(v url.Values) bool {
 	for k, vals := range v {
-		if k == "id" || k == "orden" || k == "borrar" {
+		if k == "orden" || k == "borrar" {
 			continue
 		}
 		for _, x := range vals {
@@ -224,15 +229,20 @@ func pad(n int) int { return n + blankRows }
 // editorLinks son las secciones del editor que lista /panel.
 var editorLinks = []option{
 	{"/panel/basico", "Básico y contacto"},
+	{"/panel/experiencia", "Experiencia"},
 }
 
 func (s *Server) sections() []editSection {
 	return []editSection{
 		{path: "/panel/basico", form: BasicsForm, apply: applyBasics},
+		{path: "/panel/experiencia", form: WorkListForm, apply: applyWorkList},
+		{path: "/panel/experiencia/{id}", form: WorkForm, apply: applyWork, exists: func(r *profile.Resume, id string) bool {
+			return slices.ContainsFunc(r.Work, func(w profile.Work) bool { return w.ID == id })
+		}},
 	}
 }
 
-func applyBasics(r *http.Request, res *profile.Resume, _ string) error {
+func applyBasics(r *http.Request, res *profile.Resume, _ *string) error {
 	b := &res.Basics
 	b.Name, b.Label, b.Summary, b.URL = r.PostFormValue("name"), r.PostFormValue("label"), r.PostFormValue("summary"), r.PostFormValue("url")
 	b.Email, b.Phone = strings.TrimSpace(r.PostFormValue("email")), strings.TrimSpace(r.PostFormValue("phone"))
@@ -254,3 +264,67 @@ func applyBasics(r *http.Request, res *profile.Resume, _ string) error {
 	}
 	return nil
 }
+
+// applyWorkList ordena y borra trabajos; los datos de cada uno se editan en su página.
+func applyWorkList(r *http.Request, res *profile.Resume, _ *string) error {
+	byID := map[string]profile.Work{}
+	for _, w := range res.Work {
+		byID[w.ID] = w
+	}
+	res.Work = nil
+	for _, x := range rows(r, "trabajo") {
+		if w, ok := byID[x.get("id")]; ok {
+			res.Work = append(res.Work, w)
+		}
+	}
+	return nil
+}
+
+// applyWork guarda un trabajo y sus logros; uno nuevo va primero, como el más reciente.
+func applyWork(r *http.Request, res *profile.Resume, id *string) error {
+	f := r.PostFormValue
+	w := profile.Work{ID: *id, Name: f("name"), Position: f("position"), Location: f("location"), URL: strings.TrimSpace(f("url")),
+		StartDate: strings.TrimSpace(f("start")), EndDate: strings.TrimSpace(f("end")), Summary: strings.TrimSpace(f("summary"))}
+	for _, x := range rows(r, "logro") {
+		w.Highlights = append(w.Highlights, profile.Highlight{ID: x.get("id"), Text: x.get("text"), Evidence: lines(x.get("evidence"))})
+	}
+	if i := slices.IndexFunc(res.Work, func(x profile.Work) bool { return x.ID == *id }); i >= 0 {
+		res.Work[i] = w
+	} else {
+		w.ID = profile.NewID()
+		*id = w.ID
+		res.Work = append([]profile.Work{w}, res.Work...)
+	}
+	if strings.TrimSpace(w.Name) == "" {
+		return errors.New("falta el nombre de la empresa u organización")
+	}
+	for _, h := range w.Highlights {
+		if h.Text == "" {
+			return errors.New("cada logro necesita un texto; para quitarlo, marca Borrar")
+		}
+	}
+	return nil
+}
+
+func work(e editPage) profile.Work {
+	if i := slices.IndexFunc(e.R.Work, func(w profile.Work) bool { return w.ID == e.ID }); i >= 0 {
+		return e.R.Work[i]
+	}
+	return profile.Work{}
+}
+
+func workTitle(e editPage) string {
+	if w := work(e); w.Name != "" {
+		return w.Name
+	}
+	return "Nuevo trabajo"
+}
+
+func highlight(e editPage, i int) profile.Highlight {
+	if hs := work(e).Highlights; i < len(hs) {
+		return hs[i]
+	}
+	return profile.Highlight{}
+}
+
+func joinLines(xs []string) string { return strings.Join(xs, "\n") }
