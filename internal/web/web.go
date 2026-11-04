@@ -124,6 +124,12 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	case "cv":
 		page.Tab = slug
+	case "proyectos":
+		if len(res.Projects) == 0 {
+			http.NotFound(w, r)
+			return
+		}
+		page.Tab = slug
 	default:
 		i := slices.IndexFunc(res.Gremio.Views, func(v profile.View) bool { return v.Slug == slug })
 		// La primera vista vive en /@usuario: su slug no es una segunda URL.

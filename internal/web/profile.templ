@@ -80,14 +80,19 @@ templ ProfilePage(p Page) {
 				// #vista es lo que cambia al elegir rol o pestaña; static/vista.js lo reemplaza sin recargar la página.
 				<div id="vista">
 					@profileTabs(p)
-					if p.Tab == "cv" {
-						@cv(p)
-					} else {
-						@ficha(p)
+					switch p.Tab {
+						case "cv":
+							@cv(p)
+						case "proyectos":
+							@projects(p)
+						default:
+							@ficha(p)
 					}
 				</div>
 			case p.Tab == "cv":
 				@cv(p)
+			case p.Tab == "proyectos":
+				@projects(p)
 			default:
 				@cvPage(p)
 		}
@@ -106,9 +111,12 @@ templ logo() {
 // solo su sección.
 templ profileTabs(p Page) {
 	<nav aria-label="Secciones del perfil" class="mx-auto mt-6 max-w-[1200px] px-4 sm:px-6">
-		<ul class="grid grid-cols-2 border-b border-line font-mono text-[13px] uppercase tracking-[0.08em]">
+		<ul class={ "grid border-b border-line font-mono text-[13px] uppercase tracking-[0.08em]", templ.KV("grid-cols-2", len(p.Resume.Projects) == 0), templ.KV("grid-cols-3", len(p.Resume.Projects) > 0) }>
 			@profileTab(p, "ficha", "Ficha", "layout-grid")
 			@profileTab(p, "cv", "CV", "file-text")
+			if len(p.Resume.Projects) > 0 {
+				@profileTab(p, "proyectos", "Proyectos", "folder-git-2")
+			}
 		</ul>
 	</nav>
 }
@@ -198,6 +206,57 @@ templ profileHeader(p Page) {
 			}
 		</div>
 	</section>
+}
+
+// projects son los proyectos personales (projects de JSON Resume), en la misma cinta que la experiencia.
+templ projects(p Page) {
+	<section id="proyectos" class={ section } aria-labelledby="proyectos-titulo" data-cinta>
+		<div class="flex flex-wrap items-end justify-between gap-2">
+			<div>
+				<p class={ eyebrow }>Portafolio</p>
+				<h2 id="proyectos-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Proyectos</h2>
+				<p class="mt-1 font-mono text-[13px] text-faint">Desliza para ver más · toca un proyecto para abrirlo</p>
+			</div>
+			@cintaArrows("Proyectos anteriores", "Proyectos siguientes")
+		</div>
+		<ul data-cinta-track tabindex="0" aria-label="Proyectos" class="mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4">
+			for _, pr := range p.Resume.Projects {
+				<li class="w-[260px] shrink-0 snap-start sm:w-[280px]">
+					@projectCard(pr)
+				</li>
+			}
+		</ul>
+	</section>
+}
+
+templ projectCard(pr profile.Project) {
+	if host := urlHost(pr.URL); host != "" {
+		<a href={ pr.URL } rel="noopener" class="flex h-full flex-col rounded-md border border-line bg-surface p-4 text-ink no-underline hover:border-accent hover:text-ink">
+			@projectBody(pr)
+			<span class="mt-auto flex items-center justify-between gap-2 pt-4 font-mono text-[13px] text-faint">
+				<span class="truncate">{ host }</span>
+				<span aria-hidden="true">↗</span>
+			</span>
+		</a>
+	} else {
+		<div class="flex h-full flex-col rounded-md border border-line bg-surface p-4">
+			@projectBody(pr)
+		</div>
+	}
+}
+
+templ projectBody(pr profile.Project) {
+	<span class="font-display text-lg leading-snug font-semibold">{ pr.Name }</span>
+	if pr.Description != "" {
+		<span class="mt-3 line-clamp-4 border-t border-line pt-3 text-sm leading-relaxed text-muted">{ pr.Description }</span>
+	}
+	if len(pr.Keywords) > 0 {
+		<span class="mt-3 flex flex-wrap gap-1.5" aria-label="Stack">
+			for _, k := range pr.Keywords {
+				<span class={ dataChip }>{ k }</span>
+			}
+		</span>
+	}
 }
 
 templ experience(p Page) {

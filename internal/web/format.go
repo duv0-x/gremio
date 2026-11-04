@@ -19,7 +19,7 @@ type Page struct {
 	Actor    string // URL del Actor de ActivityPub
 	Version  string
 	View     int    // vista seleccionada; la primera es la principal
-	Tab      string // pestaña: ficha o cv
+	Tab      string // pestaña: ficha, cv o proyectos
 	HasCV    bool   // hay un PDF del CV para descargar
 }
 
@@ -33,8 +33,11 @@ func (p Page) tabPath(tab string) string {
 
 func (p Page) Title() string {
 	t := p.Resume.Basics.Name + " · " + p.Resume.Basics.Label
-	if p.Tab == "cv" {
+	switch p.Tab {
+	case "cv":
 		return p.Resume.Basics.Name + " · CV"
+	case "proyectos":
+		return p.Resume.Basics.Name + " · Proyectos"
 	}
 	return t
 }
@@ -256,4 +259,14 @@ func evidenceSuffix(i, n int) string {
 		return ""
 	}
 	return " " + strconv.Itoa(i+1)
+}
+
+// urlHost es la URL sin esquema ni barra final, para mostrarla en una tarjeta: github.com/duv0-x/gremio.
+// Es vacío si la URL no es http(s): esa no se enlaza.
+func urlHost(s string) string {
+	u, err := url.Parse(s)
+	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
+		return ""
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(u.Host, "www.")+u.Path, "/")
 }
