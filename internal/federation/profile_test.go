@@ -173,3 +173,37 @@ func TestActorNegociaHTMLOActivityPub(t *testing.T) {
 		t.Errorf("actor.url = %v", url)
 	}
 }
+
+// Imágenes del perfil (gremio#97): se sirven por su nombre con hash y no borran el avatar ni a las otras.
+func TestSaveMedia(t *testing.T) {
+	a := newTestInstance(t, "alice")
+	png := []byte("\x89PNG\r\n\x1a\n" + strings.Repeat("x", 32))
+	jpg := append([]byte{0xff, 0xd8, 0xff, 0xe0}, []byte(strings.Repeat("y", 32))...)
+	var urls []string
+	for _, data := range [][]byte{png, jpg} {
+		url, err := a.SaveMedia(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		urls = append(urls, url)
+	}
+	if !strings.HasPrefix(urls[0], a.url+"/media/media-") || !strings.HasSuffix(urls[0], ".png") || !strings.HasSuffix(urls[1], ".jpg") {
+		t.Fatalf("URLs: %v", urls)
+	}
+	for i, url := range urls {
+		resp, err := http.Get(url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if want := []string{"image/png", "image/jpeg"}[i]; resp.StatusCode != http.StatusOK || resp.Header.Get("Content-Type") != want {
+			t.Errorf("%s: HTTP %d %s", url, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+	}
+	if _, err := a.SaveMedia([]byte("<svg></svg>")); err == nil {
+		t.Error("un SVG no debería aceptarse")
+	}
+	if resp, err := http.Get(a.url + "/media/media-zz.png"); err != nil || resp.StatusCode != http.StatusNotFound {
+		t.Errorf("nombre fuera del patrón: %v", resp)
+	}
+}

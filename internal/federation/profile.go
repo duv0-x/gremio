@@ -23,7 +23,7 @@ const MaxAvatarBytes = 2 << 20
 
 var (
 	avatarExt = map[string]string{"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
-	avatarRe  = regexp.MustCompile(`^avatar-[0-9a-f]{16}\.(png|jpg|webp)$`)
+	mediaRe   = regexp.MustCompile(`^(avatar|media)-[0-9a-f]{16}\.(png|jpg|webp)$`)
 )
 
 // ProfileUpdate son los cambios del perfil; un campo nil no se toca.
@@ -128,51 +128,66 @@ func (s *Server) saveProfile(ctx context.Context, b []byte) (int, error) {
 	return queued, nil
 }
 
-// saveAvatar valida la imagen por su contenido y la guarda con un nombre derivado de su hash: cambiar la
-// foto cambia la URL, así que las demás instancias no se quedan con la vieja en caché.
+// saveAvatar guarda la foto del perfil (saveImage) y borra las anteriores, que ya no las referencia nadie.
 func (s *Server) saveAvatar(data []byte) (string, error) {
-	if len(data) == 0 || len(data) > MaxAvatarBytes {
-		return "", fmt.Errorf("el avatar debe pesar entre 1 byte y %d MB", MaxAvatarBytes>>20)
-	}
-	ext, ok := avatarExt[http.DetectContentType(data)]
-	if !ok {
-		return "", errors.New("el avatar debe ser PNG, JPEG o WebP")
-	}
-	sum := sha256.Sum256(data)
-	name := "avatar-" + hex.EncodeToString(sum[:8]) + ext
-	dir := filepath.Join(s.st.DataDir(), "media")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", err
-	}
-	tmp, err := os.CreateTemp(dir, ".avatar-*")
+	url, name, err := s.saveImage("avatar", data)
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(tmp.Name()) // no-op tras el rename
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return "", err
-	}
-	if err := tmp.Close(); err != nil {
-		return "", err
-	}
-	if err := os.Rename(tmp.Name(), filepath.Join(dir, name)); err != nil {
-		return "", err
-	}
-	// Las fotos anteriores ya no las referencia nadie.
-	old, _ := filepath.Glob(filepath.Join(dir, "avatar-*"))
+	old, _ := filepath.Glob(filepath.Join(s.st.DataDir(), "media", "avatar-*"))
 	for _, f := range old {
 		if filepath.Base(f) != name {
 			_ = os.Remove(f)
 		}
 	}
-	return s.inst.Host.String + "/media/" + name, nil
+	return url, nil
 }
 
-// getMedia sirve solo archivos con nombre de avatar: nada fuera de <data-dir>/media es alcanzable.
+// SaveMedia guarda una imagen para usarla en el perfil, p. ej. la captura de un proyecto (gremio#97), y
+// devuelve su URL absoluta. No borra las anteriores: el perfil puede referenciar varias.
+func (s *Server) SaveMedia(data []byte) (string, error) {
+	url, _, err := s.saveImage("media", data)
+	return url, err
+}
+
+// saveImage valida la imagen por su contenido y la guarda como <prefix>-<hash>.<ext>: cambiar la imagen cambia
+// la URL, así que las demás instancias no se quedan con la vieja en caché.
+func (s *Server) saveImage(prefix string, data []byte) (url, name string, err error) {
+	if len(data) == 0 || len(data) > MaxAvatarBytes {
+		return "", "", fmt.Errorf("la imagen debe pesar entre 1 byte y %d MB", MaxAvatarBytes>>20)
+	}
+	ext, ok := avatarExt[http.DetectContentType(data)]
+	if !ok {
+		return "", "", errors.New("la imagen debe ser PNG, JPEG o WebP")
+	}
+	sum := sha256.Sum256(data)
+	name = prefix + "-" + hex.EncodeToString(sum[:8]) + ext
+	dir := filepath.Join(s.st.DataDir(), "media")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", "", err
+	}
+	tmp, err := os.CreateTemp(dir, "."+prefix+"-*")
+	if err != nil {
+		return "", "", err
+	}
+	defer os.Remove(tmp.Name()) // no-op tras el rename
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return "", "", err
+	}
+	if err := tmp.Close(); err != nil {
+		return "", "", err
+	}
+	if err := os.Rename(tmp.Name(), filepath.Join(dir, name)); err != nil {
+		return "", "", err
+	}
+	return s.inst.Host.String + "/media/" + name, name, nil
+}
+
+// getMedia sirve solo avatares e imágenes guardadas (mediaRe): nada fuera de <data-dir>/media es alcanzable.
 func (s *Server) getMedia(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("file")
-	if !avatarRe.MatchString(name) {
+	if !mediaRe.MatchString(name) {
 		http.NotFound(w, r)
 		return
 	}
