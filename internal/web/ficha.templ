@@ -272,6 +272,7 @@ templ fichaRadar(p Page) {
 }
 
 templ fichaAttributes(p Page) {
+	{{ v, _ := p.Selected() }}
 	<section id="atributos" class={ panel } aria-labelledby="atributos-titulo" data-cinta data-guia="atributos">
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<div>
@@ -282,7 +283,7 @@ templ fichaAttributes(p Page) {
 		</div>
 		// Cinta horizontal con scroll-snap; tabindex para poder deslizarla con el teclado.
 		<ul data-cinta-track tabindex="0" aria-label="Atributos" class="mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4">
-			for _, a := range p.Resume.Gremio.Attributes {
+			for _, a := range attributesByWeight(p.Resume.Gremio.Attributes, v) {
 				<li class="w-[200px] shrink-0 snap-start sm:w-[220px]">
 					<a href={ templ.SafeURL("#" + attrAnchor(a.Code)) } class="flex h-full flex-col rounded-md border border-line bg-surface-2/40 p-4 text-ink no-underline hover:border-accent hover:text-ink">
 						<span class="flex items-start justify-between gap-2">

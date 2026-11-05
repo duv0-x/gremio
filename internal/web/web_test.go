@@ -423,3 +423,44 @@ func TestGuiaDeLaFicha(t *testing.T) {
 		t.Error("sin varios roles ni rasgos no hay esos pasos")
 	}
 }
+
+// La cinta de Atributos va por peso en el rol (gremio#103): empates en el orden del perfil, sin peso al final.
+func TestAtributosPorPesoEnElRol(t *testing.T) {
+	attrs := []profile.Attribute{{Code: "AAA"}, {Code: "BBB"}, {Code: "CCC"}, {Code: "DDD"}}
+	codes := func(as []profile.Attribute) string {
+		var s []string
+		for _, a := range as {
+			s = append(s, a.Code)
+		}
+		return strings.Join(s, " ")
+	}
+	for _, c := range []struct {
+		weights map[string]float64
+		want    string
+	}{
+		{nil, "AAA BBB CCC DDD"},
+		{map[string]float64{"CCC": 2, "AAA": 1, "DDD": 1}, "CCC AAA DDD BBB"},
+		{map[string]float64{"DDD": 0.5}, "DDD AAA BBB CCC"},
+	} {
+		if got := codes(attributesByWeight(attrs, profile.View{Weights: c.weights})); got != c.want {
+			t.Errorf("pesos %v: %s, quería %s", c.weights, got, c.want)
+		}
+	}
+	if codes(attrs) != "AAA BBB CCC DDD" {
+		t.Error("no debe cambiar el orden del perfil")
+	}
+
+	// En la página: SRE pesa OBS 2 y CNT 1, así que OBS va antes que CNT, y COD (sin peso) al final.
+	ts := newTestServer(t, fichaDoc)
+	_, body := get(t, ts.URL+"/@alice")
+	track := body[strings.Index(body, `aria-label="Atributos"`):]
+	obs, cnt, cod := strings.Index(track, `href="#atributo-obs"`), strings.Index(track, `href="#atributo-cnt"`), strings.Index(track, `href="#atributo-cod"`)
+	if obs < 0 || !(obs < cnt && cnt < cod) {
+		t.Errorf("orden en SRE: OBS %d, CNT %d, COD %d", obs, cnt, cod)
+	}
+	_, body = get(t, ts.URL+"/@alice/platform-engineer")
+	track = body[strings.Index(body, `aria-label="Atributos"`):]
+	if cnt, cod, obs := strings.Index(track, `href="#atributo-cnt"`), strings.Index(track, `href="#atributo-cod"`), strings.Index(track, `href="#atributo-obs"`); !(cnt < cod && cod < obs) {
+		t.Errorf("orden en PLE: CNT %d, COD %d, OBS %d", cnt, cod, obs)
+	}
+}
