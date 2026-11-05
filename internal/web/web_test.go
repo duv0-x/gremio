@@ -391,3 +391,36 @@ func TestTipParts(t *testing.T) {
 		}
 	}
 }
+
+// La guía de la ficha (gremio#61): un <details> con un paso por zona [data-guia] que existe; static/guia.js la
+// convierte en recorrido.
+func TestGuiaDeLaFicha(t *testing.T) {
+	ts := newTestServer(t, fichaDoc)
+	_, body := get(t, ts.URL+"/@alice")
+	for _, zona := range []string{"ovr", "roles", "radar", "atributos", "rasgos", "secciones"} {
+		if !strings.Contains(body, `data-guia-paso="`+zona+`"`) || !strings.Contains(body, `data-guia="`+zona+`"`) {
+			t.Errorf("falta el paso o la zona %q", zona)
+		}
+	}
+	for _, want := range []string{`<details id="guia"`, "¿Cómo leer esta ficha?", `id="guia-tarjeta" hidden role="dialog" aria-modal="true"`, `src="/static/guia.js?v=`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("falta %q", want)
+		}
+	}
+	if resp, js := get(t, ts.URL+"/static/guia.js"); resp.StatusCode != http.StatusOK || !strings.Contains(js, "localStorage") {
+		t.Errorf("guia.js: HTTP %d", resp.StatusCode)
+	}
+	if _, body := get(t, ts.URL+"/@alice/cv"); strings.Contains(body, `id="guia"`) {
+		t.Error("la guía es de la pestaña Ficha")
+	}
+
+	// Sin varios roles ni rasgos, esos pasos no se escriben.
+	solo := strings.Replace(fichaDoc, `,
+    {"slug": "platform-engineer", "code": "PLE", "name": "Platform Engineer", "weights": {"CNT": 2, "COD": 1}}]`, `]`, 1)
+	solo = strings.Replace(solo, `,
+  "traits": [{"name": "Automatizadora", "summary": "Todo pasa por un pipeline.", "icon": "bot", "color": "violeta"}, {"name": "Sin ícono"}]`, ``, 1)
+	_, body = get(t, newTestServer(t, solo).URL+"/@alice")
+	if !strings.Contains(body, `data-guia-paso="ovr"`) || strings.Contains(body, `data-guia-paso="roles"`) || strings.Contains(body, `data-guia-paso="rasgos"`) {
+		t.Error("sin varios roles ni rasgos no hay esos pasos")
+	}
+}

@@ -18,6 +18,7 @@ const (
 
 templ ficha(p Page) {
 	<div id="ficha" class="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 pt-6 pb-8 sm:px-6">
+		@guia(p)
 		<div class="grid gap-6 lg:grid-cols-2">
 			@fichaHero(p)
 			@fichaRadar(p)
@@ -152,7 +153,7 @@ templ icon(name string) {
 
 templ fichaHero(p Page) {
 	<section class={ panel, "flex flex-col gap-6" } aria-label="Ficha de jugador">
-		<div class="flex items-start gap-5">
+		<div class="flex items-start gap-5" data-guia="ovr">
 			<span class="tip tip-start shrink-0" data-tip={ ovrTitle } tabindex="0">
 				<svg viewBox="0 0 120 120" class="size-24 sm:size-28" role="img" aria-label={ "Índice general " + itoa(p.Overall()) + ". " + ovrTitle }>
 					<polygon points={ hexagon(60, 60, 54) } class="fill-accent-soft stroke-accent" stroke-width="3"></polygon>
@@ -185,7 +186,7 @@ templ fichaHero(p Page) {
 			</div>
 		</div>
 		if len(p.Resume.Gremio.Views) > 1 {
-			<div class="border-t border-line pt-6">
+			<div class="border-t border-line pt-6" data-guia="roles">
 				<p class={ eyebrow } id="roles">@sigla("OVR", ovrTitle, "", true) por rol</p>
 				<ul class="mt-4 flex flex-wrap gap-3" aria-labelledby="roles">
 					for i, v := range p.Resume.Gremio.Views {
@@ -212,7 +213,7 @@ templ fichaHero(p Page) {
 			</div>
 		}
 		if len(p.Resume.Gremio.Traits) > 0 {
-			<div>
+			<div data-guia="rasgos">
 				<p class={ eyebrow } id="rasgos">Rasgos</p>
 				<ul class="mt-3 flex flex-wrap gap-3" aria-labelledby="rasgos">
 					for _, t := range p.Resume.Gremio.Traits {
@@ -238,7 +239,7 @@ templ roleChip(p Page, v profile.View, current bool) {
 templ fichaRadar(p Page) {
 	{{ v, _ := p.Selected() }}
 	{{ attrs := radarAttributes(p.Resume.Gremio.Attributes, v, radarSlots) }}
-	<section class={ panel } aria-labelledby="radar-titulo">
+	<section class={ panel } aria-labelledby="radar-titulo" data-guia="radar">
 		<h2 id="radar-titulo" class={ h2Ficha }>Radar</h2>
 		<p class="mt-1 font-mono text-[13px] text-faint">
 			Puntajes de 0 a 99, autodeclarados
@@ -278,7 +279,7 @@ templ fichaRadar(p Page) {
 }
 
 templ fichaAttributes(p Page) {
-	<section id="atributos" class={ panel } aria-labelledby="atributos-titulo" data-cinta>
+	<section id="atributos" class={ panel } aria-labelledby="atributos-titulo" data-cinta data-guia="atributos">
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<div>
 				<h2 id="atributos-titulo" class={ h2Ficha }>Atributos</h2>
@@ -484,4 +485,71 @@ templ cintaArrows(prev, next string) {
 		<button type="button" data-cinta-dir="-1" hidden aria-label={ prev } class="size-11 rounded-md border border-line text-xl text-ink hover:bg-surface-2">‹</button>
 		<button type="button" data-cinta-dir="1" hidden aria-label={ next } class="size-11 rounded-md border border-line text-xl text-ink hover:bg-surface-2">›</button>
 	</div>
+}
+
+// guia es "¿Cómo leer esta ficha?" (gremio#61), para quien la ve por primera vez. Sin JavaScript es un <details>
+// con los pasos. static/guia.js convierte el botón en un recorrido: resalta cada zona [data-guia] y muestra su paso
+// en #guia-tarjeta, y lo abre solo en la primera visita. Los pasos de zonas que no hay (sin roles, sin rasgos) no
+// se escriben.
+templ guia(p Page) {
+	{{ v, _ := p.Selected() }}
+	<details id="guia" class="w-full">
+		<summary class="ml-auto flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-md px-3 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-ink [&::-webkit-details-marker]:hidden">
+			@icon("circle-question-mark")
+			¿Cómo leer esta ficha?
+		</summary>
+		<ol class={ card, "mt-3 flex list-decimal flex-col gap-4 pl-10" }>
+			@guiaPaso("ovr", "OVR y posición") {
+				El número del hexágono es el OVR: el índice general en el rol que estás viendo, de 0 a 99. Es el promedio de los atributos, ponderado por cuánto pesa cada uno en ese rol. Al lado van la posición y el seniority.
+			}
+			if len(p.Resume.Gremio.Views) > 1 {
+				@guiaPaso("roles", "Roles") {
+					Cada rol pondera distinto los mismos atributos. Elige otro para ver su OVR, su posición y su radar; «Actual» marca el rol que desempeña hoy.
+				}
+			}
+			@guiaPaso("radar", "Radar") {
+				La forma resume el perfil en el rol elegido: cada eje es un atributo
+				if len(radarAttributes(p.Resume.Gremio.Attributes, v, radarSlots)) < len(p.Resume.Gremio.Attributes) {
+					{ " (los que más pesan en ese rol)" }
+				}
+				{ " y, cuanto más lejos del centro, más alto el puntaje. Los puntajes los declara la persona." }
+			}
+			@guiaPaso("atributos", "Atributos") {
+				Desliza la cinta o usa las flechas, y abre un atributo para ver sus sub-atributos, las tecnologías, dónde las usó y la evidencia que lo respalda.
+			}
+			if len(p.Resume.Gremio.Traits) > 0 {
+				@guiaPaso("rasgos", "Rasgos y siglas") {
+					Las insignias son rasgos: cómo trabaja, más allá de los puntajes. Pasa el mouse o toca una insignia o una sigla, como OVR o SRE, para leer qué significa.
+				}
+			}
+			@guiaPaso("secciones", "CV y más") {
+				{ guiaSecciones(p) }
+			}
+		</ol>
+	</details>
+	<div id="guia-capa" hidden class="fixed inset-0 z-40"></div>
+	<div id="guia-foco" hidden aria-hidden="true" class="pointer-events-none fixed z-40 rounded-lg shadow-[0_0_0_100vmax_rgb(0_0_0/0.6)] outline-2 outline-offset-0 outline-accent transition-[top,left,width,height] duration-200 motion-reduce:transition-none"></div>
+	<div id="guia-tarjeta" hidden role="dialog" aria-modal="true" aria-labelledby="guia-titulo" aria-describedby="guia-texto" tabindex="-1" class="fixed z-50 flex w-[360px] flex-col gap-2 rounded-md border border-line bg-surface p-5 shadow-[0_8px_24px_rgb(22_24_27/0.12)] outline-none max-sm:inset-x-4 max-sm:bottom-4 max-sm:w-auto">
+		<div aria-live="polite" class="flex flex-col gap-2">
+			<p id="guia-paso" class={ eyebrow }></p>
+			<h2 id="guia-titulo" class="font-display text-lg font-bold"></h2>
+			<p id="guia-texto" class="text-sm leading-relaxed text-muted"></p>
+		</div>
+		<div class="mt-2 flex items-center justify-between gap-2">
+			<button type="button" data-guia-accion="saltar" class="min-h-11 rounded-md px-3 text-sm font-semibold text-muted hover:bg-surface-2 hover:text-ink">Saltar</button>
+			<div class="flex gap-2">
+				<button type="button" data-guia-accion="atras" class={ btnSec }>Atrás</button>
+				<button type="button" data-guia-accion="siguiente" class={ btnPrimary }>Siguiente</button>
+			</div>
+		</div>
+	</div>
+}
+
+templ guiaPaso(zona, title string) {
+	<li data-guia-paso={ zona } class="pl-1 marker:font-mono marker:text-faint">
+		<h3 class="font-display font-bold">{ title }</h3>
+		<p class="mt-1 text-sm leading-relaxed text-muted">
+			{ children... }
+		</p>
+	</li>
 }

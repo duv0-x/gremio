@@ -31,6 +31,7 @@ templ layout(p Page, title string) {
 			<script src={ "/static/cinta.js?v=" + p.Version } defer></script>
 			<script src={ "/static/vista.js?v=" + p.Version } defer></script>
 			<script src={ "/static/tip.js?v=" + p.Version } defer></script>
+			<script src={ "/static/guia.js?v=" + p.Version } defer></script>
 		</head>
 		<body>
 			<a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-md focus:bg-surface focus:p-3">Saltar al contenido</a>
@@ -111,7 +112,7 @@ templ logo() {
 // profileTabs son las pestañas bajo el recuadro, como en un perfil de Instagram: cada una tiene su URL y muestra
 // solo su sección.
 templ profileTabs(p Page) {
-	<nav aria-label="Secciones del perfil" class="mx-auto mt-6 max-w-[1200px] px-4 sm:px-6">
+	<nav aria-label="Secciones del perfil" class="mx-auto mt-6 max-w-[1200px] px-4 sm:px-6" data-guia="secciones">
 		<ul class={ "grid border-b border-line font-mono text-[13px] uppercase tracking-[0.08em]", templ.KV("grid-cols-2", len(p.Resume.Projects) == 0), templ.KV("grid-cols-3", len(p.Resume.Projects) > 0) }>
 			@profileTab(p, "ficha", "Ficha", "layout-grid")
 			@profileTab(p, "cv", "CV", "file-text")
