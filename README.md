@@ -31,6 +31,7 @@ go build ./cmd/gremio                         # Go 1.26, sin cgo
 ./gremio serve --host https://<tu-dominio>    # escucha en 127.0.0.1:8080 y federa como @<usuario>@<tu-dominio>
 ./gremio admin note --text "hola fediverso"   # publica un Note para los seguidores (lo entrega serve)
 ./gremio admin profile --name "Ana" --summary "…" --avatar foto.jpg   # nombre, bio y foto (PNG/JPEG/WebP ≤ 2 MB)
+./gremio admin media captura.jpg              # guarda una imagen e imprime su URL, p. ej. para projects[].image
 ./gremio backup                               # copia consistente en data/backups/
 ```
 

@@ -35,6 +35,7 @@ Comandos:
   admin import reemplaza el perfil por un JSON Resume (muestra qué cambia y pide confirmar)
   admin export escribe el perfil como JSON Resume por stdout
   admin cv-pdf publica el PDF del CV para el botón "Descargar CV" (reemplaza el anterior)
+  admin media  guarda una imagen (p. ej. la captura de un proyecto) e imprime su URL
   backup       copia consistente de la base
   healthcheck  pide /readyz al servidor local (el HEALTHCHECK de la imagen, que no tiene curl)
 
@@ -79,6 +80,8 @@ func run(ctx context.Context, args []string) error {
 		return adminExport(ctx, args[2:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "cv-pdf":
 		return adminCVPDF(ctx, args[2:])
+	case args[0] == "admin" && len(args) > 1 && args[1] == "media":
+		return adminMedia(ctx, args[2:])
 	case args[0] == "backup":
 		return backup(ctx, args[1:])
 	case args[0] == "healthcheck":
@@ -445,6 +448,45 @@ func healthcheck(ctx context.Context, args []string) error {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("readyz: %s", resp.Status)
+	}
+	return nil
+}
+
+// adminMedia guarda imágenes en <data-dir>/media e imprime sus URLs, para usarlas en el perfil (projects[].image).
+func adminMedia(ctx context.Context, args []string) error {
+	fs, dataDir := newFlags("admin media")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() == 0 {
+		return errors.New("uso: gremio admin media <imagen>…")
+	}
+	st, err := store.Open(ctx, *dataDir)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	fed, err := federation.New(ctx, st, federation.Options{Version: version})
+	if err != nil {
+		return fmt.Errorf("%w (arranca `gremio serve --host …` una vez para fijar el host)", err)
+	}
+	for _, path := range fs.Args() {
+		info, err := os.Stat(path)
+		if err != nil {
+			return err
+		}
+		if info.Size() > federation.MaxAvatarBytes {
+			return fmt.Errorf("%s pesa %d bytes; el máximo es %d", path, info.Size(), federation.MaxAvatarBytes)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		url, err := fed.SaveMedia(data)
+		if err != nil {
+			return fmt.Errorf("%s: %w", path, err)
+		}
+		fmt.Printf("%s\t%s\n", path, url)
 	}
 	return nil
 }
