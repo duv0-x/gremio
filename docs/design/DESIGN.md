@@ -21,7 +21,7 @@ Fuente de los tokens y principios visuales de Gremio. El código ([ADR-008](../a
 | `surface-2` | `#ECEDE9` | `#22262A` | Hover de filas, bloques secundarios |
 | `ink` | `#16181B` | `#ECEDE9` | Texto principal, títulos |
 | `muted` | `#4D525A` | `#A9AEB5` | Texto secundario, lead |
-| `faint` | `#6B7078` | `#878C94` | Meta, ayudas, footer |
+| `faint` | `#656A72` | `#878C94` | Meta, ayudas, footer |
 | `line` | `#DADCD6` | `#2E3237` | Bordes y separadores decorativos |
 | `control` | `#7A8088` | `#767B83` | Borde de inputs y checkboxes (≥ 3:1) |
 | `accent` | `#0F6E61` | `#4FB8A6` | Enlaces, botón primario, seleccionado |
@@ -35,7 +35,7 @@ Fuente de los tokens y principios visuales de Gremio. El código ([ADR-008](../a
 
 - Los estados (`success`, `warning`, `danger`) usan un fondo suave al 10–12 % de su color, con el texto en el color pleno.
 - La sección invertida del perfil (selector de vistas) usa `ink` de fondo y `bg` de texto en claro; en oscuro usa `surface-2`.
-- Cambio respecto a los mockups: el gris `#7A8088` solo daba 3.6:1 sobre `bg`, así que como texto pasa a `faint` `#6B7078`; `#7A8088` queda para bordes de controles y barras de nivel.
+- Cambio respecto a los mockups: el gris `#7A8088` solo daba 3.6:1 sobre `bg`, así que como texto pasa a `faint` `#6B7078`; `#7A8088` queda para bordes de controles y barras de nivel. Después `faint` bajó a `#656A72` (gremio#94): `#6B7078` daba 4.24:1 sobre `surface-2`.
 
 ### Contraste verificado (WCAG 2.2)
 
@@ -43,7 +43,9 @@ Fuente de los tokens y principios visuales de Gremio. El código ([ADR-008](../a
 |-----|-------|--------|
 | `ink` / `bg` | 16.11 | 15.83 |
 | `muted` / `bg` | 7.12 | 8.34 |
-| `faint` / `bg` | 4.51 | 5.51 |
+| `faint` / `bg` | 4.93 | 5.51 |
+| `faint` / `surface` | 5.47 | 5.01 |
+| `faint` / `surface-2` | 4.63 | 4.50 |
 | `accent` / `bg` | 5.56 | 7.75 |
 | `accent` / `surface` | 6.13 | 7.04 |
 | `on-accent` / `accent` | 6.13 | 7.12 |
