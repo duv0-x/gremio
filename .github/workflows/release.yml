@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write # publicar la release y sus archivos
+  packages: write # publicar la imagen en ghcr.io/duv0-x/gremio
 
 jobs:
   goreleaser:
@@ -18,6 +19,13 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go test ./...
+      # La imagen solo copia el binario de cada plataforma: buildx alcanza, sin QEMU.
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
