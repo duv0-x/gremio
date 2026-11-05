@@ -148,12 +148,11 @@ templ BasicsForm(e editPage) {
 			@textField("Zona horaria", "timezone", e.R.Gremio.Timezone, "Nombre IANA, p. ej. America/Bogota.")
 		}
 		@fieldset("Contacto") {
-			<p class="text-sm text-muted">El correo y el teléfono son privados salvo que los marques. WhatsApp publica el teléfono solo como enlace, nunca como texto.</p>
+			<p class="text-sm text-muted">El correo y el teléfono son privados salvo que los marques.</p>
 			@textField("Correo", "email", e.R.Basics.Email, "")
 			@checkField("Mostrar el correo en el perfil", "email_publico", e.R.Gremio.Contact.Email == "public")
 			@textField("Teléfono", "phone", e.R.Basics.Phone, "Con indicativo, p. ej. +57 300 000 0000.")
 			@checkField("Mostrar el teléfono en el perfil", "telefono_publico", e.R.Gremio.Contact.Phone == "public")
-			@checkField("Botón de WhatsApp con este teléfono", "whatsapp_publico", e.R.Gremio.Contact.Whatsapp == "public")
 		}
 		@fieldset("Redes") {
 			for i := range e.pad("red", len(e.R.Basics.Profiles)) {

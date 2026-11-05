@@ -279,18 +279,17 @@ func TestIniciales(t *testing.T) {
 	}
 }
 
-func TestAccionesDescargarCVyWhatsApp(t *testing.T) {
+func TestAccionesDescargarCV(t *testing.T) {
 	dir := t.TempDir()
 	ts := newTestServerIn(t, fichaDoc, dir)
 
 	resp, body := get(t, ts.URL+"/@alice")
-	if !strings.Contains(body, `href="/@alice/whatsapp"`) || strings.Contains(body, "wa.me") || strings.Contains(body, "300") || strings.Contains(body, "/@alice/cv.pdf") {
-		t.Errorf("sin PDF: debe estar WhatsApp, sin el número en el HTML, y no la descarga (HTTP %d)", resp.StatusCode)
+	// WhatsApp se quitó (gremio#99): fichaDoc aún trae gremio.contact.whatsapp "public", que se ignora.
+	if strings.Contains(body, "whatsapp") || strings.Contains(body, "WhatsApp") || strings.Contains(body, "300") || strings.Contains(body, "/@alice/cv.pdf") {
+		t.Errorf("sin PDF: ni WhatsApp, ni el número, ni la descarga (HTTP %d)", resp.StatusCode)
 	}
-	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	if resp, err := noFollow.Get(ts.URL + "/@alice/whatsapp"); err != nil || resp.StatusCode != http.StatusFound ||
-		!strings.HasPrefix(resp.Header.Get("Location"), "https://wa.me/573000000000?text=Hola+Alice%2C+vi+tu+perfil+en+Gremio") {
-		t.Errorf("/whatsapp debe redirigir a wa.me: %v %v", resp, err)
+	if resp, _ := get(t, ts.URL+"/@alice/whatsapp"); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("/whatsapp ya no existe: HTTP %d", resp.StatusCode)
 	}
 	if resp, _ := get(t, ts.URL+"/@alice/cv.pdf"); resp.StatusCode != http.StatusNotFound {
 		t.Errorf("cv.pdf sin subir: HTTP %d", resp.StatusCode)
@@ -308,7 +307,7 @@ func TestAccionesDescargarCVyWhatsApp(t *testing.T) {
 	}
 	// Con ficha, las acciones van en el recuadro, debajo de Seguir: no hay barra flotante.
 	if strings.Contains(body, `aria-label="Acciones"`) || strings.Index(body, `href="#seguir"`) > strings.Index(body, `href="/@alice/cv.pdf"`) {
-		t.Error("con ficha, Descargar CV y WhatsApp van debajo de Seguir y sin barra flotante")
+		t.Error("con ficha, Descargar CV va debajo de Seguir y sin barra flotante")
 	}
 	resp, pdf := get(t, ts.URL+"/@alice/cv.pdf")
 	if resp.StatusCode != http.StatusOK || pdf != "%PDF-1.7 hola" || !strings.HasPrefix(resp.Header.Get("Content-Disposition"), "attachment;") {

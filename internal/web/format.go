@@ -69,30 +69,10 @@ func (p Page) SourceURL() string {
 	return repo + "/tree/v" + strings.TrimPrefix(p.Version, "v")
 }
 
-// WhatsApp es el enlace wa.me con un mensaje inicial, solo si el dueño lo hizo público (el número no se muestra).
-func (p Page) WhatsApp() string {
-	if p.Resume.Gremio.Contact.Whatsapp != "public" {
-		return ""
-	}
-	digits := strings.Map(func(r rune) rune {
-		if r >= '0' && r <= '9' {
-			return r
-		}
-		return -1
-	}, p.Resume.Basics.Phone)
-	if digits == "" {
-		return ""
-	}
-	first := strings.Fields(p.Resume.Basics.Name)[0]
-	return "https://wa.me/" + digits + "?text=" + url.QueryEscape("Hola "+first+", vi tu perfil en Gremio ("+p.Handle+") y me gustaría conversar.")
-}
-
-func (p Page) whatsappPath() string { return "/@" + p.Username + "/whatsapp" }
-
 func (p Page) cvPDFPath() string { return "/@" + p.Username + "/cv.pdf" }
 
 // floatingActions dice si va la barra flotante: solo sin ficha, porque con ficha las acciones van en el recuadro.
-func (p Page) floatingActions() bool { return !p.HasFicha() && (p.HasCV || p.WhatsApp() != "") }
+func (p Page) floatingActions() bool { return !p.HasFicha() && p.HasCV }
 
 func (p Page) followPath() string { return "/@" + p.Username + "/seguir" }
 

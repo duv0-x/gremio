@@ -106,17 +106,6 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		// La pestaña Contacto se quitó: el contacto rápido son los botones fijos.
 		http.Redirect(w, r, "/@"+inst.Username+"/cv", http.StatusMovedPermanently)
 		return
-	case "whatsapp":
-		// Redirige a wa.me en el clic: así el número no está en el HTML que leen los scrapers.
-		wa := page.WhatsApp()
-		if wa == "" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("X-Robots-Tag", "noindex")
-		http.Redirect(w, r, wa, http.StatusFound)
-		return
 	case "seguir":
 		target, ok := page.followURL(r.URL.Query().Get("instancia"))
 		if !ok {

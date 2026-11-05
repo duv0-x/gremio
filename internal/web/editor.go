@@ -300,7 +300,7 @@ func applyBasics(r *http.Request, res *profile.Resume, _ *string) error {
 		b.Location = &l
 	}
 	c := &res.Gremio.Contact
-	c.Email, c.Phone, c.Whatsapp = visibility(checked(r, "email_publico")), visibility(checked(r, "telefono_publico")), visibility(checked(r, "whatsapp_publico"))
+	c.Email, c.Phone = visibility(checked(r, "email_publico")), visibility(checked(r, "telefono_publico"))
 	b.Profiles = nil
 	for _, x := range rows(r, "red") {
 		if x.get("network") == "" {

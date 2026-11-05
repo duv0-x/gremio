@@ -122,7 +122,7 @@ func TestEditorBasico(t *testing.T) {
 	form := url.Values{
 		"name": {"Alice Editada"}, "label": {"Platform Engineer"}, "summary": {"Bio"}, "about": {"Presentación nueva"},
 		"city": {"Bogotá"}, "country": {"co"}, "timezone": {"America/Bogota"},
-		"email": {"alice@ejemplo.org"}, "email_publico": {"1"}, "phone": {"+57 300 000 0000"}, "whatsapp_publico": {"1"},
+		"email": {"alice@ejemplo.org"}, "email_publico": {"1"}, "phone": {"+57 300 000 0000"},
 		"red.0.network": {"GitHub"}, "red.0.url": {"https://github.com/alice"}, "red.0.orden": {"2"},
 		"red.1.network": {"Mastodon"}, "red.1.url": {"https://mastodon.social/@alice"}, "red.1.orden": {"1"},
 		"red.2.network": {""},
@@ -138,7 +138,7 @@ func TestEditorBasico(t *testing.T) {
 	}
 	r := p.profile()
 	if r.Basics.Name != "Alice Editada" || r.Gremio.About != "Presentación nueva" || r.Basics.Location.CountryCode != "CO" ||
-		r.Gremio.Contact.Email != "public" || r.Gremio.Contact.Phone != "private" || r.Gremio.Contact.Whatsapp != "public" {
+		r.Gremio.Contact.Email != "public" || r.Gremio.Contact.Phone != "private" {
 		t.Errorf("guardado: %+v %+v", r.Basics, r.Gremio.Contact)
 	}
 	if len(r.Basics.Profiles) != 2 || r.Basics.Profiles[0].Network != "Mastodon" {
