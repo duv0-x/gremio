@@ -36,7 +36,7 @@ Comandos:
   admin export escribe el perfil como JSON Resume por stdout
   admin cv-pdf publica el PDF del CV para el botón "Descargar CV" (reemplaza el anterior)
   admin media  guarda una imagen (p. ej. la captura de un proyecto) e imprime su URL
-  backup       copia consistente de la base
+  backup       respaldo completo en .tar.gz: la base (copia consistente), el CV en PDF y media/
   healthcheck  pide /readyz al servidor local (el HEALTHCHECK de la imagen, que no tiene curl)
 
 Variables de entorno: GREMIO_DATA_DIR (directorio de datos), GREMIO_ADDR (dirección de escucha),
@@ -380,7 +380,7 @@ func adminExport(ctx context.Context, args []string) error {
 
 func backup(ctx context.Context, args []string) error {
 	fs, dataDir := newFlags("backup")
-	out := fs.String("out", "", "archivo de destino (por defecto <data-dir>/backups/gremio-<fecha>.db)")
+	out := fs.String("out", "", "archivo .tar.gz de destino (por defecto <data-dir>/backups/gremio-<fecha>.tar.gz)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -389,11 +389,11 @@ func backup(ctx context.Context, args []string) error {
 		return err
 	}
 	defer st.Close()
-	dest, err := st.Backup(ctx, *out)
+	dest, err := backupArchive(ctx, st, *dataDir, *out)
 	if err != nil {
 		return err
 	}
-	slog.Info("respaldo creado", "archivo", dest)
+	slog.Info("respaldo creado", "archivo", dest, "restaurar", "tar -xzf <archivo> -C <data-dir vacío>")
 	return nil
 }
 

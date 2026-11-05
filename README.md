@@ -32,7 +32,7 @@ go build ./cmd/gremio                         # Go 1.26, sin cgo
 ./gremio admin note --text "hola fediverso"   # publica un Note para los seguidores (lo entrega serve)
 ./gremio admin profile --name "Ana" --summary "…" --avatar foto.jpg   # nombre, bio y foto (PNG/JPEG/WebP ≤ 2 MB)
 ./gremio admin media captura.jpg              # guarda una imagen e imprime su URL, p. ej. para projects[].image
-./gremio backup                               # copia consistente en data/backups/
+./gremio backup                               # respaldo completo (.tar.gz) en data/backups/
 ```
 
 | Flag | Variable | Por defecto |
@@ -50,6 +50,25 @@ go build ./cmd/gremio                         # Go 1.26, sin cgo
 **Panel** ([ADR-009](docs/adr/ADR-009-autenticacion-del-panel.md)): `/login` envía un enlace de un solo uso (15 min) al correo del dueño, que se cambia con `gremio admin set-email <correo>`. No hay contraseña ni otro acceso: si el correo no llega, hay que arreglar el SMTP. Gremio nunca envía sin TLS. En `/panel` se importa (con vista previa) y se exporta el perfil, y se cierran las sesiones.
 
 **`--host` y `--account-domain` son permanentes**: se graban en la base en el primer `serve` y el binario se niega a arrancar con otros valores, porque las demás instancias cachean el Actor y sus llaves (ADR-001). Si `--account-domain` es distinto del dominio de `--host`, ese dominio tiene que redirigir `/.well-known/webfinger`, `host-meta` y `nodeinfo` al host.
+
+## Respaldo y restauración
+
+`gremio backup` escribe `data/backups/gremio-<fecha>.tar.gz` con todo lo que la instancia necesita para servir lo mismo:
+- una copia consistente de la base (`gremio.db`, con `VACUUM INTO`, sin detener `serve`), que incluye el perfil, las llaves y los seguidores;
+- el CV en PDF (`cv.pdf`);
+- las imágenes de `media/` (el avatar y las de `admin media`).
+
+El archivo trae la llave privada de la instancia: es `0600` y se guarda como un secreto. `--out` elige otro destino.
+
+`data/backups/` está dentro del directorio de datos, así que **cópialo fuera de la máquina**. Si falla el disco, falla con él.
+
+Para restaurar, con `serve` detenido, se extrae en un directorio de datos vacío:
+
+```bash
+install -d -m 0700 data
+tar -xzf gremio-<fecha>.tar.gz -C data
+./gremio serve --host https://<tu-dominio>    # el mismo host: es parte de la identidad
+```
 
 ## Instalar con systemd
 
@@ -78,7 +97,7 @@ docker volume create gremio-data
 docker run --rm -v gremio-data:/data ghcr.io/duv0-x/gremio admin init --username <usuario> --email <correo>
 docker run -d --name gremio --restart unless-stopped -p 127.0.0.1:8080:8080 -v gremio-data:/data \
   -e GREMIO_HOST=https://<tu-dominio> --env-file gremio.env ghcr.io/duv0-x/gremio
-docker exec gremio gremio backup          # copia consistente en /data/backups/
+docker exec gremio gremio backup          # respaldo completo en /data/backups/
 ```
 
 Con compose:
