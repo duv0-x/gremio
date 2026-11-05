@@ -662,7 +662,7 @@ func actionButtons(p Page) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if p.HasCV {
-			var templ_7745c5c3_Var32 = []any{btnPrimary, "flex-1 gap-2 sm:flex-none"}
+			var templ_7745c5c3_Var32 = []any{btnInverse, "flex-1 gap-2 sm:flex-none"}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var32...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

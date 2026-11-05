@@ -106,6 +106,7 @@ Pantallas de referencia en Stitch: "Componentes · Gremio Design System" (claro,
 | Componente | Anatomía | Estados | Cuándo |
 |------------|----------|---------|--------|
 | Botón primario | 44 px de alto, padding 0 18 px, radio `md`, `label-md`; fondo `accent`, texto `on-accent` | hover `accent-hover`; foco; deshabilitado al 40 % de opacidad y `cursor: not-allowed` | Una sola acción principal por vista ("Enviarme un enlace", "Guardar") |
+| Botón invertido | Igual que el primario, con fondo `ink` y texto `bg` (16.1:1 en claro, 15.8:1 en oscuro) | hover fondo `muted` (7.1:1 y 8.3:1); foco | Una acción destacada que no debe confundirse con el acento: "Descargar CV (PDF)" (gremio#102) |
 | Botón secundario | Igual, fondo transparente, borde 1.5 px `ink`, texto `ink` | hover fondo `surface-2` | Acciones alternativas ("Exportar JSON Resume") |
 | Botón ghost | Sin borde ni fondo, texto `ink` | hover fondo `surface-2` | Acciones de baja jerarquía en barras y tablas |
 | Botón de peligro | Fondo `danger`; texto blanco en claro (6.57:1) y `bg` en oscuro (7.66:1) | hover 10 % más oscuro | Acciones destructivas ("Cerrar todas las sesiones"); siempre con confirmación |
