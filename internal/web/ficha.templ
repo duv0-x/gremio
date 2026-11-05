@@ -135,13 +135,6 @@ templ actionButtons(p Page) {
 			Descargar CV (PDF)
 		</a>
 	}
-	if p.WhatsApp() != "" {
-		// El enlace pasa por /@usuario/whatsapp para que el número no quede en el HTML.
-		<a class={ btnSec, "flex-1 gap-2 sm:flex-none" } href={ templ.SafeURL(p.whatsappPath()) } rel="nofollow noopener" target="_blank">
-			@icon("message-circle")
-			WhatsApp
-		</a>
-	}
 }
 
 // icon es un ícono de Lucide de 20 px, decorativo.

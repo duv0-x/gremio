@@ -462,11 +462,7 @@ templ contact(p Page) {
 			if email := p.Email(); email != "" {
 				<p class="mt-2"><a href={ templ.SafeURL("mailto:" + email) }>{ email }</a></p>
 			} else {
-				if p.WhatsApp() != "" {
-					<p class="mt-2 text-muted">Escríbeme por <a href={ templ.SafeURL(p.whatsappPath()) } rel="nofollow noopener" target="_blank">WhatsApp</a> o por cualquiera de estos canales.</p>
-				} else {
-					<p class="mt-2 text-muted">El email y el teléfono no son públicos. Escribe por cualquiera de estos canales.</p>
-				}
+				<p class="mt-2 text-muted">El email y el teléfono no son públicos. Escribe por cualquiera de estos canales.</p>
 			}
 			<ul class="mt-6 grid gap-3 sm:grid-cols-3">
 				<li class="rounded-md bg-surface-2 p-4">
