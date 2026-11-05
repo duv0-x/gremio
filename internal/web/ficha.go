@@ -353,3 +353,12 @@ func guiaSecciones(p Page) string {
 	}
 	return s
 }
+
+// attributesByWeight ordena la cinta de Atributos por el peso de cada atributo en el rol, de mayor a menor
+// (gremio#103). A igual peso queda el orden del perfil, y los que no pesan en el rol van al final. Sin pesos, el
+// orden del perfil.
+func attributesByWeight(attrs []profile.Attribute, v profile.View) []profile.Attribute {
+	out := slices.Clone(attrs)
+	slices.SortStableFunc(out, func(a, b profile.Attribute) int { return cmp.Compare(v.Weights[b.Code], v.Weights[a.Code]) })
+	return out
+}

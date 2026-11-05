@@ -1536,6 +1536,7 @@ func fichaAttributes(p Page) templ.Component {
 			templ_7745c5c3_Var78 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
+		v, _ := p.Selected()
 		var templ_7745c5c3_Var79 = []any{panel}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var79...)
 		if templ_7745c5c3_Err != nil {
@@ -1588,7 +1589,7 @@ func fichaAttributes(p Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, a := range p.Resume.Gremio.Attributes {
+		for _, a := range attributesByWeight(p.Resume.Gremio.Attributes, v) {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "<li class=\"w-[200px] shrink-0 snap-start sm:w-[220px]\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -1596,7 +1597,7 @@ func fichaAttributes(p Page) templ.Component {
 			var templ_7745c5c3_Var83 templ.SafeURL
 			templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("#" + attrAnchor(a.Code)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 287, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 288, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
 			if templ_7745c5c3_Err != nil {
@@ -1617,7 +1618,7 @@ func fichaAttributes(p Page) templ.Component {
 			var templ_7745c5c3_Var84 string
 			templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.JoinStringErrs(a.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 291, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 292, Col: 78}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var84))
 			if templ_7745c5c3_Err != nil {
@@ -1652,7 +1653,7 @@ func fichaAttributes(p Page) templ.Component {
 			var templ_7745c5c3_Var87 string
 			templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(itoa(a.Score()))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 293, Col: 113}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 294, Col: 113}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 			if templ_7745c5c3_Err != nil {
@@ -1709,7 +1710,7 @@ func subBar(s profile.Sub) templ.Component {
 		var templ_7745c5c3_Var89 string
 		templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs(s.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 312, Col: 12}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 313, Col: 12}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 		if templ_7745c5c3_Err != nil {
@@ -1732,7 +1733,7 @@ func subBar(s profile.Sub) templ.Component {
 		var templ_7745c5c3_Var90 string
 		templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinStringErrs(itoa(s.Score))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 317, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 318, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
 		if templ_7745c5c3_Err != nil {
@@ -1755,7 +1756,7 @@ func subBar(s profile.Sub) templ.Component {
 			var templ_7745c5c3_Var92 string
 			templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.ResolveAttributeValue(itoa(max(s.Score-1, 1)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 322, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 323, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var92)
 			if templ_7745c5c3_Err != nil {
@@ -1791,7 +1792,7 @@ func subBar(s profile.Sub) templ.Component {
 			var templ_7745c5c3_Var95 string
 			templ_7745c5c3_Var95, templ_7745c5c3_Err = templ.ResolveAttributeValue(itoa(s.Score))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 324, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 325, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var95)
 			if templ_7745c5c3_Err != nil {
@@ -1853,7 +1854,7 @@ func drawer(id, closeHref string, header templ.Component) templ.Component {
 		var templ_7745c5c3_Var98 string
 		templ_7745c5c3_Var98, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 333, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 334, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var98)
 		if templ_7745c5c3_Err != nil {
@@ -1866,7 +1867,7 @@ func drawer(id, closeHref string, header templ.Component) templ.Component {
 		var templ_7745c5c3_Var99 string
 		templ_7745c5c3_Var99, templ_7745c5c3_Err = templ.ResolveAttributeValue(id + "-titulo")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 333, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 334, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var99)
 		if templ_7745c5c3_Err != nil {
@@ -1879,7 +1880,7 @@ func drawer(id, closeHref string, header templ.Component) templ.Component {
 		var templ_7745c5c3_Var100 templ.SafeURL
 		templ_7745c5c3_Var100, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(closeHref))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 334, Col: 36}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 335, Col: 36}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var100))
 		if templ_7745c5c3_Err != nil {
@@ -1900,7 +1901,7 @@ func drawer(id, closeHref string, header templ.Component) templ.Component {
 		var templ_7745c5c3_Var101 templ.SafeURL
 		templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(closeHref))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 340, Col: 38}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 341, Col: 38}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var101))
 		if templ_7745c5c3_Err != nil {
@@ -1976,7 +1977,7 @@ func attributeHeader(a profile.Attribute) templ.Component {
 		var templ_7745c5c3_Var105 string
 		templ_7745c5c3_Var105, templ_7745c5c3_Err = templ.ResolveAttributeValue(attrAnchor(a.Code) + "-titulo")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 354, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 355, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var105)
 		if templ_7745c5c3_Err != nil {
@@ -1989,7 +1990,7 @@ func attributeHeader(a profile.Attribute) templ.Component {
 		var templ_7745c5c3_Var106 string
 		templ_7745c5c3_Var106, templ_7745c5c3_Err = templ.JoinStringErrs(a.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 354, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 355, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var106))
 		if templ_7745c5c3_Err != nil {
@@ -2065,7 +2066,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 			var templ_7745c5c3_Var111 string
 			templ_7745c5c3_Var111, templ_7745c5c3_Err = templ.JoinStringErrs(itoa(a.Score()))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 360, Col: 106}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 361, Col: 106}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var111))
 			if templ_7745c5c3_Err != nil {
@@ -2083,7 +2084,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 				var templ_7745c5c3_Var112 string
 				templ_7745c5c3_Var112, templ_7745c5c3_Err = templ.JoinStringErrs(itoa(n))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 364, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 365, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var112))
 				if templ_7745c5c3_Err != nil {
@@ -2096,7 +2097,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 				var templ_7745c5c3_Var113 string
 				templ_7745c5c3_Var113, templ_7745c5c3_Err = templ.JoinStringErrs(plural(n, "logro", "logros"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 364, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 365, Col: 65}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var113))
 				if templ_7745c5c3_Err != nil {
@@ -2174,7 +2175,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 					var templ_7745c5c3_Var118 string
 					templ_7745c5c3_Var118, templ_7745c5c3_Err = templ.JoinStringErrs(k)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 381, Col: 71}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 382, Col: 71}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var118))
 					if templ_7745c5c3_Err != nil {
@@ -2229,7 +2230,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 					var templ_7745c5c3_Var121 string
 					templ_7745c5c3_Var121, templ_7745c5c3_Err = templ.JoinStringErrs(w.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 392, Col: 43}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 393, Col: 43}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var121))
 					if templ_7745c5c3_Err != nil {
@@ -2242,7 +2243,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 					var templ_7745c5c3_Var122 string
 					templ_7745c5c3_Var122, templ_7745c5c3_Err = templ.JoinStringErrs(dateRange(w.StartDate, w.EndDate))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 393, Col: 89}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 394, Col: 89}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var122))
 					if templ_7745c5c3_Err != nil {
@@ -2297,7 +2298,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 					var templ_7745c5c3_Var125 string
 					templ_7745c5c3_Var125, templ_7745c5c3_Err = templ.JoinStringErrs(h.Work)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 405, Col: 69}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 406, Col: 69}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var125))
 					if templ_7745c5c3_Err != nil {
@@ -2310,7 +2311,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 					var templ_7745c5c3_Var126 string
 					templ_7745c5c3_Var126, templ_7745c5c3_Err = templ.JoinStringErrs(h.Text)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 406, Col: 47}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 407, Col: 47}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var126))
 					if templ_7745c5c3_Err != nil {
@@ -2328,7 +2329,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 						var templ_7745c5c3_Var127 templ.SafeURL
 						templ_7745c5c3_Var127, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(e))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 408, Col: 103}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 409, Col: 103}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var127))
 						if templ_7745c5c3_Err != nil {
@@ -2341,7 +2342,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 						var templ_7745c5c3_Var128 string
 						templ_7745c5c3_Var128, templ_7745c5c3_Err = templ.JoinStringErrs(evidenceSuffix(i, len(h.Evidence)))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 408, Col: 170}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 409, Col: 170}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var128))
 						if templ_7745c5c3_Err != nil {
@@ -2427,7 +2428,7 @@ func attributeDetail(p Page, a profile.Attribute) templ.Component {
 					var templ_7745c5c3_Var133 string
 					templ_7745c5c3_Var133, templ_7745c5c3_Err = templ.JoinStringErrs(w.Weight)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 420, Col: 74}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 421, Col: 74}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var133))
 					if templ_7745c5c3_Err != nil {
@@ -2483,7 +2484,7 @@ func traitBadge(t profile.Trait) templ.Component {
 		var templ_7745c5c3_Var135 string
 		templ_7745c5c3_Var135, templ_7745c5c3_Err = templ.ResolveAttributeValue(traitTip(t))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 431, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 432, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var135)
 		if templ_7745c5c3_Err != nil {
@@ -2518,7 +2519,7 @@ func traitBadge(t profile.Trait) templ.Component {
 		var templ_7745c5c3_Var138 string
 		templ_7745c5c3_Var138, templ_7745c5c3_Err = templ.ResolveAttributeValue(hexagon(60, 60, 55))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 433, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 434, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var138)
 		if templ_7745c5c3_Err != nil {
@@ -2549,7 +2550,7 @@ func traitBadge(t profile.Trait) templ.Component {
 			var templ_7745c5c3_Var139 string
 			templ_7745c5c3_Var139, templ_7745c5c3_Err = templ.JoinStringErrs(traitInitials(t.Name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 439, Col: 122}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 440, Col: 122}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var139))
 			if templ_7745c5c3_Err != nil {
@@ -2567,7 +2568,7 @@ func traitBadge(t profile.Trait) templ.Component {
 		var templ_7745c5c3_Var140 string
 		templ_7745c5c3_Var140, templ_7745c5c3_Err = templ.JoinStringErrs(traitTip(t))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 442, Col: 37}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 443, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var140))
 		if templ_7745c5c3_Err != nil {
@@ -2637,7 +2638,7 @@ func sigla(code, tip, class string, focusable bool) templ.Component {
 		var templ_7745c5c3_Var144 string
 		templ_7745c5c3_Var144, templ_7745c5c3_Err = templ.ResolveAttributeValue(tip)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 452, Col: 16}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 453, Col: 16}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var144)
 		if templ_7745c5c3_Err != nil {
@@ -2660,7 +2661,7 @@ func sigla(code, tip, class string, focusable bool) templ.Component {
 		var templ_7745c5c3_Var145 string
 		templ_7745c5c3_Var145, templ_7745c5c3_Err = templ.JoinStringErrs(code)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 456, Col: 8}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 457, Col: 8}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var145))
 		if templ_7745c5c3_Err != nil {
@@ -2673,7 +2674,7 @@ func sigla(code, tip, class string, focusable bool) templ.Component {
 		var templ_7745c5c3_Var146 string
 		templ_7745c5c3_Var146, templ_7745c5c3_Err = templ.JoinStringErrs(" (" + tip + ")")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 456, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 457, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var146))
 		if templ_7745c5c3_Err != nil {
@@ -2731,7 +2732,7 @@ func tipBox(code, tip string) templ.Component {
 			var templ_7745c5c3_Var148 string
 			templ_7745c5c3_Var148, templ_7745c5c3_Err = templ.JoinStringErrs(eyebrow)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 465, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 466, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var148))
 			if templ_7745c5c3_Err != nil {
@@ -2749,7 +2750,7 @@ func tipBox(code, tip string) templ.Component {
 		var templ_7745c5c3_Var149 string
 		templ_7745c5c3_Var149, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 467, Col: 33}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 468, Col: 33}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var149))
 		if templ_7745c5c3_Err != nil {
@@ -2767,7 +2768,7 @@ func tipBox(code, tip string) templ.Component {
 			var templ_7745c5c3_Var150 string
 			templ_7745c5c3_Var150, templ_7745c5c3_Err = templ.JoinStringErrs(body)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 469, Col: 15}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 470, Col: 15}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var150))
 			if templ_7745c5c3_Err != nil {
@@ -2816,7 +2817,7 @@ func cintaArrows(prev, next string) templ.Component {
 		var templ_7745c5c3_Var152 string
 		templ_7745c5c3_Var152, templ_7745c5c3_Err = templ.ResolveAttributeValue(prev)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 478, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 479, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var152)
 		if templ_7745c5c3_Err != nil {
@@ -2829,7 +2830,7 @@ func cintaArrows(prev, next string) templ.Component {
 		var templ_7745c5c3_Var153 string
 		templ_7745c5c3_Var153, templ_7745c5c3_Err = templ.ResolveAttributeValue(next)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 479, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 480, Col: 67}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var153)
 		if templ_7745c5c3_Err != nil {
@@ -2969,7 +2970,7 @@ func guia(p Page) templ.Component {
 				var templ_7745c5c3_Var160 string
 				templ_7745c5c3_Var160, templ_7745c5c3_Err = templ.JoinStringErrs(" (los que más pesan en ese rol)")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 506, Col: 41}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 507, Col: 41}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var160))
 				if templ_7745c5c3_Err != nil {
@@ -2983,7 +2984,7 @@ func guia(p Page) templ.Component {
 			var templ_7745c5c3_Var161 string
 			templ_7745c5c3_Var161, templ_7745c5c3_Err = templ.JoinStringErrs(" y, cuanto más lejos del centro, más alto el puntaje. Los puntajes los declara la persona.")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 508, Col: 100}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 509, Col: 100}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var161))
 			if templ_7745c5c3_Err != nil {
@@ -3056,7 +3057,7 @@ func guia(p Page) templ.Component {
 			var templ_7745c5c3_Var165 string
 			templ_7745c5c3_Var165, templ_7745c5c3_Err = templ.JoinStringErrs(guiaSecciones(p))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 519, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 520, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var165))
 			if templ_7745c5c3_Err != nil {
@@ -3170,7 +3171,7 @@ func guiaPaso(zona, title string) templ.Component {
 		var templ_7745c5c3_Var173 string
 		templ_7745c5c3_Var173, templ_7745c5c3_Err = templ.ResolveAttributeValue(zona)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 542, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 543, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var173)
 		if templ_7745c5c3_Err != nil {
@@ -3183,7 +3184,7 @@ func guiaPaso(zona, title string) templ.Component {
 		var templ_7745c5c3_Var174 string
 		templ_7745c5c3_Var174, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 543, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ficha.templ`, Line: 544, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var174))
 		if templ_7745c5c3_Err != nil {
