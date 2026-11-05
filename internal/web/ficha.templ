@@ -130,7 +130,7 @@ templ actions(p Page) {
 
 templ actionButtons(p Page) {
 	if p.HasCV {
-		<a class={ btnPrimary, "flex-1 gap-2 sm:flex-none" } href={ templ.SafeURL(p.cvPDFPath()) } download>
+		<a class={ btnInverse, "flex-1 gap-2 sm:flex-none" } href={ templ.SafeURL(p.cvPDFPath()) } download>
 			@icon("download")
 			Descargar CV (PDF)
 		</a>
