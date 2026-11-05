@@ -1,4 +1,4 @@
-# Releases de Gremio (ADR-007): binarios sin cgo para Linux y macOS, con checksums.
+# Releases de Gremio (ADR-007): binarios sin cgo para Linux y macOS, con checksums, e imagen OCI multi-arch.
 version: 2
 
 before:
@@ -30,6 +30,24 @@ archives:
 
 checksum:
   name_template: checksums.txt
+
+# Imagen en GHCR para linux/amd64 y linux/arm64 con el binario de builds (Dockerfile).
+dockers_v2:
+  - images:
+      - ghcr.io/duv0-x/gremio
+    tags:
+      - "{{ .Version }}"
+      - latest
+    extra_files:
+      - LICENSE
+      - third_party_licenses
+    labels:
+      org.opencontainers.image.title: gremio
+      org.opencontainers.image.description: Servidor federado de perfiles y proyectos con ActivityPub
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: AGPL-3.0-or-later
 
 changelog:
   use: github

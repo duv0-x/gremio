@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,6 +36,7 @@ Comandos:
   admin export escribe el perfil como JSON Resume por stdout
   admin cv-pdf publica el PDF del CV para el botón "Descargar CV" (reemplaza el anterior)
   backup       copia consistente de la base
+  healthcheck  pide /readyz al servidor local (el HEALTHCHECK de la imagen, que no tiene curl)
 
 Variables de entorno: GREMIO_DATA_DIR (directorio de datos), GREMIO_ADDR (dirección de escucha),
 GREMIO_HOST (URL pública) y GREMIO_ACCOUNT_DOMAIN (dominio del handle). El login del panel envía el
@@ -79,6 +81,8 @@ func run(ctx context.Context, args []string) error {
 		return adminCVPDF(ctx, args[2:])
 	case args[0] == "backup":
 		return backup(ctx, args[1:])
+	case args[0] == "healthcheck":
+		return healthcheck(ctx, args[1:])
 	default:
 		fmt.Fprint(os.Stderr, usage)
 		return fmt.Errorf("comando desconocido: %v", args)
@@ -411,5 +415,36 @@ func adminCVPDF(ctx context.Context, args []string) error {
 		return err
 	}
 	slog.Info("CV publicado", "bytes", len(data), "url", "/@<usuario>/cv.pdf")
+	return nil
+}
+
+// healthcheck pide /readyz al serve local y falla si no responde 200. La imagen OCI no tiene shell ni curl.
+func healthcheck(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("healthcheck", flag.ContinueOnError)
+	addr := fs.String("addr", envOr("GREMIO_ADDR", "127.0.0.1:8080"), "dirección de escucha del servidor")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	host, port, err := net.SplitHostPort(*addr)
+	if err != nil {
+		return err
+	}
+	if ip := net.ParseIP(host); host == "" || ip != nil && ip.IsUnspecified() {
+		host = "127.0.0.1" // escucha en todas las interfaces: se le pregunta por loopback
+	}
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+net.JoinHostPort(host, port)+"/readyz", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("readyz: %s", resp.Status)
+	}
 	return nil
 }

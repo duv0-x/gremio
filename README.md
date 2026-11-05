@@ -68,6 +68,36 @@ sudo systemctl enable --now gremio gremio-update.timer
 
 `gremio-update` instala la última release cada 5 minutos, con verificación del checksum, respaldo del binario y la base, y rollback si `/readyz` no responde. Para fijar la versión estilo GitOps, define `GREMIO_VERSION_URL` en `/gremio/gremio-update.env`. Debe apuntar a un archivo con el tag, p. ej. el `gremio.version` del repo de tu instancia.
 
+## Correr con Docker
+
+Cada release publica también `ghcr.io/duv0-x/gremio:<versión>` y `:latest` para linux/amd64 y linux/arm64. La imagen es distroless (sin shell), corre como el usuario 65532, guarda los datos en el volumen `/data`, escucha en `0.0.0.0:8080` y trae un `HEALTHCHECK` contra `/readyz` (`gremio healthcheck`).
+
+```bash
+docker volume create gremio-data
+docker run --rm -v gremio-data:/data ghcr.io/duv0-x/gremio admin init --username <usuario> --email <correo>
+docker run -d --name gremio --restart unless-stopped -p 127.0.0.1:8080:8080 -v gremio-data:/data \
+  -e GREMIO_HOST=https://<tu-dominio> --env-file gremio.env ghcr.io/duv0-x/gremio
+docker exec gremio gremio backup          # copia consistente en /data/backups/
+```
+
+Con compose:
+
+```yaml
+services:
+  gremio:
+    image: ghcr.io/duv0-x/gremio:<versión>   # fija la versión; latest cambia con cada release
+    restart: unless-stopped
+    ports: ["127.0.0.1:8080:8080"]
+    environment:
+      GREMIO_HOST: https://<tu-dominio>
+    env_file: gremio.env                     # GREMIO_SMTP_* (la clave solo aquí)
+    volumes: ["gremio-data:/data"]
+volumes:
+  gremio-data:
+```
+
+Con `docker compose run --rm gremio admin init --username <usuario> --email <correo>` se crea la instancia antes del primer `up`. Gremio no termina TLS: va detrás de un proxy (Caddy, nginx, Cloudflare Tunnel) que publica `https://<tu-dominio>`. Si usas un directorio del host en lugar de un volumen, tiene que ser del usuario 65532 (`sudo chown 65532:65532 <dir>`).
+
 ## Desarrollo
 
 - `go generate ./...` regenera el código de sqlc (`internal/store`), que se commitea.
