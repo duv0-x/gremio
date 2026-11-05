@@ -340,3 +340,16 @@ func traitInitials(name string) string {
 	}
 	return strings.ToUpper(string([]rune{words[0][0], words[1][0]}))
 }
+
+// guiaSecciones es el último paso de la guía: qué hay en las otras pestañas y en los botones de abajo.
+func guiaSecciones(p Page) string {
+	s := "En CV está la trayectoria completa"
+	if len(p.Resume.Projects) > 0 {
+		s += " y en Proyectos, lo que ha construido"
+	}
+	s += "."
+	if p.HasCV {
+		s += " El botón de abajo descarga el CV en PDF."
+	}
+	return s
+}
