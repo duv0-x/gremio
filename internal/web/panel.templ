@@ -137,6 +137,10 @@ templ PanelPage(d panelData) {
 				}
 			</ul>
 		}
+		@panelSection("Plugins") {
+			<p class="text-muted">Conecta tu instancia con otros servicios, como Ollama o Claude.</p>
+			<a class={ btnSec, "sm:self-start" } href="/panel/plugins">Ver plugins</a>
+		}
 		@panelSection("Importar") {
 			<p class="text-muted">Sube un JSON Resume, o el que exportaste aquí. Antes de reemplazar el perfil verás qué cambia.</p>
 			<form method="post" action="/panel/importar" enctype="multipart/form-data" class="flex flex-col gap-3">
