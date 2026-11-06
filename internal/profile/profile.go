@@ -382,7 +382,7 @@ func (r *Resume) Normalize() error {
 	for i, v := range r.Gremio.Views {
 		what := fmt.Sprintf("gremio.views[%d]", i)
 		// cv y contacto son pestañas de la página (/@usuario/cv), no vistas.
-		if !slugRe.MatchString(v.Slug) || slugs[v.Slug] || v.Slug == "cv" || v.Slug == "contacto" {
+		if !slugRe.MatchString(v.Slug) || slugs[v.Slug] || v.Slug == "cv" || v.Slug == "contacto" || v.Slug == "portafolio" || v.Slug == "proyectos" || v.Slug == "notas" {
 			return fmt.Errorf("%s: slug %q inválido o repetido", what, v.Slug)
 		}
 		slugs[v.Slug] = true

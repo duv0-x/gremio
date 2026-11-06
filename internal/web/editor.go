@@ -259,7 +259,7 @@ var editorLinks = []option{
 	{"/panel/basico", "Básico y contacto"},
 	{"/panel/experiencia", "Experiencia"},
 	{"/panel/skills", "Skills"},
-	{"/panel/proyectos", "Proyectos"},
+	{"/panel/proyectos", "Portafolio"},
 	{"/panel/formacion", "Educación, idiomas y certificados"},
 	{"/panel/vistas", "Vistas por rol"},
 	{"/panel/atributos", "Atributos de la ficha"},

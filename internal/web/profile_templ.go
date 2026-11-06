@@ -478,7 +478,7 @@ func ProfilePage(p Page) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-				case "proyectos":
+				case "portafolio":
 					templ_7745c5c3_Err = projects(p).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -498,7 +498,7 @@ func ProfilePage(p Page) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-			case p.Tab == "proyectos":
+			case p.Tab == "portafolio":
 				templ_7745c5c3_Err = projects(p).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -607,7 +607,7 @@ func profileTabs(p Page) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(p.Resume.Projects) > 0 {
-			templ_7745c5c3_Err = profileTab(p, "proyectos", "Proyectos", "folder-git-2").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = profileTab(p, "portafolio", "Portafolio", "folder-git-2").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1171,7 +1171,7 @@ func projects(p Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "<section id=\"proyectos\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "<section id=\"portafolio\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1184,7 +1184,7 @@ func projects(p Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "\" aria-labelledby=\"proyectos-titulo\" data-cinta><div class=\"flex flex-wrap items-end justify-between gap-2\"><div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "\" aria-labelledby=\"portafolio-titulo\" data-cinta><div class=\"flex flex-wrap items-end justify-between gap-2\"><div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1206,7 +1206,7 @@ func projects(p Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "\">Portafolio</p><h2 id=\"proyectos-titulo\" class=\"mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl\">Proyectos</h2><p class=\"mt-1 font-mono text-[13px] text-faint\">Desliza para ver más · toca un proyecto para abrirlo</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "\">Proyectos</p><h2 id=\"portafolio-titulo\" class=\"mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl\">Portafolio</h2><p class=\"mt-1 font-mono text-[13px] text-faint\">Desliza para ver más · toca un proyecto para abrirlo</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1214,7 +1214,7 @@ func projects(p Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "</div><ul data-cinta-track tabindex=\"0\" aria-label=\"Proyectos\" class=\"mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "</div><ul data-cinta-track tabindex=\"0\" aria-label=\"Portafolio\" class=\"mt-6 -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

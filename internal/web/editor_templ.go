@@ -2110,7 +2110,7 @@ func ProjectsForm(e editPage) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "<p class=\"text-sm text-muted\">Se muestran en la pestaña Proyectos. El stack va separado por comas; la captura es la URL de una imagen.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "<p class=\"text-sm text-muted\">Se muestran en la pestaña Portafolio. El stack va separado por comas; la captura es la URL de una imagen.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -2186,7 +2186,7 @@ func ProjectsForm(e editPage) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = editorLayout(e, "Proyectos").Render(templ.WithChildren(ctx, templ_7745c5c3_Var111), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = editorLayout(e, "Portafolio").Render(templ.WithChildren(ctx, templ_7745c5c3_Var111), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -345,7 +345,7 @@ func traitInitials(name string) string {
 func guiaSecciones(p Page) string {
 	s := "En CV está la trayectoria completa"
 	if len(p.Resume.Projects) > 0 {
-		s += " y en Proyectos, lo que ha construido"
+		s += " y en Portafolio, lo que ha construido"
 	}
 	s += "."
 	if p.HasCV {

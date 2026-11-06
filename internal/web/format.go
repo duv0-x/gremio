@@ -19,7 +19,7 @@ type Page struct {
 	Actor    string // URL del Actor de ActivityPub
 	Version  string
 	View     int    // vista seleccionada; la primera es la principal
-	Tab      string // pestaña: ficha, cv o proyectos
+	Tab      string // pestaña: ficha, cv o portafolio
 	HasCV    bool   // hay un PDF del CV para descargar
 }
 
@@ -36,8 +36,8 @@ func (p Page) Title() string {
 	switch p.Tab {
 	case "cv":
 		return p.Resume.Basics.Name + " · CV"
-	case "proyectos":
-		return p.Resume.Basics.Name + " · Proyectos"
+	case "portafolio":
+		return p.Resume.Basics.Name + " · Portafolio"
 	}
 	return t
 }

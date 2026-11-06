@@ -121,6 +121,10 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	case "cv":
 		page.Tab = slug
 	case "proyectos":
+		// La pestaña Proyectos pasó a llamarse Portafolio (gremio#111).
+		http.Redirect(w, r, "/@"+inst.Username+"/portafolio", http.StatusMovedPermanently)
+		return
+	case "portafolio":
 		if len(res.Projects) == 0 {
 			http.NotFound(w, r)
 			return
