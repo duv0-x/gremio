@@ -154,3 +154,42 @@ func TestPestanaNotas(t *testing.T) {
 		t.Error("la más nueva va primero")
 	}
 }
+
+// Publicar notas desde el panel (gremio#115) con la federación real.
+func TestPanelPublicarNota(t *testing.T) {
+	p := newPanelServer(t, fichaDoc)
+	form := url.Values{"texto": {"Hola <fediverso>\r\nsegunda línea"}}
+	if resp, _ := p.do("/panel/notas", nil, false); resp.Header.Get("Location") != "/login" {
+		t.Errorf("sin sesión: %d", resp.StatusCode)
+	}
+	if resp, _ := p.do("/panel/notas", form, true, "Sec-Fetch-Site", "cross-site"); resp.StatusCode != http.StatusForbidden {
+		t.Errorf("desde otro origen: %d", resp.StatusCode)
+	}
+	if _, body := p.do("/panel", nil, true); !strings.Contains(body, `href="/panel/notas"`) {
+		t.Error("el panel enlaza a Notas")
+	}
+	_, body := p.do("/panel/notas", nil, true)
+	if !strings.Contains(body, `name="texto"`) || !strings.Contains(body, "Todavía no has publicado notas.") || !strings.Contains(body, "@alice@ejemplo.org") {
+		t.Fatal("la página trae el formulario y el handle")
+	}
+
+	if resp, _ := p.do("/panel/notas", url.Values{"texto": {"   "}}, true); resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("nota vacía: %d", resp.StatusCode)
+	}
+	larga := strings.Repeat("á", maxNoteLen+1)
+	if resp, body := p.do("/panel/notas", url.Values{"texto": {larga}}, true); resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, larga) {
+		t.Errorf("nota larga: %d (debe volver con lo escrito)", resp.StatusCode)
+	}
+
+	resp, _ := p.do("/panel/notas", form, true)
+	if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != "/panel/notas?publicada=0" {
+		t.Fatalf("publicar: %d %s", resp.StatusCode, resp.Header.Get("Location"))
+	}
+	_, body = p.do("/panel/notas?publicada=0", nil, true)
+	if !strings.Contains(body, "Nota publicada.") || !strings.Contains(body, "Hola &lt;fediverso&gt;\nsegunda línea") {
+		t.Error("la nota publicada aparece en Recientes, escapada y con el salto de línea")
+	}
+	if n, err := p.st.Read.CountNotes(t.Context()); err != nil || n != 1 {
+		t.Errorf("la nota queda en la base: %d %v", n, err)
+	}
+}
