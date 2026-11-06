@@ -286,9 +286,9 @@ templ SkillsForm(e editPage) {
 }
 
 templ ProjectsForm(e editPage) {
-	@editorLayout(e, "Proyectos") {
+	@editorLayout(e, "Portafolio") {
 		@fieldset("Proyectos") {
-			<p class="text-sm text-muted">Se muestran en la pestaña Proyectos. El stack va separado por comas; la captura es la URL de una imagen.</p>
+			<p class="text-sm text-muted">Se muestran en la pestaña Portafolio. El stack va separado por comas; la captura es la URL de una imagen.</p>
 			for i := range e.pad("proyecto", len(e.R.Projects)) {
 				@rowBox(e, "proyecto", i, len(e.R.Projects)) {
 					@hiddenID("proyecto", i, at(e.R.Projects, i).ID)

@@ -341,14 +341,14 @@ func TestSeguir(t *testing.T) {
 	}
 }
 
-func TestPestanaProyectos(t *testing.T) {
+func TestPestanaPortafolio(t *testing.T) {
 	// Sin proyectos no hay pestaña ni ruta.
 	ts := newTestServer(t, fichaDoc)
-	if _, body := get(t, ts.URL+"/@alice"); strings.Contains(body, `href="/@alice/proyectos"`) || !strings.Contains(body, "grid-cols-2") {
-		t.Error("sin proyectos no debe haber pestaña Proyectos")
+	if _, body := get(t, ts.URL+"/@alice"); strings.Contains(body, `href="/@alice/portafolio"`) || !strings.Contains(body, "grid-cols-2") {
+		t.Error("sin proyectos no debe haber pestaña Portafolio")
 	}
-	if resp, _ := get(t, ts.URL+"/@alice/proyectos"); resp.StatusCode != http.StatusNotFound {
-		t.Errorf("/proyectos sin proyectos: HTTP %d", resp.StatusCode)
+	if resp, _ := get(t, ts.URL+"/@alice/portafolio"); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("/portafolio sin proyectos: HTTP %d", resp.StatusCode)
 	}
 
 	withProjects := strings.Replace(fichaDoc, `"skills": [`, `"projects": [
@@ -357,22 +357,27 @@ func TestPestanaProyectos(t *testing.T) {
   "skills": [`, 1)
 	ts = newTestServer(t, withProjects)
 	_, body := get(t, ts.URL+"/@alice")
-	if !strings.Contains(body, `href="/@alice/proyectos"`) || !strings.Contains(body, "grid-cols-3") || strings.Contains(body, `id="proyectos"`) {
-		t.Error("la ficha debe tener la pestaña Proyectos, sin su contenido")
+	if !strings.Contains(body, `href="/@alice/portafolio"`) || !strings.Contains(body, "Portafolio</a>") || !strings.Contains(body, "grid-cols-3") || strings.Contains(body, `id="portafolio"`) {
+		t.Error("la ficha debe tener la pestaña Portafolio, sin su contenido")
 	}
-	resp, body := get(t, ts.URL+"/@alice/proyectos")
+	// La URL vieja redirige (gremio#111).
+	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	if resp, err := noFollow.Get(ts.URL + "/@alice/proyectos"); err != nil || resp.StatusCode != http.StatusMovedPermanently || resp.Header.Get("Location") != "/@alice/portafolio" {
+		t.Errorf("/proyectos debe redirigir a /portafolio: %v %v", resp, err)
+	}
+	resp, body := get(t, ts.URL+"/@alice/portafolio")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("HTTP %d", resp.StatusCode)
 	}
-	for _, want := range []string{`id="proyectos"`, "data-cinta-track", `href="https://papiro.ejemplo.org/"`, `src="https://ejemplo.org/papiro.jpg"`, "papiro.ejemplo.org<", "EPUB a tu Kindle", ">templ<",
-		`href="/@alice/proyectos" aria-current="page"`, "<title>Alice Ejemplo · Proyectos</title>"} {
+	for _, want := range []string{`id="portafolio"`, "data-cinta-track", `href="https://papiro.ejemplo.org/"`, `src="https://ejemplo.org/papiro.jpg"`, "papiro.ejemplo.org<", "EPUB a tu Kindle", ">templ<",
+		`href="/@alice/portafolio" aria-current="page"`, "<title>Alice Ejemplo · Portafolio</title>"} {
 		if !strings.Contains(body, want) {
-			t.Errorf("Proyectos: falta %q", want)
+			t.Errorf("Portafolio: falta %q", want)
 		}
 	}
 	for _, leak := range []string{"javascript:", "<polygon", `id="trabajo-acme"`} {
 		if strings.Contains(body, leak) {
-			t.Errorf("Proyectos muestra %q", leak)
+			t.Errorf("Portafolio muestra %q", leak)
 		}
 	}
 }
