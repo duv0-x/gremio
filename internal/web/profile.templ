@@ -30,6 +30,10 @@ templ layout(p Page, title string) {
 			}
 			<link rel="stylesheet" href={ "/static/app.css?v=" + p.Version }/>
 			<link rel="alternate" type="application/activity+json" href={ p.Actor }/>
+			// Verificación rel="me" (gremio#117): Mastodon comprueba que esta página enlaza de vuelta a la cuenta.
+			for _, u := range p.Resume.Gremio.RelMe {
+				<link rel="me" href={ templ.URL(u) }/>
+			}
 			<script src={ "/static/cinta.js?v=" + p.Version } defer></script>
 			<script src={ "/static/vista.js?v=" + p.Version } defer></script>
 			<script src={ "/static/tip.js?v=" + p.Version } defer></script>

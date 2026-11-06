@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -130,7 +131,10 @@ type Extension struct {
 	Timezone string  `json:"timezone,omitempty"` // nombre IANA, p. ej. America/Bogota
 	Contact  Contact `json:"contact"`
 	// ShowNotes muestra en el perfil la pestaña Notas, con los Note que publica la instancia (gremio#112).
-	ShowNotes  bool        `json:"showNotes,omitempty"`
+	ShowNotes bool `json:"showNotes,omitempty"`
+	// RelMe son URLs https que el perfil enlaza con rel="me" en el <head>, para que Mastodon y otros servicios
+	// verifiquen que la página es del dueño (gremio#117).
+	RelMe      []string    `json:"relMe,omitempty"`
 	Views      []View      `json:"views,omitempty"`
 	Attributes []Attribute `json:"attributes,omitempty"`
 	Traits     []Trait     `json:"traits,omitempty"`
@@ -171,6 +175,9 @@ type Trait struct {
 	Icon    string `json:"icon,omitempty"`  // nombre de Lucide, p. ej. "bot"
 	Color   string `json:"color,omitempty"` // verde, azul, ambar, rojo, violeta o gris
 }
+
+// maxRelMe es el máximo de enlaces rel="me" del perfil.
+const maxRelMe = 10
 
 // TraitColors es la paleta de las insignias: la única excepción al acento único del design system (DESIGN.md).
 var TraitColors = []string{"verde", "azul", "ambar", "rojo", "violeta", "gris"}
@@ -347,6 +354,14 @@ func (r *Resume) Normalize() error {
 			*v = "private"
 		default:
 			return fmt.Errorf("gremio.contact: visibilidad %q inválida (public o private)", *v)
+		}
+	}
+	if len(r.Gremio.RelMe) > maxRelMe {
+		return fmt.Errorf("gremio.relMe: como mucho %d enlaces", maxRelMe)
+	}
+	for _, v := range r.Gremio.RelMe {
+		if u, err := url.Parse(v); err != nil || u.Scheme != "https" || u.Host == "" {
+			return fmt.Errorf("gremio.relMe: %q no es una URL https", v)
 		}
 	}
 	if tz := r.Gremio.Timezone; tz != "" {
