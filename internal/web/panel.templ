@@ -137,6 +137,10 @@ templ PanelPage(d panelData) {
 				}
 			</ul>
 		}
+		@panelSection("Notas") {
+			<p class="text-muted">Publica en el fediverso como { d.Handle }: le llega a tus seguidores y, si la muestras, aparece en la pestaña Notas del perfil.</p>
+			<a class={ btnSec, "sm:self-start" } href="/panel/notas">Publicar una nota</a>
+		}
 		@panelSection("Plugins") {
 			<p class="text-muted">Conecta tu instancia con otros servicios, como Ollama o Claude.</p>
 			<a class={ btnSec, "sm:self-start" } href="/panel/plugins">Ver plugins</a>
