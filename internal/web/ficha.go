@@ -348,6 +348,9 @@ func guiaSecciones(p Page) string {
 		s += " y en Portafolio, lo que ha construido"
 	}
 	s += "."
+	if p.Resume.Gremio.ShowNotes {
+		s += " En Notas está lo que publica en el fediverso."
+	}
 	if p.HasCV {
 		s += " El botón de abajo descarga el CV en PDF."
 	}

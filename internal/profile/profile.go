@@ -126,9 +126,11 @@ type Project struct {
 type Extension struct {
 	// About es la presentación larga de la página web; basics.summary queda como bio corta, que es lo que
 	// muestran Mastodon y las demás instancias.
-	About      string      `json:"about,omitempty"`
-	Timezone   string      `json:"timezone,omitempty"` // nombre IANA, p. ej. America/Bogota
-	Contact    Contact     `json:"contact"`
+	About    string  `json:"about,omitempty"`
+	Timezone string  `json:"timezone,omitempty"` // nombre IANA, p. ej. America/Bogota
+	Contact  Contact `json:"contact"`
+	// ShowNotes muestra en el perfil la pestaña Notas, con los Note que publica la instancia (gremio#112).
+	ShowNotes  bool        `json:"showNotes,omitempty"`
 	Views      []View      `json:"views,omitempty"`
 	Attributes []Attribute `json:"attributes,omitempty"`
 	Traits     []Trait     `json:"traits,omitempty"`

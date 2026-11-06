@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/duv0-x/gremio/internal/auth"
 	"github.com/duv0-x/gremio/internal/instance"
@@ -124,6 +125,22 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		// La pestaña Proyectos pasó a llamarse Portafolio (gremio#111).
 		http.Redirect(w, r, "/@"+inst.Username+"/portafolio", http.StatusMovedPermanently)
 		return
+	case "notas":
+		if !res.Gremio.ShowNotes {
+			http.NotFound(w, r)
+			return
+		}
+		rows, err := s.st.Read.ListNotes(r.Context(), maxNotes)
+		if err != nil {
+			slog.Error("notas", "err", err)
+			http.Error(w, "no se pudieron leer las notas", http.StatusInternalServerError)
+			return
+		}
+		for _, n := range rows {
+			published, _ := time.Parse(dbTimeLayout, n.PublishedAt)
+			page.Notes = append(page.Notes, note{ID: n.ID, Text: noteText(n.Content), Published: published})
+		}
+		page.Tab = slug
 	case "portafolio":
 		if len(res.Projects) == 0 {
 			http.NotFound(w, r)

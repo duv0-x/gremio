@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/duv0-x/gremio/internal/store"
 )
 
 // Sección Plugins del panel (ADR-012) con un Ollama propio falso: habilitar, probar, editar y deshabilitar.
@@ -94,5 +96,61 @@ func TestPanelPlugins(t *testing.T) {
 	}
 	if _, err := p.srv.plugins.Config(t.Context(), "ollama"); err == nil {
 		t.Error("deshabilitar borra la configuración")
+	}
+}
+
+// Pestaña Notas (gremio#112): la casilla del panel la muestra; las notas van escapadas, de la más nueva a la más vieja.
+func TestPestanaNotas(t *testing.T) {
+	p := newPanelServer(t, fichaDoc)
+	ctx := t.Context()
+	for _, n := range []struct{ id, content, at string }{
+		{"https://gremio.ejemplo.org/notes/aaa", "<p>Primera nota</p>", "2026-11-01T10:00:00.000Z"},
+		{"https://gremio.ejemplo.org/notes/bbb", "<p>Hola &lt;script&gt;alert(1)&lt;/script&gt;<br>segunda línea</p>", "2026-11-02T10:00:00.000Z"},
+	} {
+		if err := p.st.Write.CreateNote(ctx, store.CreateNoteParams{ID: n.id, Content: n.content, PublishedAt: n.at}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Sin la casilla no hay pestaña ni ruta.
+	if _, body := p.do("/@alice", nil, false); strings.Contains(body, `href="/@alice/notas"`) {
+		t.Error("sin la casilla no hay pestaña Notas")
+	}
+	if resp, _ := p.do("/@alice/notas", nil, false); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("/notas sin la casilla: %d", resp.StatusCode)
+	}
+
+	// El panel tiene la casilla y guardarla la activa (el resto del formulario va como estaba).
+	_, form := p.do("/panel/basico", nil, true)
+	if !strings.Contains(form, `name="notas_publicas"`) {
+		t.Fatal("el panel tiene la casilla de las notas")
+	}
+	r := p.profile()
+	values := url.Values{"name": {r.Basics.Name}, "label": {r.Basics.Label}, "notas_publicas": {"1"}}
+	if resp, _ := p.do("/panel/basico", values, true); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("guardar: %d", resp.StatusCode)
+	}
+	if !p.profile().Gremio.ShowNotes {
+		t.Fatal("la casilla activa showNotes")
+	}
+
+	_, body := p.do("/@alice", nil, false)
+	if !strings.Contains(body, `href="/@alice/notas"`) || !strings.Contains(body, "Notas</a>") {
+		t.Error("con la casilla, la ficha tiene la pestaña Notas")
+	}
+	resp, body := p.do("/@alice/notas", nil, false)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("/notas: %d", resp.StatusCode)
+	}
+	for _, want := range []string{"<title>Alice Ejemplo · Notas</title>", `id="nota-bbb"`, "Hola &lt;script&gt;alert(1)&lt;/script&gt;\nsegunda línea",
+		`datetime="2026-11-02T10:00:00Z"`, "2026-11-02 10:00 UTC", `href="/@alice/notas" aria-current="page"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("Notas: falta %q", want)
+		}
+	}
+	if strings.Contains(body, "<script>alert") || strings.Contains(body, "<br>") {
+		t.Error("las notas no llevan HTML crudo")
+	}
+	if strings.Index(body, `id="nota-bbb"`) > strings.Index(body, `id="nota-aaa"`) {
+		t.Error("la más nueva va primero")
 	}
 }
