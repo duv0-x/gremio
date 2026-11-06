@@ -100,6 +100,7 @@ func TestParseRechazaDocumentosInvalidos(t *testing.T) {
 		"slug repetido":    `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"sre","name":"a"},{"slug":"sre","name":"b"}]}}`,
 		"trabajo sin name": `{"basics":{"name":"a"},"work":[{"position":"x"}]}`,
 		"pocos atributos":  `{"basics":{"name":"a"},"gremio":{"attributes":[` + attr("AAA", 50) + `,` + attr("BBB", 50) + `]}}`,
+		"rel=me sin https": `{"basics":{"name":"a"},"gremio":{"relMe":["http://mastodon.social/@a"]}}`,
 		"ícono":            `{"basics":{"name":"a"},"gremio":{"traits":[{"name":"x","icon":"no-existe"}]}}`,
 		"color":            `{"basics":{"name":"a"},"gremio":{"traits":[{"name":"x","color":"fucsia"}]}}`,
 		"slug reservado":   `{"basics":{"name":"a"},"gremio":{"views":[{"slug":"cv","name":"x"}]}}`,

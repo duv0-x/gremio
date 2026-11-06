@@ -193,3 +193,40 @@ func TestPanelPublicarNota(t *testing.T) {
 		t.Errorf("la nota queda en la base: %d %v", n, err)
 	}
 }
+
+// Enlaces rel="me" (gremio#117): se configuran en Básico y contacto y van en el <head> de las páginas públicas.
+func TestRelMe(t *testing.T) {
+	p := newPanelServer(t, fichaDoc)
+	if _, body := p.do("/@alice", nil, false); strings.Contains(body, `rel="me"`) {
+		t.Error("sin enlaces no hay rel=me")
+	}
+	r := p.profile()
+	base := url.Values{"name": {r.Basics.Name}, "label": {r.Basics.Label}}
+	bad := url.Values{"rel_me": {"javascript:alert(1)"}}
+	for k, v := range base {
+		bad[k] = v
+	}
+	if resp, body := p.do("/panel/basico", bad, true); resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, "no es una URL https") {
+		t.Errorf("una URL que no es https no se guarda: %d", resp.StatusCode)
+	}
+	good := url.Values{"rel_me": {"https://mastodon.social/@alice\r\n\r\nhttps://github.com/alice\n"}}
+	for k, v := range base {
+		good[k] = v
+	}
+	if resp, _ := p.do("/panel/basico", good, true); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("guardar: %d", resp.StatusCode)
+	}
+	if got := p.profile().Gremio.RelMe; len(got) != 2 || got[0] != "https://mastodon.social/@alice" {
+		t.Errorf("relMe: %v", got)
+	}
+	for _, path := range []string{"/@alice", "/@alice/cv"} {
+		_, body := p.do(path, nil, false)
+		head := body[:strings.Index(body, "</head>")]
+		if !strings.Contains(head, `<link rel="me" href="https://mastodon.social/@alice">`) || !strings.Contains(head, `<link rel="me" href="https://github.com/alice">`) {
+			t.Errorf("%s: el <head> lleva los rel=me", path)
+		}
+	}
+	if _, form := p.do("/panel/basico", nil, true); !strings.Contains(form, "https://mastodon.social/@alice\nhttps://github.com/alice</textarea>") {
+		t.Error("el panel muestra los enlaces guardados, uno por línea")
+	}
+}

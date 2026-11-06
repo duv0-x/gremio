@@ -158,6 +158,9 @@ templ BasicsForm(e editPage) {
 			<p class="text-sm text-muted">Las notas son lo que publica tu instancia en el fediverso (Mastodon y demás). Si las muestras, el perfil gana una pestaña Notas.</p>
 			@checkField("Mostrar mis notas del fediverso en el perfil", "notas_publicas", e.R.Gremio.ShowNotes)
 		}
+		@fieldset("Verificación") {
+			@textArea("Enlaces de verificación (rel=me)", "rel_me", joinLines(e.R.Gremio.RelMe), "Una URL https por línea, p. ej. https://mastodon.social/@tu_usuario. Van en el encabezado de tu perfil para que esos servicios verifiquen que el sitio es tuyo.", 3)
+		}
 		@fieldset("Redes") {
 			for i := range e.pad("red", len(e.R.Basics.Profiles)) {
 				@rowBox(e, "red", i, len(e.R.Basics.Profiles)) {
