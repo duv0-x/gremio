@@ -23,6 +23,7 @@ type panelServer struct {
 	st      *store.Store
 	session *http.Cookie
 	client  *http.Client
+	srv     *Server
 }
 
 func newPanelServer(t *testing.T, document string) *panelServer {
@@ -53,10 +54,11 @@ func newPanelServer(t *testing.T, document string) *panelServer {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	New(st, "1.2.3", nil, fed).Register(mux)
+	srv := New(st, "1.2.3", nil, fed)
+	srv.Register(mux)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
-	return &panelServer{t: t, ts: ts, st: st, session: &http.Cookie{Name: sessionCookie, Value: session},
+	return &panelServer{t: t, ts: ts, st: st, srv: srv, session: &http.Cookie{Name: sessionCookie, Value: session},
 		client: &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 }
 

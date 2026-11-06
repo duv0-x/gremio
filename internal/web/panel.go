@@ -49,6 +49,7 @@ func (s *Server) registerPanel(mux *http.ServeMux) {
 	post("/panel/importar", s.postImport)
 	post("/panel/importar/confirmar", s.postImportConfirm)
 	s.registerEditor(mux, post)
+	s.registerPlugins(mux, post)
 }
 
 // owner exige sesión: si no la hay, lleva a /login y devuelve false.

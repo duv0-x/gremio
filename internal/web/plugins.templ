@@ -1,0 +1,150 @@
+package web
+
+import (
+	"strings"
+
+	"github.com/duv0-x/gremio/internal/plugins"
+)
+
+// btnDanger es el botón de peligro de DESIGN.md: fondo danger, texto blanco en claro (6.57:1) y bg en oscuro (7.66:1).
+const btnDanger = "inline-flex min-h-11 items-center justify-center rounded-md bg-danger px-[18px] text-[15px] font-semibold text-white no-underline hover:opacity-90 dark:text-bg"
+
+// pluginsHeader es el encabezado de las páginas de plugins: volver y el título.
+templ pluginsHeader(back, backLabel, title string) {
+	<div>
+		<a href={ templ.SafeURL(back) } class="inline-flex min-h-11 items-center font-mono text-[13px] text-muted no-underline hover:text-ink">‹ { backLabel }</a>
+		<h1 class="mt-1 font-display text-[28px] font-bold">{ title }</h1>
+	</div>
+}
+
+templ PluginsPage(p pluginsPage) {
+	@panelLayout(p.Version, "Plugins") {
+		@pluginsHeader("/panel", "Panel", "Plugins")
+		<p class="-mt-3 text-muted">Integraciones con otros servicios. Cada plugin pide sus datos al habilitarlo y los prueba antes de guardarlos. Los tokens se guardan en tu instancia y no se vuelven a mostrar completos.</p>
+		if p.Notice != "" {
+			<p role="status" tabindex="-1" autofocus class="rounded-md border border-success p-4 text-sm text-ink">{ p.Notice }</p>
+		}
+		if p.Error != "" {
+			<p role="alert" tabindex="-1" autofocus class="rounded-md border border-danger p-4 text-sm text-ink">{ p.Error }</p>
+		}
+		<ul class="flex flex-col gap-4">
+			for _, st := range p.States {
+				<li>
+					@pluginCard(st)
+				</li>
+			}
+		</ul>
+	}
+}
+
+templ pluginCard(st plugins.State) {
+	<article class={ card, "flex flex-col gap-4" } aria-labelledby={ "plugin-" + st.Info.ID }>
+		<div class="flex flex-wrap items-start justify-between gap-3">
+			<div class="min-w-0">
+				<p class={ eyebrow }>{ st.Info.Category }</p>
+				<h2 id={ "plugin-" + st.Info.ID } class="mt-1 font-display text-xl font-bold">{ st.Info.Name }</h2>
+				<p class="mt-1 text-sm text-muted">{ st.Info.Description }</p>
+			</div>
+			if st.Enabled {
+				<span class="rounded-full border border-success px-3 py-1 font-mono text-[13px] text-success">Habilitado</span>
+			} else {
+				<span class="rounded-full border border-line px-3 py-1 font-mono text-[13px] text-muted">Deshabilitado</span>
+			}
+		</div>
+		if st.Enabled {
+			<p class={ "text-sm", templ.KV("text-danger", isPluginError(st.Status)), templ.KV("text-ink", !isPluginError(st.Status)) }>{ st.Status }</p>
+			<dl class="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+				for _, f := range st.Info.Fields {
+					if v := st.Values[f.Key]; v != "" {
+						<dt class="text-muted">{ f.Label }</dt>
+						<dd class="font-mono break-all">{ v }</dd>
+					}
+				}
+			</dl>
+			<p class={ hintCls }>Probado el { st.CheckedAt.Format("2006-01-02 15:04") } UTC</p>
+			<div class="flex flex-col gap-3 sm:flex-row">
+				<form method="post" action={ templ.SafeURL("/panel/plugins/" + st.Info.ID + "/probar") }>
+					<button type="submit" class={ btnSec, "w-full" }>Probar conexión</button>
+				</form>
+				<a class={ btnSec } href={ templ.SafeURL("/panel/plugins/" + st.Info.ID) }>Editar</a>
+				<a class={ btnSec } href={ templ.SafeURL("/panel/plugins/" + st.Info.ID + "/deshabilitar") }>Deshabilitar</a>
+			</div>
+		} else {
+			<a class={ btnPrimary, "sm:self-start" } href={ templ.SafeURL("/panel/plugins/" + st.Info.ID) }>Habilitar</a>
+		}
+	</article>
+}
+
+templ PluginFormPage(f pluginForm) {
+	@panelLayout(f.Version, f.State.Info.Name) {
+		@pluginsHeader("/panel/plugins", "Plugins", pluginFormTitle(f.State))
+		if f.Error != "" {
+			<p role="alert" tabindex="-1" autofocus class="rounded-md border border-danger p-4 text-sm text-ink">No se guardó: { f.Error }</p>
+		}
+		<form method="post" action={ templ.SafeURL("/panel/plugins/" + f.State.Info.ID) } class={ card, "flex flex-col gap-5" }>
+			<p class="text-sm text-muted">{ f.State.Info.Description } Al guardar, Gremio prueba la conexión; si falla, no se guarda nada.</p>
+			for _, field := range f.State.Info.Fields {
+				if field.Type == plugins.Secret {
+					@secretField(field, f.Values[field.Key])
+				} else {
+					@textField(fieldLabel(field), field.Key, textValue(f.Values, field), field.Help)
+				}
+			}
+			<div class="flex flex-col gap-3 sm:flex-row">
+				<button type="submit" class={ btnPrimary }>Guardar y probar</button>
+				<a class={ btnSec } href="/panel/plugins">Cancelar</a>
+			</div>
+		</form>
+	}
+}
+
+// secretField es un campo secret: nunca trae el valor guardado, solo su versión enmascarada como ayuda.
+templ secretField(field plugins.Field, masked string) {
+	<div class="flex flex-col gap-1.5">
+		<label for={ field.Key } class={ labelCls }>{ fieldLabel(field) }</label>
+		<input id={ field.Key } name={ field.Key } type="password" autocomplete="off" spellcheck="false" class={ inputCls, "font-mono" } aria-describedby={ field.Key + "-ayuda" }/>
+		<p id={ field.Key + "-ayuda" } class={ hintCls }>
+			if masked != "" {
+				Guardado: <span class="font-mono">{ masked }</span>. Déjalo vacío para conservarlo.
+			}
+			{ field.Help }
+		</p>
+	</div>
+}
+
+templ PluginDisablePage(version string, st plugins.State) {
+	@panelLayout(version, "Deshabilitar "+st.Info.Name) {
+		@pluginsHeader("/panel/plugins", "Plugins", "Deshabilitar "+st.Info.Name)
+		<form method="post" action={ templ.SafeURL("/panel/plugins/" + st.Info.ID + "/deshabilitar") } class={ card, "flex flex-col gap-4" }>
+			<p class="text-muted">Se borra la configuración de { st.Info.Name } de esta instancia, credenciales incluidas. Para volver a usarlo tendrás que escribirlas de nuevo.</p>
+			<div class="flex flex-col gap-3 sm:flex-row">
+				<button type="submit" class={ btnDanger }>Deshabilitar y borrar</button>
+				<a class={ btnSec } href="/panel/plugins">Cancelar</a>
+			</div>
+		</form>
+	}
+}
+
+func isPluginError(status string) bool { return strings.HasPrefix(status, "Error: ") }
+
+func pluginFormTitle(st plugins.State) string {
+	if st.Enabled {
+		return "Editar " + st.Info.Name
+	}
+	return "Habilitar " + st.Info.Name
+}
+
+func fieldLabel(f plugins.Field) string {
+	if f.Required {
+		return f.Label + " (obligatorio)"
+	}
+	return f.Label
+}
+
+// textValue es lo escrito, lo guardado o el valor por defecto del campo.
+func textValue(values plugins.Config, f plugins.Field) string {
+	if v, ok := values[f.Key]; ok {
+		return v
+	}
+	return f.Default
+}

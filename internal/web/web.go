@@ -14,6 +14,7 @@ import (
 
 	"github.com/duv0-x/gremio/internal/auth"
 	"github.com/duv0-x/gremio/internal/instance"
+	"github.com/duv0-x/gremio/internal/plugins"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 )
@@ -28,13 +29,14 @@ type Server struct {
 	auth     *auth.Auth
 	mail     Mailer   // nil si el SMTP no está configurado: el login avisa que no puede enviar
 	profiles Profiles // guarda los cambios del panel
+	plugins  *plugins.Manager
 }
 
 func New(st *store.Store, version string, mail Mailer, profiles Profiles) *Server {
 	if version == "" {
 		version = "dev"
 	}
-	return &Server{st: st, version: version, auth: auth.New(st), mail: mail, profiles: profiles}
+	return &Server{st: st, version: version, auth: auth.New(st), mail: mail, profiles: profiles, plugins: plugins.NewManager(st)}
 }
 
 // Register agrega las rutas web al mux.
