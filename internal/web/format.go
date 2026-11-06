@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"html"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -19,8 +20,43 @@ type Page struct {
 	Actor    string // URL del Actor de ActivityPub
 	Version  string
 	View     int    // vista seleccionada; la primera es la principal
-	Tab      string // pestaña: ficha, cv o portafolio
+	Tab      string // pestaña: ficha, cv, portafolio o notas
 	HasCV    bool   // hay un PDF del CV para descargar
+	Notes    []note // las notas de la pestaña Notas; solo se cargan en esa pestaña
+}
+
+// note es un Note publicado por la instancia, como texto: la base guarda el HTML que arma PublishNote.
+type note struct {
+	ID        string
+	Text      string
+	Published time.Time
+}
+
+// noteText devuelve el texto de un Note de PublishNote ("<p>texto escapado con <br></p>"); la plantilla lo
+// vuelve a escapar, así que nunca va HTML crudo a la página.
+func noteText(content string) string {
+	s := strings.TrimSuffix(strings.TrimPrefix(content, "<p>"), "</p>")
+	return html.UnescapeString(strings.ReplaceAll(s, "<br>", "\n"))
+}
+
+const (
+	maxNotes     = 50                         // notas que muestra la pestaña Notas
+	dbTimeLayout = "2006-01-02T15:04:05.000Z" // formato de las fechas en la base
+)
+
+// noteAnchor es el id de una nota en la página: "nota-" y el final de su URL.
+func noteAnchor(id string) string { return "nota-" + id[strings.LastIndex(id, "/")+1:] }
+
+// tabCount es el número de pestañas del perfil, para repartir el ancho.
+func (p Page) tabCount() int {
+	n := 2
+	if len(p.Resume.Projects) > 0 {
+		n++
+	}
+	if p.Resume.Gremio.ShowNotes {
+		n++
+	}
+	return n
 }
 
 // tabPath es la URL de una pestaña; la ficha conserva la vista elegida.
@@ -38,6 +74,8 @@ func (p Page) Title() string {
 		return p.Resume.Basics.Name + " · CV"
 	case "portafolio":
 		return p.Resume.Basics.Name + " · Portafolio"
+	case "notas":
+		return p.Resume.Basics.Name + " · Notas"
 	}
 	return t
 }
