@@ -187,6 +187,15 @@ func (q *Queries) DeleteLoginLinksBefore(ctx context.Context, createdAt string) 
 	return err
 }
 
+const deletePlugin = `-- name: DeletePlugin :exec
+DELETE FROM plugins WHERE id = ?
+`
+
+func (q *Queries) DeletePlugin(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deletePlugin, id)
+	return err
+}
+
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM sessions WHERE token_hash = ?
 `
@@ -299,6 +308,23 @@ func (q *Queries) GetNote(ctx context.Context, id string) (Note, error) {
 	return i, err
 }
 
+const getPlugin = `-- name: GetPlugin :one
+SELECT id, config, status, checked_at, enabled_at FROM plugins WHERE id = ?
+`
+
+func (q *Queries) GetPlugin(ctx context.Context, id string) (Plugin, error) {
+	row := q.db.QueryRowContext(ctx, getPlugin, id)
+	var i Plugin
+	err := row.Scan(
+		&i.ID,
+		&i.Config,
+		&i.Status,
+		&i.CheckedAt,
+		&i.EnabledAt,
+	)
+	return i, err
+}
+
 const getProfile = `-- name: GetProfile :one
 SELECT document FROM profile WHERE id = 1
 `
@@ -401,6 +427,39 @@ func (q *Queries) ListNotes(ctx context.Context, limit int64) ([]Note, error) {
 	return items, nil
 }
 
+const listPlugins = `-- name: ListPlugins :many
+SELECT id, config, status, checked_at, enabled_at FROM plugins ORDER BY id
+`
+
+func (q *Queries) ListPlugins(ctx context.Context) ([]Plugin, error) {
+	rows, err := q.db.QueryContext(ctx, listPlugins)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Plugin
+	for rows.Next() {
+		var i Plugin
+		if err := rows.Scan(
+			&i.ID,
+			&i.Config,
+			&i.Status,
+			&i.CheckedAt,
+			&i.EnabledAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const renewSession = `-- name: RenewSession :exec
 UPDATE sessions SET expires_at = ? WHERE token_hash = ?
 `
@@ -436,6 +495,30 @@ func (q *Queries) RescheduleDelivery(ctx context.Context, arg RescheduleDelivery
 	return err
 }
 
+const savePlugin = `-- name: SavePlugin :exec
+INSERT INTO plugins (id, config, status, checked_at, enabled_at) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT (id) DO UPDATE SET config = excluded.config, status = excluded.status, checked_at = excluded.checked_at
+`
+
+type SavePluginParams struct {
+	ID        string
+	Config    string
+	Status    string
+	CheckedAt string
+	EnabledAt string
+}
+
+func (q *Queries) SavePlugin(ctx context.Context, arg SavePluginParams) error {
+	_, err := q.db.ExecContext(ctx, savePlugin,
+		arg.ID,
+		arg.Config,
+		arg.Status,
+		arg.CheckedAt,
+		arg.EnabledAt,
+	)
+	return err
+}
+
 const setOwnerEmail = `-- name: SetOwnerEmail :execrows
 UPDATE instance SET owner_email = ? WHERE id = 1
 `
@@ -446,6 +529,21 @@ func (q *Queries) SetOwnerEmail(ctx context.Context, ownerEmail sql.NullString) 
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const setPluginStatus = `-- name: SetPluginStatus :exec
+UPDATE plugins SET status = ?, checked_at = ? WHERE id = ?
+`
+
+type SetPluginStatusParams struct {
+	Status    string
+	CheckedAt string
+	ID        string
+}
+
+func (q *Queries) SetPluginStatus(ctx context.Context, arg SetPluginStatusParams) error {
+	_, err := q.db.ExecContext(ctx, setPluginStatus, arg.Status, arg.CheckedAt, arg.ID)
+	return err
 }
 
 const updateProfile = `-- name: UpdateProfile :exec

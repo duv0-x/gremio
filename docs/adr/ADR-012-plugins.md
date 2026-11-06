@@ -25,7 +25,7 @@ Restricciones: Go puro, sin cgo y un binario con todo adentro ([ADR-007](ADR-007
 
 ### 1. Un plugin es una integración incluida en el binario
 
-- Cada plugin es un paquete Go (`internal/plugins/<id>`) que se registra en un **catálogo** al compilar. No se cargan plugins de terceros en tiempo de ejecución.
+- Cada plugin es un tipo Go en `internal/plugins` (un archivo por plugin) que se registra en un **catálogo** al compilar. No se cargan plugins de terceros en tiempo de ejecución.
 - Cada plugin declara:
   - un **id** estable (`ollama-cloud`), con su **nombre**, una **descripción** de una línea y una **categoría** (IA, Respaldos…);
   - los **campos** que pide para habilitarse. Cada campo tiene etiqueta, ayuda y tipo: `text` o `secret`. Cuando un plugin lo necesite se agregarán tipos como "conectar con OAuth";

@@ -50,6 +50,14 @@ type Note struct {
 	PublishedAt string
 }
 
+type Plugin struct {
+	ID        string
+	Config    string
+	Status    string
+	CheckedAt string
+	EnabledAt string
+}
+
 type Profile struct {
 	ID        int64
 	Document  string
