@@ -99,3 +99,19 @@ DELETE FROM sessions;
 
 -- name: DeleteExpiredSessions :exec
 DELETE FROM sessions WHERE expires_at <= ?;
+
+-- name: ListPlugins :many
+SELECT * FROM plugins ORDER BY id;
+
+-- name: GetPlugin :one
+SELECT * FROM plugins WHERE id = ?;
+
+-- name: SavePlugin :exec
+INSERT INTO plugins (id, config, status, checked_at, enabled_at) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT (id) DO UPDATE SET config = excluded.config, status = excluded.status, checked_at = excluded.checked_at;
+
+-- name: SetPluginStatus :exec
+UPDATE plugins SET status = ?, checked_at = ? WHERE id = ?;
+
+-- name: DeletePlugin :exec
+DELETE FROM plugins WHERE id = ?;
