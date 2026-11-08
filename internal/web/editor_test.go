@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/duv0-x/gremio/internal/auth"
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/federation"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
@@ -54,7 +55,7 @@ func newPanelServer(t *testing.T, document string) *panelServer {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	srv := New(st, "1.2.3", nil, fed)
+	srv := New(st, "1.2.3", nil, fed, dojo.NewLedger(st))
 	srv.Register(mux)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
