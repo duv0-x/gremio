@@ -99,6 +99,9 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	page.Tab = "ficha"
 	page.HasCV = s.hasCV()
+	if page.HasActivity, err = s.st.Read.HasEventNotes(r.Context()); err != nil {
+		slog.Error("actividad", "err", err)
+	}
 	switch slug := r.PathValue("view"); slug {
 	case "":
 	case "cv.pdf":
@@ -124,6 +127,26 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		// La pestaña Proyectos pasó a llamarse Portafolio (gremio#111).
 		http.Redirect(w, r, "/@"+inst.Username+"/portafolio", http.StatusMovedPermanently)
 		return
+	case "actividad":
+		if !page.HasActivity {
+			http.NotFound(w, r)
+			return
+		}
+		rows, err := s.st.Read.ListEventNotes(r.Context(), maxActivity)
+		if err != nil {
+			slog.Error("actividad", "err", err)
+			http.Error(w, "no se pudo leer la actividad", http.StatusInternalServerError)
+			return
+		}
+		for _, n := range rows {
+			a, err := activityFrom(n)
+			if err != nil {
+				slog.Warn("evento de actividad ilegible", "note", n.ID, "err", err)
+				continue
+			}
+			page.Activity = append(page.Activity, a)
+		}
+		page.Tab = slug
 	case "portafolio":
 		if !page.hasPortfolio() {
 			http.NotFound(w, r)

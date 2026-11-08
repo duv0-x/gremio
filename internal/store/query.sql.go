@@ -126,19 +126,29 @@ func (q *Queries) CreateLoginLink(ctx context.Context, arg CreateLoginLinkParams
 	return err
 }
 
-const createNote = `-- name: CreateNote :exec
-INSERT INTO notes (id, content, published_at) VALUES (?, ?, ?)
+const createNote = `-- name: CreateNote :execrows
+INSERT INTO notes (id, content, published_at, gremio) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO NOTHING
 `
 
 type CreateNoteParams struct {
 	ID          string
 	Content     string
 	PublishedAt string
+	Gremio      string
 }
 
-func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) error {
-	_, err := q.db.ExecContext(ctx, createNote, arg.ID, arg.Content, arg.PublishedAt)
-	return err
+// Un id repetido no hace nada: publicar dos veces el mismo evento no duplica el Note.
+func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createNote,
+		arg.ID,
+		arg.Content,
+		arg.PublishedAt,
+		arg.Gremio,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const createProfile = `-- name: CreateProfile :exec
@@ -210,6 +220,18 @@ DELETE FROM login_links WHERE created_at <= ?
 func (q *Queries) DeleteLoginLinksBefore(ctx context.Context, createdAt string) error {
 	_, err := q.db.ExecContext(ctx, deleteLoginLinksBefore, createdAt)
 	return err
+}
+
+const deleteNote = `-- name: DeleteNote :execrows
+DELETE FROM notes WHERE id = ?
+`
+
+func (q *Queries) DeleteNote(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteNote, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deletePlugin = `-- name: DeletePlugin :exec
@@ -342,13 +364,18 @@ func (q *Queries) GetInstance(ctx context.Context) (Instance, error) {
 }
 
 const getNote = `-- name: GetNote :one
-SELECT id, content, published_at FROM notes WHERE id = ?
+SELECT id, content, published_at, gremio FROM notes WHERE id = ?
 `
 
 func (q *Queries) GetNote(ctx context.Context, id string) (Note, error) {
 	row := q.db.QueryRowContext(ctx, getNote, id)
 	var i Note
-	err := row.Scan(&i.ID, &i.Content, &i.PublishedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Content,
+		&i.PublishedAt,
+		&i.Gremio,
+	)
 	return i, err
 }
 
@@ -394,6 +421,17 @@ func (q *Queries) GetSessionExpiry(ctx context.Context, arg GetSessionExpiryPara
 	var expires_at string
 	err := row.Scan(&expires_at)
 	return expires_at, err
+}
+
+const hasEventNotes = `-- name: HasEventNotes :one
+SELECT EXISTS (SELECT 1 FROM notes WHERE gremio != '')
+`
+
+func (q *Queries) HasEventNotes(ctx context.Context) (bool, error) {
+	row := q.db.QueryRowContext(ctx, hasEventNotes)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const lastDojoEventHash = `-- name: LastDojoEventHash :one
@@ -458,6 +496,38 @@ func (q *Queries) ListDojoEvents(ctx context.Context) ([]DojoEvent, error) {
 	return items, nil
 }
 
+const listEventNotes = `-- name: ListEventNotes :many
+SELECT id, content, published_at, gremio FROM notes WHERE gremio != '' ORDER BY published_at DESC, id LIMIT ?
+`
+
+func (q *Queries) ListEventNotes(ctx context.Context, limit int64) ([]Note, error) {
+	rows, err := q.db.QueryContext(ctx, listEventNotes, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Note
+	for rows.Next() {
+		var i Note
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.PublishedAt,
+			&i.Gremio,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listFollowerInboxes = `-- name: ListFollowerInboxes :many
 SELECT inbox, shared_inbox FROM followers
 `
@@ -491,7 +561,7 @@ func (q *Queries) ListFollowerInboxes(ctx context.Context) ([]ListFollowerInboxe
 }
 
 const listNotes = `-- name: ListNotes :many
-SELECT id, content, published_at FROM notes ORDER BY published_at DESC LIMIT ?
+SELECT id, content, published_at, gremio FROM notes ORDER BY published_at DESC LIMIT ?
 `
 
 func (q *Queries) ListNotes(ctx context.Context, limit int64) ([]Note, error) {
@@ -503,7 +573,12 @@ func (q *Queries) ListNotes(ctx context.Context, limit int64) ([]Note, error) {
 	var items []Note
 	for rows.Next() {
 		var i Note
-		if err := rows.Scan(&i.ID, &i.Content, &i.PublishedAt); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.PublishedAt,
+			&i.Gremio,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

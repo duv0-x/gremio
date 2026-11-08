@@ -92,6 +92,8 @@ templ ProfilePage(p Page) {
 							@cv(p)
 						case "portafolio":
 							@projects(p)
+						case "actividad":
+							@activityTab(p)
 						default:
 							@ficha(p)
 					}
@@ -100,6 +102,8 @@ templ ProfilePage(p Page) {
 				@cv(p)
 			case p.Tab == "portafolio":
 				@projects(p)
+			case p.Tab == "actividad":
+				@activityTab(p)
 			default:
 				@cvPage(p)
 		}
@@ -123,6 +127,9 @@ templ profileTabs(p Page) {
 			@profileTab(p, "cv", "CV", "file-text")
 			if p.hasPortfolio() {
 				@profileTab(p, "portafolio", "Portafolio", "folder-git-2")
+			}
+			if p.HasActivity {
+				@profileTab(p, "actividad", "Actividad", "activity")
 			}
 		</ul>
 	</nav>
@@ -515,5 +522,31 @@ templ contact(p Page) {
 				}
 			</ul>
 		</div>
+	</section>
+}
+
+// activityTab es la pestaña Actividad (ADR-014): los eventos públicos del dojo y de las medallas, del más nuevo al
+// más viejo. Cada texto lo genera Gremio; no hay posts libres.
+templ activityTab(p Page) {
+	<section id="actividad" class={ section } aria-labelledby="actividad-titulo">
+		<p class={ eyebrow }>Dojo</p>
+		<h2 id="actividad-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Actividad</h2>
+		<p class="mt-1 font-mono text-[13px] text-faint">Retos y medallas con lo que los respalda. También llegan a quien sigue a { p.Handle } en el fediverso.</p>
+		<ol class="mt-6 flex max-w-[720px] flex-col gap-4">
+			for _, a := range p.Activity {
+				<li class={ card, "flex gap-3" }>
+					<span class="mt-0.5 text-accent">
+						@icon(activityIcon(a.Event))
+					</span>
+					<div class="min-w-0">
+						<p class="leading-relaxed text-ink">{ a.Text }</p>
+						<p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[13px] text-faint">
+							<time datetime={ a.At.Format(time.RFC3339) }>{ a.At.Format("2006-01-02") }</time>
+							<a href={ templ.SafeURL(a.Ref) } class="text-muted hover:text-ink">{ activityLink(a.Event) }</a>
+						</p>
+					</div>
+				</li>
+			}
+		</ol>
 	</section>
 }

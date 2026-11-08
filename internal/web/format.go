@@ -1,7 +1,9 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
+	"html"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -9,6 +11,7 @@ import (
 	"time"
 
 	"github.com/duv0-x/gremio/internal/profile"
+	"github.com/duv0-x/gremio/internal/store"
 )
 
 // Page son los datos de la página del perfil.
@@ -19,16 +22,71 @@ type Page struct {
 	Actor    string // URL del Actor de ActivityPub
 	Version  string
 	View     int    // vista seleccionada; la primera es la principal
-	Tab      string // pestaña: ficha, cv o portafolio
+	Tab      string // pestaña: ficha, cv, portafolio o actividad
 	HasCV    bool   // hay un PDF del CV para descargar
 	// Executions son los retos del dojo terminados y publicados, para la línea de tiempo del Portafolio.
 	Executions []execution
+
+	HasActivity bool       // hay al menos un evento público: la pestaña Actividad aparece (ADR-014 §1)
+	Activity    []activity // los eventos de la pestaña Actividad; solo se cargan en esa pestaña
+}
+
+// activity es un evento de la pestaña Actividad, leído del Note que se federó (ADR-014 §2).
+type activity struct {
+	Event string // gremio:event
+	Ref   string // gremio:ref: lo que respalda el evento
+	Text  string
+	At    time.Time
+}
+
+const (
+	maxActivity  = 50                         // eventos que muestra la pestaña Actividad
+	dbTimeLayout = "2006-01-02T15:04:05.000Z" // formato de las fechas en la base
+)
+
+// activityFrom lee un Note de evento. El texto es el primer párrafo de content, que arma federation.PublishEvent
+// ("<p>texto escapado</p><p><a …>ref</a></p>"); la plantilla lo vuelve a escapar, así que nunca va HTML crudo.
+func activityFrom(n store.Note) (activity, error) {
+	var g struct {
+		Event string `json:"gremio:event"`
+		Ref   string `json:"gremio:ref"`
+	}
+	if err := json.Unmarshal([]byte(n.Gremio), &g); err != nil {
+		return activity{}, err
+	}
+	text, _, _ := strings.Cut(strings.TrimPrefix(n.Content, "<p>"), "</p>")
+	at, err := time.Parse(dbTimeLayout, n.PublishedAt)
+	return activity{Event: g.Event, Ref: g.Ref, Text: html.UnescapeString(text), At: at}, err
+}
+
+// activityIcon es el ícono de Lucide de cada tipo de evento.
+func activityIcon(event string) string {
+	switch event {
+	case "challengeStarted":
+		return "play"
+	case "challengeCompleted":
+		return "circle-check-big"
+	case "badgeAwarded":
+		return "award"
+	}
+	return "activity"
+}
+
+// activityLink es el texto del enlace a lo que respalda el evento.
+func activityLink(event string) string {
+	if event == "badgeAwarded" {
+		return "Ver la medalla"
+	}
+	return "Ver la ejecución"
 }
 
 // tabCount es el número de pestañas del perfil, para repartir el ancho.
 func (p Page) tabCount() int {
 	n := 2
 	if p.hasPortfolio() {
+		n++
+	}
+	if p.HasActivity {
 		n++
 	}
 	return n
@@ -49,6 +107,8 @@ func (p Page) Title() string {
 		return p.Resume.Basics.Name + " · CV"
 	case "portafolio":
 		return p.Resume.Basics.Name + " · Portafolio"
+	case "actividad":
+		return p.Resume.Basics.Name + " · Actividad"
 	}
 	return t
 }

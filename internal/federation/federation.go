@@ -120,7 +120,7 @@ func wantsHTML(accept string) bool {
 
 // writeAP serializa con los @context de ActivityStreams y security, que exige la llave pública.
 func writeAP(w http.ResponseWriter, it any) {
-	b, err := jsonld.WithContext(jsonld.IRI(ap.ActivityBaseURI), jsonld.IRI(ap.SecurityContextURI)).Marshal(it)
+	b, err := jsonld.WithContext(append(apContext, jsonld.ContextElement{IRI: jsonld.IRI(ap.SecurityContextURI)})).Marshal(it)
 	if err != nil {
 		http.Error(w, "serialización", http.StatusInternalServerError)
 		return
