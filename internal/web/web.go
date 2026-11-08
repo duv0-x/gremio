@@ -116,6 +116,9 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	switch slug := r.PathValue("view"); slug {
 	case "":
+	case "dojo.json":
+		s.serveDojoBook(w, r, page.Handle)
+		return
 	case "cv.pdf":
 		s.serveCV(w, r, res.Basics.Name)
 		return

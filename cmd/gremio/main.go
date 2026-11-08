@@ -37,6 +37,8 @@ Comandos:
   admin export escribe el perfil como JSON Resume por stdout
   admin cv-pdf publica el PDF del CV para el botón "Descargar CV" (reemplaza el anterior)
   admin media  guarda una imagen (p. ej. la captura de un proyecto) e imprime su URL
+  dojo export  escribe el libro de eventos del dojo en JSON por stdout (el mismo de /@usuario/dojo.json)
+  dojo verify  recalcula un libro del dojo ajeno: gremio dojo verify <libro.json> [--fecha AAAA-MM-DD]
   backup       respaldo completo en .tar.gz: la base (copia consistente), el CV en PDF y media/
   healthcheck  pide /readyz al servidor local (el HEALTHCHECK de la imagen, que no tiene curl)
 
@@ -81,6 +83,10 @@ func run(ctx context.Context, args []string) error {
 		return adminCVPDF(ctx, args[2:])
 	case args[0] == "admin" && len(args) > 1 && args[1] == "media":
 		return adminMedia(ctx, args[2:])
+	case args[0] == "dojo" && len(args) > 1 && args[1] == "export":
+		return dojoExport(ctx, args[2:], os.Stdout)
+	case args[0] == "dojo" && len(args) > 1 && args[1] == "verify":
+		return dojoVerify(args[2:], os.Stdout)
 	case args[0] == "backup":
 		return backup(ctx, args[1:])
 	case args[0] == "healthcheck":

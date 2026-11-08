@@ -520,3 +520,20 @@ func TestPestanaActividad(t *testing.T) {
 		t.Error("un Note sin evento no es actividad")
 	}
 }
+
+// El libro del dojo es público y sin rankings: se sirve el libro, no el número (ADR-013 §6).
+func TestDojoBook(t *testing.T) {
+	ts := newTestServer(t, doc)
+	resp, body := get(t, ts.URL+"/@alice/dojo.json")
+	if resp.StatusCode != http.StatusOK || !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
+		t.Fatalf("HTTP %d %s", resp.StatusCode, resp.Header.Get("Content-Type"))
+	}
+	for _, want := range []string{`"rules":"dojo-1"`, `"actor":"@alice@ejemplo.org"`, `"events":[]`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("falta %s en %s", want, body)
+		}
+	}
+	if resp, _ := get(t, ts.URL+"/@bob/dojo.json"); resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("otro usuario: HTTP %d", resp.StatusCode)
+	}
+}
