@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/duv0-x/gremio/internal/auth"
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/plugins"
 	"github.com/duv0-x/gremio/internal/profile"
@@ -30,13 +31,16 @@ type Server struct {
 	mail     Mailer   // nil si el SMTP no está configurado: el login avisa que no puede enviar
 	profiles Profiles // guarda los cambios del panel
 	plugins  *plugins.Manager
+	// Dojo es el libro único de la instancia (ADR-013). Lo crea serve, que es donde se registran los suscriptores
+	// (medallas, actividad): un segundo NewLedger no les avisaría de lo que se agrega desde la web.
+	Dojo *dojo.Ledger
 }
 
-func New(st *store.Store, version string, mail Mailer, profiles Profiles) *Server {
+func New(st *store.Store, version string, mail Mailer, profiles Profiles, ledger *dojo.Ledger) *Server {
 	if version == "" {
 		version = "dev"
 	}
-	return &Server{st: st, version: version, auth: auth.New(st), mail: mail, profiles: profiles, plugins: plugins.NewManager(st)}
+	return &Server{st: st, version: version, auth: auth.New(st), mail: mail, profiles: profiles, plugins: plugins.NewManager(st), Dojo: ledger}
 }
 
 // Register agrega las rutas web al mux.

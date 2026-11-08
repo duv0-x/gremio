@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/duv0-x/gremio/internal/auth"
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
@@ -40,7 +41,7 @@ func TestLoginDelPanel(t *testing.T) {
 	}
 	m := &fakeMailer{}
 	mux := http.NewServeMux()
-	New(st, "1.2.3", m, nil).Register(mux)
+	New(st, "1.2.3", m, nil, dojo.NewLedger(st)).Register(mux)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 
@@ -172,7 +173,7 @@ func TestImportarYExportarDesdeElPanel(t *testing.T) {
 	session := &http.Cookie{Name: sessionCookie, Value: sessionToken}
 	profiles := &fakeProfiles{}
 	mux := http.NewServeMux()
-	New(st, "1.2.3", nil, profiles).Register(mux)
+	New(st, "1.2.3", nil, profiles, dojo.NewLedger(st)).Register(mux)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}

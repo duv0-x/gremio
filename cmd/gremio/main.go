@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/federation"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/mail"
@@ -139,6 +140,9 @@ func serve(ctx context.Context, args []string) error {
 		return err
 	}
 
+	// Un solo libro del dojo para toda la instancia: los suscriptores (medallas, actividad) se registran sobre este.
+	ledger := dojo.NewLedger(st)
+
 	mux := http.NewServeMux()
 	fed.Register(mux)
 	var mailer web.Mailer
@@ -150,7 +154,7 @@ func serve(ctx context.Context, args []string) error {
 	if !inst.OwnerEmail.Valid {
 		slog.Warn("la instancia no tiene correo del dueño: no se puede entrar al panel", "arreglo", "gremio admin set-email <correo>")
 	}
-	web.New(st, version, mailer, fed).Register(mux)
+	web.New(st, version, mailer, fed, ledger).Register(mux)
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := st.Ping(r.Context()); err != nil {
 			http.Error(w, "base no disponible", http.StatusServiceUnavailable)

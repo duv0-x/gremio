@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
@@ -48,7 +49,7 @@ func newTestServerIn(t *testing.T, document, dataDir string) *httptest.Server {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	New(st, "1.2.3", nil, nil).Register(mux)
+	New(st, "1.2.3", nil, nil, dojo.NewLedger(st)).Register(mux)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 	return ts
