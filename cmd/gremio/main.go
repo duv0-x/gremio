@@ -18,6 +18,7 @@ import (
 
 	"github.com/duv0-x/gremio/internal/activity"
 	"github.com/duv0-x/gremio/internal/dojo"
+	"github.com/duv0-x/gremio/internal/dojo/retos"
 	"github.com/duv0-x/gremio/internal/federation"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/mail"
@@ -117,6 +118,7 @@ func serve(ctx context.Context, args []string) error {
 	addr := fs.String("addr", envOr("GREMIO_ADDR", "127.0.0.1:8080"), "dirección de escucha")
 	host := fs.String("host", envOr("GREMIO_HOST", ""), "URL pública de la instancia, p. ej. https://gremio.ejemplo.org (permanente)")
 	accountDomain := fs.String("account-domain", envOr("GREMIO_ACCOUNT_DOMAIN", ""), "dominio del handle @usuario@dominio; por defecto el de --host (permanente)")
+	dojoCatalog := fs.String("dojo-catalog", envOr("GREMIO_DOJO_CATALOG", ""), "directorio con retos extra para el catálogo del dojo (QA y pruebas; no son el catálogo revisado)")
 	smtp := mail.SMTP{Password: os.Getenv("GREMIO_SMTP_PASSWORD")}
 	fs.StringVar(&smtp.Host, "smtp-host", envOr("GREMIO_SMTP_HOST", ""), "servidor SMTP para el enlace del panel")
 	fs.IntVar(&smtp.Port, "smtp-port", 587, "puerto SMTP: 587 con STARTTLS o 465 con TLS (o GREMIO_SMTP_PORT)")
@@ -131,6 +133,12 @@ func serve(ctx context.Context, args []string) error {
 	}
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	if *dojoCatalog != "" {
+		if err := retos.AddDir(*dojoCatalog); err != nil {
+			return fmt.Errorf("--dojo-catalog: %w", err)
+		}
+		slog.Warn("catálogo del dojo con retos extra", "dir", *dojoCatalog)
 	}
 	if *host == "" {
 		return errors.New("falta --host (o GREMIO_HOST): la URL pública con la que federa la instancia")

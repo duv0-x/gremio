@@ -137,6 +137,10 @@ templ PanelPage(d panelData) {
 				}
 			</ul>
 		}
+		@panelSection("Dojo") {
+			<p class="text-muted">Retos con checks reproducibles. Lo que terminas y publicas suma Entrenamiento en tu ficha.</p>
+			<a class={ btnSec, "sm:self-start" } href="/panel/dojo">Ir al dojo</a>
+		}
 		@panelSection("Plugins") {
 			<p class="text-muted">Conecta tu instancia con otros servicios, como Ollama o Claude.</p>
 			<a class={ btnSec, "sm:self-start" } href="/panel/plugins">Ver plugins</a>
