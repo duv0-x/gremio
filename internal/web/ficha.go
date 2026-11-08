@@ -344,7 +344,7 @@ func traitInitials(name string) string {
 // guiaSecciones es el último paso de la guía: qué hay en las otras pestañas y en los botones de abajo.
 func guiaSecciones(p Page) string {
 	s := "En CV está la trayectoria completa"
-	if len(p.Resume.Projects) > 0 {
+	if p.hasPortfolio() {
 		s += " y en Portafolio, lo que ha construido"
 	}
 	s += "."

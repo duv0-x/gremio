@@ -300,6 +300,8 @@ templ ProjectsForm(e editPage) {
 					<div class="grid gap-4 sm:grid-cols-2">
 						@textField("URL", field("proyecto", i, "url"), at(e.R.Projects, i).URL, "")
 						@textField("Captura", field("proyecto", i, "image"), at(e.R.Projects, i).Image, "")
+						@textField("Inicio", field("proyecto", i, "start"), at(e.R.Projects, i).StartDate, "AAAA o AAAA-MM: ordena la línea de tiempo.")
+						@textField("Fin", field("proyecto", i, "end"), at(e.R.Projects, i).EndDate, "Vacío si sigue en curso.")
 					</div>
 					@textField("Stack", field("proyecto", i, "keywords"), joinComma(at(e.R.Projects, i).Keywords), "")
 					@rowControls("proyecto", i, i >= len(e.R.Projects))
