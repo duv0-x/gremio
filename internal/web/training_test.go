@@ -63,9 +63,8 @@ func TestDojoExecutions(t *testing.T) {
 	at := time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
 	got := dojoExecutions([]dojo.Event{
 		{Type: dojo.ChallengeCompleted, At: at, Title: "vigente", Execution: "https://x/1", Level: dojo.N3, Trust: dojo.Reproducible, Hash: "a"},
-		{Type: dojo.ChallengeCompleted, At: at, Title: "retirado", Execution: "https://x/2", Hash: "b"},
+		{Type: dojo.ChallengeCompleted, At: at, Tombstone: true, Hash: "b"}, // retirado: Retire lo deja como tombstone
 		{Type: dojo.Retired, At: at, Retires: "b"},
-		{Type: dojo.ChallengeCompleted, Tombstone: true, Hash: "c"},
 		{Type: dojo.ChallengeStarted, At: at, Title: "empezado", Hash: "d"},
 	})
 	if len(got) != 1 || got[0].Title != "vigente" || got[0].Date != "2026-05-01" || got[0].Level != "N3" || got[0].Trust != "reproducible" {

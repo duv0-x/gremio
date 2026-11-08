@@ -143,16 +143,9 @@ func gainLabel(c dojo.Contribution) string {
 
 // dojoExecutions son los retos terminados y vigentes del libro, para el Portafolio.
 func dojoExecutions(events []dojo.Event) []execution {
-	retired := map[string]bool{}
-	for _, e := range events {
-		if e.Type == dojo.Retired {
-			retired[e.Retires] = true
-		}
-	}
 	var out []execution
-	for _, e := range events {
-		// shortcut: filtro propio de vigentes; pasar a dojo.Live cuando llegue con las reglas (gremio#123).
-		if e.Type != dojo.ChallengeCompleted || e.Tombstone || retired[e.Hash] || e.Execution == "" {
+	for _, e := range dojo.Live(events) {
+		if e.Type != dojo.ChallengeCompleted || e.Execution == "" {
 			continue
 		}
 		out = append(out, execution{Date: day(e.At), Title: e.Title, URL: e.Execution, Level: e.Level.String(), Trust: trustLabel(e.Trust), Version: e.Version})
