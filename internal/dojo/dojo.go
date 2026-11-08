@@ -79,6 +79,7 @@ type SkillLevel struct {
 type Proof struct {
 	Commit string `json:"commit,omitempty"`
 	URL    string `json:"url,omitempty"`
+	User   string `json:"user,omitempty"` // usuario de la identidad externa (p. ej. GitHub, ADR-015 §3)
 }
 
 // Badge identifica la medalla de un evento badgeAwarded y la regla que la otorgó.
@@ -122,6 +123,17 @@ type Book struct {
 	Actor  string  `json:"actor,omitempty"`
 	Head   string  `json:"head"` // hash del último evento: se publica en cada actividad federada (ADR-014)
 	Events []Event `json:"events"`
+}
+
+// Live son los eventos vigentes, en el mismo orden: sin tombstones ni eventos retired.
+func Live(events []Event) []Event {
+	var out []Event
+	for _, e := range events {
+		if !e.Tombstone && e.Type != Retired {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // ErrInvalid envuelve los errores de validación de un evento.

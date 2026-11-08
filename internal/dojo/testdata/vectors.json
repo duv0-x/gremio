@@ -1,0 +1,1791 @@
+{
+  "rules": "dojo-1",
+  "vectors": [
+    {
+      "name": "n3-reproducible",
+      "description": "Un N3 reproducible deja la barra en 64 (entrada 60 + 20 % de 20).",
+      "at": "2026-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 3,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 3
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "",
+          "hash": "e7df4322d06339c6715eac4dca0928471fa5c5894cb7bbd96baee289bb53b1fc"
+        }
+      ],
+      "expect": {
+        "kubernetes": {
+          "value": 64,
+          "shown": 64
+        }
+      }
+    },
+    {
+      "name": "n4-third-party",
+      "description": "Un N4 verificado por terceros da 83.8, no 20/99 (S14).",
+      "at": "2026-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "",
+          "hash": "b6f154ced4cece373d74b1098064597581daf688d55fe059160cf494685ef434"
+        }
+      ],
+      "expect": {
+        "agentic-coding": {
+          "value": 83.8,
+          "shown": 84
+        }
+      }
+    },
+    {
+      "name": "decay-volatile-1y",
+      "description": "Volátil (H = 274 días): 83.8 baja hacia el piso 33.52 en un año.",
+      "at": "2027-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "",
+          "hash": "b6f154ced4cece373d74b1098064597581daf688d55fe059160cf494685ef434"
+        }
+      ],
+      "expect": {
+        "agentic-coding": {
+          "value": 53.49046411404298,
+          "shown": 53
+        }
+      }
+    },
+    {
+      "name": "decay-volatile-2y",
+      "description": "Volátil a los 2 años.",
+      "at": "2028-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "",
+          "hash": "b6f154ced4cece373d74b1098064597581daf688d55fe059160cf494685ef434"
+        }
+      ],
+      "expect": {
+        "agentic-coding": {
+          "value": 41.45196970823943,
+          "shown": 41
+        }
+      }
+    },
+    {
+      "name": "self-practice-cap",
+      "description": "20 retos N4 propios en 20 días no pasan de 60 (S9).",
+      "at": "2026-01-20T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/0",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/0"
+          },
+          "prev": "",
+          "hash": "0635110b6f52bc3764a0dad4479f0b96c2d3f2a8e04a25617764e4f9d92d92aa"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-02T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/1",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/1"
+          },
+          "prev": "0635110b6f52bc3764a0dad4479f0b96c2d3f2a8e04a25617764e4f9d92d92aa",
+          "hash": "0da2816d8473f4b48d57cd157ad1d4899e0c2c7d1c6bd0d0a955727ce399a63c"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-03T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/2",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/2"
+          },
+          "prev": "0da2816d8473f4b48d57cd157ad1d4899e0c2c7d1c6bd0d0a955727ce399a63c",
+          "hash": "d678b1f2b59054ce3ae7caa359940f6eb47b7306b0bcc94ace0a494e4af0b65c"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-04T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/3",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/3"
+          },
+          "prev": "d678b1f2b59054ce3ae7caa359940f6eb47b7306b0bcc94ace0a494e4af0b65c",
+          "hash": "e8dd9ef7dc0460fb6dcb42796597c83bb4b315a0e1655a62fb1991f5e3846def"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-05T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/4",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/4"
+          },
+          "prev": "e8dd9ef7dc0460fb6dcb42796597c83bb4b315a0e1655a62fb1991f5e3846def",
+          "hash": "8e5d3ead80273b0d435f8a505f7ea00a34e09496233a63d9b7fd63272cbba943"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-06T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/5",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/5"
+          },
+          "prev": "8e5d3ead80273b0d435f8a505f7ea00a34e09496233a63d9b7fd63272cbba943",
+          "hash": "1c4431187b3a7ce27bd186fad4417bbe91e600d0c353a99aa8fe2fa566e11858"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-07T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/6",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/6"
+          },
+          "prev": "1c4431187b3a7ce27bd186fad4417bbe91e600d0c353a99aa8fe2fa566e11858",
+          "hash": "426a41494f35f8c94011b0914634a7e056568203bcd066bf3b105d57562c296d"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-08T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/7",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/7"
+          },
+          "prev": "426a41494f35f8c94011b0914634a7e056568203bcd066bf3b105d57562c296d",
+          "hash": "cf258544b92d73ed9a2c8d43caa5ac7968584c490e22c5b7c02643b8fc79c6da"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-09T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/8",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/8"
+          },
+          "prev": "cf258544b92d73ed9a2c8d43caa5ac7968584c490e22c5b7c02643b8fc79c6da",
+          "hash": "4cd0b5a3122377c5bae3f9d4785faba6e53e9d120ace1f722cae8da5391cabac"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-10T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/9",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/9"
+          },
+          "prev": "4cd0b5a3122377c5bae3f9d4785faba6e53e9d120ace1f722cae8da5391cabac",
+          "hash": "7f00959d5ebbad1dfdf0ab6a3776e154adb9d1f349058f0b40b040cc60ba33e1"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-11T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/10",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/10"
+          },
+          "prev": "7f00959d5ebbad1dfdf0ab6a3776e154adb9d1f349058f0b40b040cc60ba33e1",
+          "hash": "d49361f393aa9c6a70f725d1f5dc602f9e35d368dc9840d3475001b1ea9de94b"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-12T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/11",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/11"
+          },
+          "prev": "d49361f393aa9c6a70f725d1f5dc602f9e35d368dc9840d3475001b1ea9de94b",
+          "hash": "ac033d203ef696537544dc3817730a72e2c13e69eeea0514b2f5fa2e8fd98241"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-13T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/12",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/12"
+          },
+          "prev": "ac033d203ef696537544dc3817730a72e2c13e69eeea0514b2f5fa2e8fd98241",
+          "hash": "76d20f8c4f524ac777d22d4153792c7063277773ed1e676d1ad8d9e32d8ae84c"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-14T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/13",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/13"
+          },
+          "prev": "76d20f8c4f524ac777d22d4153792c7063277773ed1e676d1ad8d9e32d8ae84c",
+          "hash": "a5a18dc1e63901a205f34c0c5a29f9a36107a5193bd26d5a14b633eaca5ce1f3"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-15T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/14",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/14"
+          },
+          "prev": "a5a18dc1e63901a205f34c0c5a29f9a36107a5193bd26d5a14b633eaca5ce1f3",
+          "hash": "9f5588811ed82209bf03ba71100c299abdd151b2bd3d66a8787ba7422e059165"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-16T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/15",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/15"
+          },
+          "prev": "9f5588811ed82209bf03ba71100c299abdd151b2bd3d66a8787ba7422e059165",
+          "hash": "6003adfb781994442eb41070d82a79e2afb198d2fff837ce1b0c1e53b9503d92"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-17T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/16",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/16"
+          },
+          "prev": "6003adfb781994442eb41070d82a79e2afb198d2fff837ce1b0c1e53b9503d92",
+          "hash": "c86930ba69591be994e740e96b02b5999efede992358c125ae7c15c472c80d08"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-18T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/17",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/17"
+          },
+          "prev": "c86930ba69591be994e740e96b02b5999efede992358c125ae7c15c472c80d08",
+          "hash": "173878f16b80f0a9efc8a5c0bb21f69af4f1e766a04aec8fa53869672527eb98"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-19T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/18",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/18"
+          },
+          "prev": "173878f16b80f0a9efc8a5c0bb21f69af4f1e766a04aec8fa53869672527eb98",
+          "hash": "89cc14e4692229030dc10df7dd049ff98cb05dba97350061707d716d92d91677"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-20T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/19",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "agentic-coding",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/19"
+          },
+          "prev": "89cc14e4692229030dc10df7dd049ff98cb05dba97350061707d716d92d91677",
+          "hash": "a7f89d1b8923eb2c7bb500b381a6180c32957c0009f4095bb1bc4bb1c72bf71a"
+        }
+      ],
+      "expect": {
+        "agentic-coding": {
+          "value": 59.41940226399676,
+          "shown": 59
+        }
+      }
+    },
+    {
+      "name": "n2-ceiling-reachable",
+      "description": "El techo de N2 se alcanza al mostrar: no queda atascado en 58 (S7).",
+      "at": "2026-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-00",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-00"
+          },
+          "prev": "",
+          "hash": "6ff5d4fc6152fac5b472d1d2573905fd6d6999a5c9c17dd74e2992515e4080e8"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-01",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-01"
+          },
+          "prev": "6ff5d4fc6152fac5b472d1d2573905fd6d6999a5c9c17dd74e2992515e4080e8",
+          "hash": "594da7cbc75cb5440313239d13723d2accd0f3915b37f9f1c0c2f5c5c5145803"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-02",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-02"
+          },
+          "prev": "594da7cbc75cb5440313239d13723d2accd0f3915b37f9f1c0c2f5c5c5145803",
+          "hash": "821370548af4ddfa0def135fe5c09fb13bf91a94754cbb0b0a454130c0c05582"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-03",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-03"
+          },
+          "prev": "821370548af4ddfa0def135fe5c09fb13bf91a94754cbb0b0a454130c0c05582",
+          "hash": "2943b188986f4bfc656ad6bedbc2de5778565b1441468d135952b7af04c3a3ab"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-04",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-04"
+          },
+          "prev": "2943b188986f4bfc656ad6bedbc2de5778565b1441468d135952b7af04c3a3ab",
+          "hash": "6dc881a478f47c25db0ea6e7d6f3397f6afea715fb1e16f863abcd2b55cd55ad"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-05",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-05"
+          },
+          "prev": "6dc881a478f47c25db0ea6e7d6f3397f6afea715fb1e16f863abcd2b55cd55ad",
+          "hash": "9158df6617876685d5c2912c16f38ef68f14cbad5235bb4155132ed683648c5f"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-06",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-06"
+          },
+          "prev": "9158df6617876685d5c2912c16f38ef68f14cbad5235bb4155132ed683648c5f",
+          "hash": "07b5d2a5fccd0178c89aab0305bbf04e2924a32f70b299a36f4fa5f449ef6762"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-07",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-07"
+          },
+          "prev": "07b5d2a5fccd0178c89aab0305bbf04e2924a32f70b299a36f4fa5f449ef6762",
+          "hash": "84d64016f2fb2628cd278bf64af21004bc6f38aa76effcb16300b3b8e7784fac"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-08",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-08"
+          },
+          "prev": "84d64016f2fb2628cd278bf64af21004bc6f38aa76effcb16300b3b8e7784fac",
+          "hash": "46c4f666a49c2c0eac30912efc0443281bd884088149314fa2673b6904dcca02"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-09",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-09"
+          },
+          "prev": "46c4f666a49c2c0eac30912efc0443281bd884088149314fa2673b6904dcca02",
+          "hash": "3bd79db17fb4fdb53a8e6d174d877fa9a89449c820b484c2c88113c72c87acfc"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-10",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-10"
+          },
+          "prev": "3bd79db17fb4fdb53a8e6d174d877fa9a89449c820b484c2c88113c72c87acfc",
+          "hash": "0768e48347b9c73acc7ebc3b4af7b5eaff93a726f0b12cf0f3c263f7e6b0074f"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-11",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-11"
+          },
+          "prev": "0768e48347b9c73acc7ebc3b4af7b5eaff93a726f0b12cf0f3c263f7e6b0074f",
+          "hash": "4e3812f072c1c7b3686cdbe5c00cc16731858ba33eade1d4dd015fad9bbfa539"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-12",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-12"
+          },
+          "prev": "4e3812f072c1c7b3686cdbe5c00cc16731858ba33eade1d4dd015fad9bbfa539",
+          "hash": "3e3fc10f50788831dc0fdfb1849b4b9fe3f166afb3929cee1ae17e0cae247feb"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-13",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-13"
+          },
+          "prev": "3e3fc10f50788831dc0fdfb1849b4b9fe3f166afb3929cee1ae17e0cae247feb",
+          "hash": "5f17bd9210179a3c9b534cd9a8f9daf582f76301d3e6af8f410a3f5a4f60b772"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-14",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-14"
+          },
+          "prev": "5f17bd9210179a3c9b534cd9a8f9daf582f76301d3e6af8f410a3f5a4f60b772",
+          "hash": "bf4411240a5c076abfcd8497b91889634b33d6bc55b80c7f4be6b262c5161537"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-15",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-15"
+          },
+          "prev": "bf4411240a5c076abfcd8497b91889634b33d6bc55b80c7f4be6b262c5161537",
+          "hash": "0ef2165bdd143a8fe62c670ddcd681d6e2485accadb59759157ffe95f6b89856"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-16",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-16"
+          },
+          "prev": "0ef2165bdd143a8fe62c670ddcd681d6e2485accadb59759157ffe95f6b89856",
+          "hash": "ae2a1ea324296881ffa886e7f59b535f443daf36453b31b4b8de9641b2ae8d24"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-17",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-17"
+          },
+          "prev": "ae2a1ea324296881ffa886e7f59b535f443daf36453b31b4b8de9641b2ae8d24",
+          "hash": "4f3cd3ebc952d557474e4ba66bdddd16fa2382f917e01e196ca0df5b58f67e2e"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-18",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-18"
+          },
+          "prev": "4f3cd3ebc952d557474e4ba66bdddd16fa2382f917e01e196ca0df5b58f67e2e",
+          "hash": "1c8e177ae5794009d6048363b2c5d8a26d251a21133e79d352df7e505edf0746"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n2-19",
+          "version": 1,
+          "level": 2,
+          "skills": [
+            {
+              "skill": "linux-admin",
+              "level": 2
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n2-19"
+          },
+          "prev": "1c8e177ae5794009d6048363b2c5d8a26d251a21133e79d352df7e505edf0746",
+          "hash": "eb388ffdaadb45ccc7428c241882f035f0394d6959d626408587abe0101f8b55"
+        }
+      ],
+      "expect": {
+        "linux-admin": {
+          "value": 59.76941569907863,
+          "shown": 60
+        }
+      }
+    },
+    {
+      "name": "n4-asymptotic",
+      "description": "30 N4 verificados se acercan a 99 sin tocarlo.",
+      "at": "2026-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-00",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-00"
+          },
+          "prev": "",
+          "hash": "51797e213c8a31df9cbd97db97be5c3b2f27cd4a2c95841eaa9cf9b67b0b08f1"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-01",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-01"
+          },
+          "prev": "51797e213c8a31df9cbd97db97be5c3b2f27cd4a2c95841eaa9cf9b67b0b08f1",
+          "hash": "1f4b0899d27f08c26a65220164e9a4f74feb729e8d3bd6e2957a725d8707f8c1"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-02",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-02"
+          },
+          "prev": "1f4b0899d27f08c26a65220164e9a4f74feb729e8d3bd6e2957a725d8707f8c1",
+          "hash": "de13d759ff47ef6db7c26b631360a4ab5b0fa423c59ab9c1ee336f3bd2035ac2"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-03",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-03"
+          },
+          "prev": "de13d759ff47ef6db7c26b631360a4ab5b0fa423c59ab9c1ee336f3bd2035ac2",
+          "hash": "dd6b3fd9c6c01da41c9fe11c5a60d2fa07c46db0bbc8b780e17b4f28e6d959b7"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-04",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-04"
+          },
+          "prev": "dd6b3fd9c6c01da41c9fe11c5a60d2fa07c46db0bbc8b780e17b4f28e6d959b7",
+          "hash": "afcf9effd061bc93b3607daa08f0acc3c6f58a0159355151f5a07471224c16e0"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-05",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-05"
+          },
+          "prev": "afcf9effd061bc93b3607daa08f0acc3c6f58a0159355151f5a07471224c16e0",
+          "hash": "762de669d1e7d684c9e2cd9861bdb72d5041b18ce0b894cc72aed2b9b49a6514"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-06",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-06"
+          },
+          "prev": "762de669d1e7d684c9e2cd9861bdb72d5041b18ce0b894cc72aed2b9b49a6514",
+          "hash": "3ef98b73e291cbde8fe0cab4a22b17378ee1699f40c645421778b44cdfbeba16"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-07",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-07"
+          },
+          "prev": "3ef98b73e291cbde8fe0cab4a22b17378ee1699f40c645421778b44cdfbeba16",
+          "hash": "18c7798041cee8cb76c0d09451a2c8ce442003c514eea0ec66b83051c46d20a4"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-08",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-08"
+          },
+          "prev": "18c7798041cee8cb76c0d09451a2c8ce442003c514eea0ec66b83051c46d20a4",
+          "hash": "ca59077ade148dac3319d8d6fa7689a6fcd505e75652fbd16e10e55b37b485b1"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-09",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-09"
+          },
+          "prev": "ca59077ade148dac3319d8d6fa7689a6fcd505e75652fbd16e10e55b37b485b1",
+          "hash": "139ac96cdc968f1e89e7a64bc02a18528340a35de790e27a03fc12ade4108cfe"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-10",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-10"
+          },
+          "prev": "139ac96cdc968f1e89e7a64bc02a18528340a35de790e27a03fc12ade4108cfe",
+          "hash": "6b53cc27a0404f21a90fee82200bd72d7bde7c45eb3ad5241e760f9cf7e45af8"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-11",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-11"
+          },
+          "prev": "6b53cc27a0404f21a90fee82200bd72d7bde7c45eb3ad5241e760f9cf7e45af8",
+          "hash": "39f9d5910a37eceabfc0c9e6ea45215b6458352b587c189a51f2e3ea42ea1f53"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-12",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-12"
+          },
+          "prev": "39f9d5910a37eceabfc0c9e6ea45215b6458352b587c189a51f2e3ea42ea1f53",
+          "hash": "36ea100f86d06afdb6f617f0893c2705846435636ff2d11e34c85004bd395b85"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-13",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-13"
+          },
+          "prev": "36ea100f86d06afdb6f617f0893c2705846435636ff2d11e34c85004bd395b85",
+          "hash": "e8a86eb42abb000dd418f4cf7ca6a9676ecda51091245f2696cb390e69654b32"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-14",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-14"
+          },
+          "prev": "e8a86eb42abb000dd418f4cf7ca6a9676ecda51091245f2696cb390e69654b32",
+          "hash": "cb88823cf1ba40eb6fdf83b550704a065ff63fb63d9bccb2b643a38b57f7c614"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-15",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-15"
+          },
+          "prev": "cb88823cf1ba40eb6fdf83b550704a065ff63fb63d9bccb2b643a38b57f7c614",
+          "hash": "af10d8985dadd0b2c79b25de24b9ce612563602228354cdbb3cdfbcdf5b5ae88"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-16",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-16"
+          },
+          "prev": "af10d8985dadd0b2c79b25de24b9ce612563602228354cdbb3cdfbcdf5b5ae88",
+          "hash": "92a306b8a33e18fabc0c9a88f6549c55f8e49523f9f30a2b9b8fc6cc6f73c1da"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-17",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-17"
+          },
+          "prev": "92a306b8a33e18fabc0c9a88f6549c55f8e49523f9f30a2b9b8fc6cc6f73c1da",
+          "hash": "b2f8957472ea9fac2bce25fb7cfa5f97a26191f6025dfc29a798be46fe86a2df"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-18",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-18"
+          },
+          "prev": "b2f8957472ea9fac2bce25fb7cfa5f97a26191f6025dfc29a798be46fe86a2df",
+          "hash": "4029de23bdcfb62c5f9e1d60902df8c6bc180fd8f750b6fabbc6803e92c171bd"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-19",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-19"
+          },
+          "prev": "4029de23bdcfb62c5f9e1d60902df8c6bc180fd8f750b6fabbc6803e92c171bd",
+          "hash": "3c769b8fc71c2ec6ed9f2bcc9882832e9dd58e443be430f79978dc2652e1c703"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-20",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-20"
+          },
+          "prev": "3c769b8fc71c2ec6ed9f2bcc9882832e9dd58e443be430f79978dc2652e1c703",
+          "hash": "1829b6978cb14e56da6e2588a71442c06ae9c54de464438bff185d16cbc5378f"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-21",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-21"
+          },
+          "prev": "1829b6978cb14e56da6e2588a71442c06ae9c54de464438bff185d16cbc5378f",
+          "hash": "3e7effeff65bc7adfc4eaa2f306dc4f5cb80092b202d99c01b60b42b79774ca2"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-22",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-22"
+          },
+          "prev": "3e7effeff65bc7adfc4eaa2f306dc4f5cb80092b202d99c01b60b42b79774ca2",
+          "hash": "b4081ed9ba342b92f5636badc005b65061f95586da14dade5f0c920972013fc7"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-23",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-23"
+          },
+          "prev": "b4081ed9ba342b92f5636badc005b65061f95586da14dade5f0c920972013fc7",
+          "hash": "0a966c48cc3f3e0754fea2e369216c08eaacec9f204d10dce44e405e68bab794"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-24",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-24"
+          },
+          "prev": "0a966c48cc3f3e0754fea2e369216c08eaacec9f204d10dce44e405e68bab794",
+          "hash": "17ef112e787e68e8f7b5a459a3bbd0f17dd69e39d33604dec36ce4a1fae498a2"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-25",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-25"
+          },
+          "prev": "17ef112e787e68e8f7b5a459a3bbd0f17dd69e39d33604dec36ce4a1fae498a2",
+          "hash": "2e4902d1c39f8a861beb244f8964e3f39709c2ad2e1338d15f6e89d6ecf7a4b7"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-26",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-26"
+          },
+          "prev": "2e4902d1c39f8a861beb244f8964e3f39709c2ad2e1338d15f6e89d6ecf7a4b7",
+          "hash": "0107d6cf9db3e39869cd821c00a618a91a334713dd7ea914d6642729d7b30464"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-27",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-27"
+          },
+          "prev": "0107d6cf9db3e39869cd821c00a618a91a334713dd7ea914d6642729d7b30464",
+          "hash": "37c8906be4f212cf80adf622c642bd6c056a05ec4f1f970c72099bed626f923e"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-28",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-28"
+          },
+          "prev": "37c8906be4f212cf80adf622c642bd6c056a05ec4f1f970c72099bed626f923e",
+          "hash": "66a135d4ca35e30d5a1dd3e43842edc52e797dde740e66c2df58f80b6f22011f"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:n4-29",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "third-party",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:n4-29"
+          },
+          "prev": "66a135d4ca35e30d5a1dd3e43842edc52e797dde740e66c2df58f80b6f22011f",
+          "hash": "c6a8023f32aeb6a5b9042b3c8b1a7e7f0b258ca71a19810280139136f5a445e5"
+        }
+      ],
+      "expect": {
+        "kubernetes": {
+          "value": 98.97647913925358,
+          "shown": 99
+        }
+      }
+    },
+    {
+      "name": "once-per-person",
+      "description": "Otra versión del mismo reto no vuelve a sumar ni reinicia la curva.",
+      "at": "2026-01-11T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 3,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 3
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "",
+          "hash": "e7df4322d06339c6715eac4dca0928471fa5c5894cb7bbd96baee289bb53b1fc"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-11T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 2,
+          "level": 3,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 3
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "e7df4322d06339c6715eac4dca0928471fa5c5894cb7bbd96baee289bb53b1fc",
+          "hash": "a20794ca2da21090cfc89424b649a29aa657d83c3425ea024bb3c4935d378589"
+        }
+      ],
+      "expect": {
+        "kubernetes": {
+          "value": 63.63711116416123,
+          "shown": 64
+        }
+      }
+    },
+    {
+      "name": "retire-and-redo",
+      "description": "Retirar y rehacer no suma de nuevo (S10): la tombstone conserva el reto.",
+      "at": "2026-01-06T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "tombstone": true,
+          "prev": "",
+          "hash": "5f1499005de60f4ede0ed207d98f5198f8ee779ac54692f1b704eac44d6cb0c9"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-06T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 3,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 3
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "5f1499005de60f4ede0ed207d98f5198f8ee779ac54692f1b704eac44d6cb0c9",
+          "hash": "69d900336756768a439fc3ed5f765cc255d4e06082d5c759dc12c3a6be715bb1"
+        }
+      ],
+      "expect": {
+        "kubernetes": null
+      }
+    },
+    {
+      "name": "trust-caps-level",
+      "description": "Un N4 propio cuenta como N2: 44.",
+      "at": "2026-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "https://gremio.example/dojo/retos/x",
+          "version": 1,
+          "level": 4,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 4
+            }
+          ],
+          "trust": "self",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/https://gremio.example/dojo/retos/x"
+          },
+          "prev": "",
+          "hash": "13dd942f59fe9bc53175c431daee3eabcb680deed644f88857119fd15e350832"
+        }
+      ],
+      "expect": {
+        "kubernetes": {
+          "value": 44,
+          "shown": 44
+        }
+      }
+    },
+    {
+      "name": "band-entry-after-decay",
+      "description": "Tras 2 años sin práctica (44.8), un N3 vuelve a la entrada de su banda: 64.",
+      "at": "2028-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 3,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 3
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "",
+          "hash": "e7df4322d06339c6715eac4dca0928471fa5c5894cb7bbd96baee289bb53b1fc"
+        },
+        {
+          "type": "challengeCompleted",
+          "at": "2028-01-01T12:00:00Z",
+          "challenge": "catalog:b",
+          "version": 1,
+          "level": 3,
+          "skills": [
+            {
+              "skill": "kubernetes",
+              "level": 3
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:b"
+          },
+          "prev": "e7df4322d06339c6715eac4dca0928471fa5c5894cb7bbd96baee289bb53b1fc",
+          "hash": "bf4dd924c8608315e544fd9cd3ea5afc53b622dcce14048d026f2b32984e6f00"
+        }
+      ],
+      "expect": {
+        "kubernetes": {
+          "value": 64,
+          "shown": 64
+        }
+      }
+    },
+    {
+      "name": "unknown-skill-ignored",
+      "description": "Una habilidad fuera del catálogo se ignora; las demás del reto suman.",
+      "at": "2026-01-01T12:00:00Z",
+      "events": [
+        {
+          "type": "challengeCompleted",
+          "at": "2026-01-01T12:00:00Z",
+          "challenge": "catalog:a",
+          "version": 1,
+          "level": 3,
+          "skills": [
+            {
+              "skill": "cobol",
+              "level": 3
+            },
+            {
+              "skill": "kubernetes",
+              "level": 3
+            }
+          ],
+          "trust": "reproducible",
+          "proof": {
+            "commit": "0000000000000000000000000000000000000000",
+            "url": "https://ci.example/run/catalog:a"
+          },
+          "prev": "",
+          "hash": "cee17a42cfb7522bb319fc54c53038fda9af383eb9baa68f56dbf7409e1d0da2"
+        }
+      ],
+      "expect": {
+        "cobol": null,
+        "kubernetes": {
+          "value": 64,
+          "shown": 64
+        }
+      }
+    }
+  ]
+}
