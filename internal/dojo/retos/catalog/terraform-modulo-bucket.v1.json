@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "license": "CC-BY-4.0",
+  "origin": "ai",
+  "model": "claude-opus-5-5",
+  "author": "duv0-x",
+  "deliverables": [
+    "Repositorio público",
+    "Demo (URL o video)",
+    "Informe de decisiones (README o docs/)"
+  ],
+  "id": "terraform-modulo-bucket",
+  "title": "Módulo Terraform de bucket S3 seguro",
+  "pitch": "Un módulo reutilizable que crea un bucket S3 cifrado, privado y versionado, con validaciones y tests.",
+  "context": "Varios equipos crean buckets a mano y quedan públicos o sin cifrar. Plataforma publica un módulo con valores seguros por defecto que se consume por versión.",
+  "level": 2,
+  "skills": [
+    {
+      "skill": "terraform",
+      "level": 2
+    },
+    {
+      "skill": "aws-core",
+      "level": 2
+    }
+  ],
+  "disciplines": [
+    "Infraestructura"
+  ],
+  "stack": [
+    "Terraform",
+    "AWS S3"
+  ],
+  "requirements": [
+    "Variables con description y validation",
+    "Cifrado SSE y bloqueo de acceso público por defecto",
+    "Versionado activable",
+    "Outputs documentados",
+    "Un ejemplo de uso en examples/",
+    "Tests con terraform test (.tftest.hcl)"
+  ],
+  "constraints": [
+    "Sin credenciales en el repo",
+    "Los tests corren con mock_provider o plan, sin crear recursos reales"
+  ],
+  "definitionOfDone": [
+    "terraform validate y terraform test pasan",
+    "El README tiene la tabla de inputs y outputs",
+    "Un consumidor puede fijar la versión del módulo"
+  ],
+  "estimatedDuration": "P1W",
+  "checks": [
+    {
+      "id": "validation",
+      "description": "Al menos dos variables con validation en un mismo archivo",
+      "kind": "contains",
+      "path": "**/*.tf",
+      "pattern": "(?s)validation\\s*\\{.*validation\\s*\\{"
+    },
+    {
+      "id": "public-block",
+      "description": "Bloquea el acceso público",
+      "kind": "contains",
+      "path": "**/*.tf",
+      "pattern": "aws_s3_bucket_public_access_block"
+    },
+    {
+      "id": "sse",
+      "description": "Cifra por defecto",
+      "kind": "contains",
+      "path": "**/*.tf",
+      "pattern": "aws_s3_bucket_server_side_encryption_configuration"
+    },
+    {
+      "id": "versioning",
+      "description": "Versionado",
+      "kind": "contains",
+      "path": "**/*.tf",
+      "pattern": "aws_s3_bucket_versioning"
+    },
+    {
+      "id": "tftest",
+      "description": "Tests nativos de Terraform con asserts",
+      "kind": "contains",
+      "path": "**/*.tftest.hcl",
+      "pattern": "assert\\s*\\{"
+    },
+    {
+      "id": "example",
+      "description": "Ejemplo de uso",
+      "kind": "file",
+      "path": "examples/**/*.tf"
+    },
+    {
+      "id": "outputs",
+      "description": "Outputs con descripción",
+      "kind": "contains",
+      "path": "**/outputs.tf",
+      "pattern": "description\\s*="
+    },
+    {
+      "id": "no-state",
+      "description": "Sin state ni tfvars con secretos commiteados",
+      "kind": "absent",
+      "path": "**/*.tfstate"
+    }
+  ]
+}

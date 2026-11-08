@@ -8,6 +8,21 @@ import (
 	"database/sql"
 )
 
+type Challenge struct {
+	ID        string
+	Draft     sql.NullString
+	CreatedAt string
+	UpdatedAt string
+	DeletedAt sql.NullString
+}
+
+type ChallengeVersion struct {
+	ChallengeID string
+	Version     int64
+	Document    string
+	PublishedAt string
+}
+
 type DeliveryQueue struct {
 	ID            int64
 	Inbox         string
@@ -26,6 +41,28 @@ type DojoEvent struct {
 	At        string
 	Challenge string
 	Body      string
+}
+
+type Execution struct {
+	ID               string
+	Challenge        string
+	ChallengeVersion int64
+	Snapshot         string
+	Status           string
+	Repo             string
+	CommitSha        string
+	Demo             string
+	Report           string
+	Notes            string
+	Verification     sql.NullString
+	StartedAt        string
+	CompletedAt      sql.NullString
+	PublishedAt      sql.NullString
+	RetiredAt        sql.NullString
+	StartedHash      sql.NullString
+	CompletedHash    sql.NullString
+	CreatedAt        string
+	UpdatedAt        string
 }
 
 type Follower struct {

@@ -10,6 +10,23 @@ import (
 	"database/sql"
 )
 
+const abandonExecution = `-- name: AbandonExecution :execrows
+UPDATE executions SET status = 'abandoned', updated_at = ? WHERE id = ? AND status IN ('draft', 'in_progress')
+`
+
+type AbandonExecutionParams struct {
+	UpdatedAt string
+	ID        string
+}
+
+func (q *Queries) AbandonExecution(ctx context.Context, arg AbandonExecutionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, abandonExecution, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const appendDojoEvent = `-- name: AppendDojoEvent :exec
 INSERT INTO dojo_events (hash, prev, type, at, challenge, body) VALUES (?, ?, ?, ?, ?, ?)
 `
@@ -46,6 +63,24 @@ type BindInstanceHostParams struct {
 
 func (q *Queries) BindInstanceHost(ctx context.Context, arg BindInstanceHostParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, bindInstanceHost, arg.Host, arg.AccountDomain)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const completeExecution = `-- name: CompleteExecution :execrows
+UPDATE executions SET status = 'done', completed_at = ?, updated_at = ? WHERE id = ? AND status IN ('draft', 'in_progress')
+`
+
+type CompleteExecutionParams struct {
+	CompletedAt sql.NullString
+	UpdatedAt   string
+	ID          string
+}
+
+func (q *Queries) CompleteExecution(ctx context.Context, arg CompleteExecutionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, completeExecution, arg.CompletedAt, arg.UpdatedAt, arg.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -94,6 +129,76 @@ func (q *Queries) CountNotes(ctx context.Context) (int64, error) {
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const createChallenge = `-- name: CreateChallenge :exec
+INSERT INTO challenges (id, draft, created_at, updated_at) VALUES (?, ?, ?, ?)
+`
+
+type CreateChallengeParams struct {
+	ID        string
+	Draft     sql.NullString
+	CreatedAt string
+	UpdatedAt string
+}
+
+func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) error {
+	_, err := q.db.ExecContext(ctx, createChallenge,
+		arg.ID,
+		arg.Draft,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const createChallengeVersion = `-- name: CreateChallengeVersion :exec
+INSERT INTO challenge_versions (challenge_id, version, document, published_at) VALUES (?, ?, ?, ?)
+`
+
+type CreateChallengeVersionParams struct {
+	ChallengeID string
+	Version     int64
+	Document    string
+	PublishedAt string
+}
+
+func (q *Queries) CreateChallengeVersion(ctx context.Context, arg CreateChallengeVersionParams) error {
+	_, err := q.db.ExecContext(ctx, createChallengeVersion,
+		arg.ChallengeID,
+		arg.Version,
+		arg.Document,
+		arg.PublishedAt,
+	)
+	return err
+}
+
+const createExecution = `-- name: CreateExecution :exec
+INSERT INTO executions (id, challenge, challenge_version, snapshot, status, started_at, created_at, updated_at)
+VALUES (?, ?, ?, ?, 'in_progress', ?, ?, ?)
+`
+
+type CreateExecutionParams struct {
+	ID               string
+	Challenge        string
+	ChallengeVersion int64
+	Snapshot         string
+	StartedAt        string
+	CreatedAt        string
+	UpdatedAt        string
+}
+
+func (q *Queries) CreateExecution(ctx context.Context, arg CreateExecutionParams) error {
+	_, err := q.db.ExecContext(ctx, createExecution,
+		arg.ID,
+		arg.Challenge,
+		arg.ChallengeVersion,
+		arg.Snapshot,
+		arg.StartedAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
 }
 
 const createInstance = `-- name: CreateInstance :exec
@@ -181,6 +286,24 @@ DELETE FROM sessions
 func (q *Queries) DeleteAllSessions(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, deleteAllSessions)
 	return err
+}
+
+const deleteChallenge = `-- name: DeleteChallenge :execrows
+UPDATE challenges SET draft = NULL, deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL
+`
+
+type DeleteChallengeParams struct {
+	DeletedAt sql.NullString
+	UpdatedAt string
+	ID        string
+}
+
+func (q *Queries) DeleteChallenge(ctx context.Context, arg DeleteChallengeParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteChallenge, arg.DeletedAt, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteDelivery = `-- name: DeleteDelivery :exec
@@ -307,6 +430,44 @@ func (q *Queries) EnqueueDelivery(ctx context.Context, arg EnqueueDeliveryParams
 	return err
 }
 
+const getChallenge = `-- name: GetChallenge :one
+SELECT id, draft, created_at, updated_at, deleted_at FROM challenges WHERE id = ? AND deleted_at IS NULL
+`
+
+func (q *Queries) GetChallenge(ctx context.Context, id string) (Challenge, error) {
+	row := q.db.QueryRowContext(ctx, getChallenge, id)
+	var i Challenge
+	err := row.Scan(
+		&i.ID,
+		&i.Draft,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getChallengeVersion = `-- name: GetChallengeVersion :one
+SELECT challenge_id, version, document, published_at FROM challenge_versions WHERE challenge_id = ? AND version = ?
+`
+
+type GetChallengeVersionParams struct {
+	ChallengeID string
+	Version     int64
+}
+
+func (q *Queries) GetChallengeVersion(ctx context.Context, arg GetChallengeVersionParams) (ChallengeVersion, error) {
+	row := q.db.QueryRowContext(ctx, getChallengeVersion, arg.ChallengeID, arg.Version)
+	var i ChallengeVersion
+	err := row.Scan(
+		&i.ChallengeID,
+		&i.Version,
+		&i.Document,
+		&i.PublishedAt,
+	)
+	return i, err
+}
+
 const getDojoEvent = `-- name: GetDojoEvent :one
 SELECT seq, hash, prev, type, at, challenge, body FROM dojo_events WHERE hash = ?
 `
@@ -322,6 +483,37 @@ func (q *Queries) GetDojoEvent(ctx context.Context, hash string) (DojoEvent, err
 		&i.At,
 		&i.Challenge,
 		&i.Body,
+	)
+	return i, err
+}
+
+const getExecution = `-- name: GetExecution :one
+SELECT id, challenge, challenge_version, snapshot, status, repo, commit_sha, demo, report, notes, verification, started_at, completed_at, published_at, retired_at, started_hash, completed_hash, created_at, updated_at FROM executions WHERE id = ?
+`
+
+func (q *Queries) GetExecution(ctx context.Context, id string) (Execution, error) {
+	row := q.db.QueryRowContext(ctx, getExecution, id)
+	var i Execution
+	err := row.Scan(
+		&i.ID,
+		&i.Challenge,
+		&i.ChallengeVersion,
+		&i.Snapshot,
+		&i.Status,
+		&i.Repo,
+		&i.CommitSha,
+		&i.Demo,
+		&i.Report,
+		&i.Notes,
+		&i.Verification,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.PublishedAt,
+		&i.RetiredAt,
+		&i.StartedHash,
+		&i.CompletedHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -445,6 +637,22 @@ func (q *Queries) LastDojoEventHash(ctx context.Context) (string, error) {
 	return hash, err
 }
 
+const latestChallengeVersion = `-- name: LatestChallengeVersion :one
+SELECT challenge_id, version, document, published_at FROM challenge_versions WHERE challenge_id = ? ORDER BY version DESC LIMIT 1
+`
+
+func (q *Queries) LatestChallengeVersion(ctx context.Context, challengeID string) (ChallengeVersion, error) {
+	row := q.db.QueryRowContext(ctx, latestChallengeVersion, challengeID)
+	var i ChallengeVersion
+	err := row.Scan(
+		&i.ChallengeID,
+		&i.Version,
+		&i.Document,
+		&i.PublishedAt,
+	)
+	return i, err
+}
+
 const latestLoginLink = `-- name: LatestLoginLink :one
 SELECT id, token_hash, created_at, used_at FROM login_links ORDER BY id DESC LIMIT 1
 `
@@ -459,6 +667,39 @@ func (q *Queries) LatestLoginLink(ctx context.Context) (LoginLink, error) {
 		&i.UsedAt,
 	)
 	return i, err
+}
+
+const listChallenges = `-- name: ListChallenges :many
+SELECT id, draft, created_at, updated_at, deleted_at FROM challenges WHERE deleted_at IS NULL ORDER BY updated_at DESC
+`
+
+func (q *Queries) ListChallenges(ctx context.Context) ([]Challenge, error) {
+	rows, err := q.db.QueryContext(ctx, listChallenges)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Challenge
+	for rows.Next() {
+		var i Challenge
+		if err := rows.Scan(
+			&i.ID,
+			&i.Draft,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listDojoEvents = `-- name: ListDojoEvents :many
@@ -514,6 +755,53 @@ func (q *Queries) ListEventNotes(ctx context.Context, limit int64) ([]Note, erro
 			&i.Content,
 			&i.PublishedAt,
 			&i.Gremio,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listExecutions = `-- name: ListExecutions :many
+SELECT id, challenge, challenge_version, snapshot, status, repo, commit_sha, demo, report, notes, verification, started_at, completed_at, published_at, retired_at, started_hash, completed_hash, created_at, updated_at FROM executions ORDER BY updated_at DESC
+`
+
+func (q *Queries) ListExecutions(ctx context.Context) ([]Execution, error) {
+	rows, err := q.db.QueryContext(ctx, listExecutions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Execution
+	for rows.Next() {
+		var i Execution
+		if err := rows.Scan(
+			&i.ID,
+			&i.Challenge,
+			&i.ChallengeVersion,
+			&i.Snapshot,
+			&i.Status,
+			&i.Repo,
+			&i.CommitSha,
+			&i.Demo,
+			&i.Report,
+			&i.Notes,
+			&i.Verification,
+			&i.StartedAt,
+			&i.CompletedAt,
+			&i.PublishedAt,
+			&i.RetiredAt,
+			&i.StartedHash,
+			&i.CompletedHash,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -625,6 +913,71 @@ func (q *Queries) ListPlugins(ctx context.Context) ([]Plugin, error) {
 	return items, nil
 }
 
+const listPublishedExecutions = `-- name: ListPublishedExecutions :many
+SELECT id, challenge, challenge_version, snapshot, status, repo, commit_sha, demo, report, notes, verification, started_at, completed_at, published_at, retired_at, started_hash, completed_hash, created_at, updated_at FROM executions WHERE published_at IS NOT NULL AND retired_at IS NULL ORDER BY published_at DESC
+`
+
+func (q *Queries) ListPublishedExecutions(ctx context.Context) ([]Execution, error) {
+	rows, err := q.db.QueryContext(ctx, listPublishedExecutions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Execution
+	for rows.Next() {
+		var i Execution
+		if err := rows.Scan(
+			&i.ID,
+			&i.Challenge,
+			&i.ChallengeVersion,
+			&i.Snapshot,
+			&i.Status,
+			&i.Repo,
+			&i.CommitSha,
+			&i.Demo,
+			&i.Report,
+			&i.Notes,
+			&i.Verification,
+			&i.StartedAt,
+			&i.CompletedAt,
+			&i.PublishedAt,
+			&i.RetiredAt,
+			&i.StartedHash,
+			&i.CompletedHash,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const publishExecution = `-- name: PublishExecution :execrows
+UPDATE executions SET published_at = ?, updated_at = ? WHERE id = ? AND published_at IS NULL AND status != 'abandoned'
+`
+
+type PublishExecutionParams struct {
+	PublishedAt sql.NullString
+	UpdatedAt   string
+	ID          string
+}
+
+func (q *Queries) PublishExecution(ctx context.Context, arg PublishExecutionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, publishExecution, arg.PublishedAt, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const renewSession = `-- name: RenewSession :exec
 UPDATE sessions SET expires_at = ? WHERE token_hash = ?
 `
@@ -658,6 +1011,73 @@ func (q *Queries) RescheduleDelivery(ctx context.Context, arg RescheduleDelivery
 		arg.ID,
 	)
 	return err
+}
+
+const retireExecution = `-- name: RetireExecution :execrows
+UPDATE executions SET retired_at = ?, updated_at = ? WHERE id = ? AND published_at IS NOT NULL AND retired_at IS NULL
+`
+
+type RetireExecutionParams struct {
+	RetiredAt sql.NullString
+	UpdatedAt string
+	ID        string
+}
+
+func (q *Queries) RetireExecution(ctx context.Context, arg RetireExecutionParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, retireExecution, arg.RetiredAt, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const saveChallengeDraft = `-- name: SaveChallengeDraft :execrows
+UPDATE challenges SET draft = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL
+`
+
+type SaveChallengeDraftParams struct {
+	Draft     sql.NullString
+	UpdatedAt string
+	ID        string
+}
+
+func (q *Queries) SaveChallengeDraft(ctx context.Context, arg SaveChallengeDraftParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, saveChallengeDraft, arg.Draft, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const saveDelivery = `-- name: SaveDelivery :execrows
+UPDATE executions SET repo = ?, commit_sha = ?, demo = ?, report = ?, notes = ?, verification = NULL, updated_at = ?
+WHERE id = ? AND status IN ('draft', 'in_progress')
+`
+
+type SaveDeliveryParams struct {
+	Repo      string
+	CommitSha string
+	Demo      string
+	Report    string
+	Notes     string
+	UpdatedAt string
+	ID        string
+}
+
+func (q *Queries) SaveDelivery(ctx context.Context, arg SaveDeliveryParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, saveDelivery,
+		arg.Repo,
+		arg.CommitSha,
+		arg.Demo,
+		arg.Report,
+		arg.Notes,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const savePlugin = `-- name: SavePlugin :exec
@@ -701,6 +1121,27 @@ func (q *Queries) ScrubDojoEvent(ctx context.Context, arg ScrubDojoEventParams) 
 	return result.RowsAffected()
 }
 
+const setExecutionHashes = `-- name: SetExecutionHashes :exec
+UPDATE executions SET started_hash = ?, completed_hash = ?, updated_at = ? WHERE id = ?
+`
+
+type SetExecutionHashesParams struct {
+	StartedHash   sql.NullString
+	CompletedHash sql.NullString
+	UpdatedAt     string
+	ID            string
+}
+
+func (q *Queries) SetExecutionHashes(ctx context.Context, arg SetExecutionHashesParams) error {
+	_, err := q.db.ExecContext(ctx, setExecutionHashes,
+		arg.StartedHash,
+		arg.CompletedHash,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	return err
+}
+
 const setOwnerEmail = `-- name: SetOwnerEmail :execrows
 UPDATE instance SET owner_email = ? WHERE id = 1
 `
@@ -726,6 +1167,24 @@ type SetPluginStatusParams struct {
 func (q *Queries) SetPluginStatus(ctx context.Context, arg SetPluginStatusParams) error {
 	_, err := q.db.ExecContext(ctx, setPluginStatus, arg.Status, arg.CheckedAt, arg.ID)
 	return err
+}
+
+const setVerification = `-- name: SetVerification :execrows
+UPDATE executions SET verification = ?, updated_at = ? WHERE id = ? AND status IN ('draft', 'in_progress')
+`
+
+type SetVerificationParams struct {
+	Verification sql.NullString
+	UpdatedAt    string
+	ID           string
+}
+
+func (q *Queries) SetVerification(ctx context.Context, arg SetVerificationParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setVerification, arg.Verification, arg.UpdatedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateProfile = `-- name: UpdateProfile :exec

@@ -140,3 +140,62 @@ SELECT * FROM dojo_events ORDER BY seq;
 
 -- name: ScrubDojoEvent :execrows
 UPDATE dojo_events SET body = ? WHERE hash = ?;
+
+-- name: CreateChallenge :exec
+INSERT INTO challenges (id, draft, created_at, updated_at) VALUES (?, ?, ?, ?);
+
+-- name: GetChallenge :one
+SELECT * FROM challenges WHERE id = ? AND deleted_at IS NULL;
+
+-- name: ListChallenges :many
+SELECT * FROM challenges WHERE deleted_at IS NULL ORDER BY updated_at DESC;
+
+-- name: SaveChallengeDraft :execrows
+UPDATE challenges SET draft = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL;
+
+-- name: DeleteChallenge :execrows
+UPDATE challenges SET draft = NULL, deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL;
+
+-- name: LatestChallengeVersion :one
+SELECT * FROM challenge_versions WHERE challenge_id = ? ORDER BY version DESC LIMIT 1;
+
+-- name: GetChallengeVersion :one
+SELECT * FROM challenge_versions WHERE challenge_id = ? AND version = ?;
+
+-- name: CreateChallengeVersion :exec
+INSERT INTO challenge_versions (challenge_id, version, document, published_at) VALUES (?, ?, ?, ?);
+
+-- name: CreateExecution :exec
+INSERT INTO executions (id, challenge, challenge_version, snapshot, status, started_at, created_at, updated_at)
+VALUES (?, ?, ?, ?, 'in_progress', ?, ?, ?);
+
+-- name: GetExecution :one
+SELECT * FROM executions WHERE id = ?;
+
+-- name: ListExecutions :many
+SELECT * FROM executions ORDER BY updated_at DESC;
+
+-- name: ListPublishedExecutions :many
+SELECT * FROM executions WHERE published_at IS NOT NULL AND retired_at IS NULL ORDER BY published_at DESC;
+
+-- name: AbandonExecution :execrows
+UPDATE executions SET status = 'abandoned', updated_at = ? WHERE id = ? AND status IN ('draft', 'in_progress');
+
+-- name: SaveDelivery :execrows
+UPDATE executions SET repo = ?, commit_sha = ?, demo = ?, report = ?, notes = ?, verification = NULL, updated_at = ?
+WHERE id = ? AND status IN ('draft', 'in_progress');
+
+-- name: SetVerification :execrows
+UPDATE executions SET verification = ?, updated_at = ? WHERE id = ? AND status IN ('draft', 'in_progress');
+
+-- name: CompleteExecution :execrows
+UPDATE executions SET status = 'done', completed_at = ?, updated_at = ? WHERE id = ? AND status IN ('draft', 'in_progress');
+
+-- name: PublishExecution :execrows
+UPDATE executions SET published_at = ?, updated_at = ? WHERE id = ? AND published_at IS NULL AND status != 'abandoned';
+
+-- name: SetExecutionHashes :exec
+UPDATE executions SET started_hash = ?, completed_hash = ?, updated_at = ? WHERE id = ?;
+
+-- name: RetireExecution :execrows
+UPDATE executions SET retired_at = ?, updated_at = ? WHERE id = ? AND published_at IS NOT NULL AND retired_at IS NULL;

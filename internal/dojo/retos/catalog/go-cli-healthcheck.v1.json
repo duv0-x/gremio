@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "license": "CC-BY-4.0",
+  "origin": "ai",
+  "model": "claude-opus-5-5",
+  "author": "duv0-x",
+  "deliverables": [
+    "Repositorio público",
+    "Demo (URL o video)",
+    "Informe de decisiones (README o docs/)"
+  ],
+  "id": "go-cli-healthcheck",
+  "title": "CLI de healthchecks en Go",
+  "pitch": "Una herramienta de línea de comandos que revisa una lista de endpoints HTTP y sale con el código correcto.",
+  "context": "El equipo de plataforma quiere un binario sin dependencias para los pipelines de despliegue: lee una lista de URLs, las consulta en paralelo con timeout y falla el paso si alguna no responde 2xx.",
+  "level": 1,
+  "skills": [
+    {
+      "skill": "go",
+      "level": 1
+    }
+  ],
+  "disciplines": [
+    "Backend"
+  ],
+  "stack": [
+    "Go"
+  ],
+  "requirements": [
+    "Módulo Go con go.mod",
+    "Lee las URLs de un archivo o de stdin",
+    "Consultas concurrentes con timeout configurable por flag",
+    "Código de salida distinto de 0 si algún endpoint falla",
+    "Tests con net/http/httptest"
+  ],
+  "constraints": [
+    "Solo la biblioteca estándar"
+  ],
+  "definitionOfDone": [
+    "go test ./... pasa",
+    "El README explica uso y códigos de salida",
+    "Hay tests para el caso de timeout"
+  ],
+  "estimatedDuration": "P3D",
+  "checks": [
+    {
+      "id": "go-mod",
+      "description": "Es un módulo Go",
+      "kind": "file",
+      "path": "go.mod"
+    },
+    {
+      "id": "httptest",
+      "description": "Los tests levantan servidores falsos con httptest",
+      "kind": "contains",
+      "path": "**/*_test.go",
+      "pattern": "httptest\\.NewServer"
+    },
+    {
+      "id": "timeout",
+      "description": "Hay un flag de timeout",
+      "kind": "contains",
+      "path": "**/*.go",
+      "pattern": "flag\\.Duration\\("
+    },
+    {
+      "id": "exit",
+      "description": "Sale con código de error",
+      "kind": "contains",
+      "path": "**/*.go",
+      "pattern": "os\\.Exit\\([1-9]"
+    },
+    {
+      "id": "concurrency",
+      "description": "Consulta en paralelo",
+      "kind": "contains",
+      "path": "**/*.go",
+      "pattern": "sync\\.WaitGroup|errgroup\\.|go func\\("
+    },
+    {
+      "id": "no-deps",
+      "description": "Sin dependencias externas",
+      "kind": "absent",
+      "path": "go.sum"
+    },
+    {
+      "id": "readme",
+      "description": "El README documenta los códigos de salida",
+      "kind": "contains",
+      "path": "README.md",
+      "pattern": "(?i)c[oó]digos? de salida|exit code"
+    }
+  ]
+}
