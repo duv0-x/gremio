@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "license": "CC-BY-4.0",
+  "origin": "ai",
+  "model": "claude-opus-5-5",
+  "author": "duv0-x",
+  "deliverables": [
+    "Repositorio público",
+    "Demo (URL o video)",
+    "Informe de decisiones (README o docs/)"
+  ],
+  "id": "mcp-servidor-kb",
+  "title": "Servidor MCP para una knowledge base en Markdown",
+  "pitch": "Un servidor MCP que expone búsqueda y lectura sobre una carpeta de notas Markdown, con herramientas bien descritas y tests.",
+  "context": "El equipo guarda runbooks y ADRs en Markdown. Quiere que su agente de código los consulte con herramientas acotadas y de solo lectura, en lugar de leer todo el árbol.",
+  "level": 2,
+  "skills": [
+    {
+      "skill": "mcp",
+      "level": 2
+    },
+    {
+      "skill": "go",
+      "level": 2
+    }
+  ],
+  "disciplines": [
+    "IA aplicada"
+  ],
+  "stack": [
+    "Go",
+    "MCP"
+  ],
+  "requirements": [
+    "Transporte stdio",
+    "Herramientas search y read con JSON Schema de entrada",
+    "Solo lectura: no sale de la carpeta raíz (sin path traversal)",
+    "Tests de las herramientas",
+    "README con la configuración para un cliente MCP"
+  ],
+  "constraints": [
+    "Sin acceso a red"
+  ],
+  "definitionOfDone": [
+    "go test ./... pasa",
+    "Un test prueba que ../ queda fuera",
+    "El README muestra un ejemplo de configuración"
+  ],
+  "estimatedDuration": "P1W",
+  "checks": [
+    {
+      "id": "go-mod",
+      "description": "Es un módulo Go",
+      "kind": "file",
+      "path": "go.mod"
+    },
+    {
+      "id": "sdk",
+      "description": "Usa un SDK de MCP",
+      "kind": "contains",
+      "path": "go.mod",
+      "pattern": "modelcontextprotocol|mark3labs/mcp-go"
+    },
+    {
+      "id": "tools",
+      "description": "Declara las herramientas search y read",
+      "kind": "contains",
+      "path": "**/*.go",
+      "pattern": "(?s)\\\"search\\\".*\\\"read\\\"|(?s)\\\"read\\\".*\\\"search\\\""
+    },
+    {
+      "id": "traversal-test",
+      "description": "Un test cubre el path traversal",
+      "kind": "contains",
+      "path": "**/*_test.go",
+      "pattern": "\\.\\./"
+    },
+    {
+      "id": "tests",
+      "description": "Al menos dos archivos de tests",
+      "kind": "file",
+      "path": "**/*_test.go",
+      "min": 2
+    },
+    {
+      "id": "readme",
+      "description": "Configuración para un cliente MCP",
+      "kind": "contains",
+      "path": "README.md",
+      "pattern": "mcpServers|\\\"command\\\""
+    }
+  ]
+}

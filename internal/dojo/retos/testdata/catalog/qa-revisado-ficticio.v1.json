@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "license": "CC-BY-4.0",
+  "origin": "human",
+  "author": "autora-ficticia",
+  "deliverables": [
+    "Repositorio público",
+    "Demo (URL o video)",
+    "Informe de decisiones (README o docs/)"
+  ],
+  "id": "qa-revisado-ficticio",
+  "title": "Reto revisado ficticio (solo QA y tests)",
+  "pitch": "Fixture: un reto con revisor para probar el tope N3. No es parte del catálogo real.",
+  "context": "Un servicio crítico se cae en cada actualización de nodos y nadie sabe por qué. Hay que desplegarlo de forma que sobreviva a drains, picos de carga y despliegues, con overlays por ambiente y un pipeline que valide los manifiestos.",
+  "level": 3,
+  "skills": [
+    {
+      "skill": "kubernetes",
+      "level": 3
+    },
+    {
+      "skill": "ci-cd",
+      "level": 2
+    },
+    {
+      "skill": "observability",
+      "level": 2
+    }
+  ],
+  "disciplines": [
+    "Plataforma"
+  ],
+  "stack": [
+    "Kubernetes",
+    "Kustomize",
+    "GitHub Actions"
+  ],
+  "requirements": [
+    "Deployment con readiness, liveness y startup probes",
+    "requests y limits de CPU y memoria",
+    "HorizontalPodAutoscaler",
+    "PodDisruptionBudget",
+    "NetworkPolicy que niega por defecto",
+    "topologySpreadConstraints o antiafinidad",
+    "Overlays de Kustomize por ambiente",
+    "Workflow de CI que valida los manifiestos (kubeconform o similar)",
+    "ADR con las decisiones de capacidad"
+  ],
+  "constraints": [
+    "Sin imágenes con tag latest",
+    "Contenedor sin root"
+  ],
+  "definitionOfDone": [
+    "kustomize build de cada overlay pasa la validación en CI",
+    "Un drain de nodo no deja el servicio sin réplicas (documentado en el informe)",
+    "Las métricas del servicio se exponen para Prometheus"
+  ],
+  "estimatedDuration": "P2W",
+  "checks": [
+    {
+      "id": "readme",
+      "description": "Hay README",
+      "kind": "file",
+      "path": "README.md"
+    },
+    {
+      "id": "license",
+      "description": "Hay licencia",
+      "kind": "file",
+      "path": "LICENSE"
+    },
+    {
+      "id": "gomod",
+      "description": "Es un módulo Go",
+      "kind": "file",
+      "path": "go.mod"
+    },
+    {
+      "id": "test",
+      "description": "Tiene tests",
+      "kind": "contains",
+      "path": "**/*_test.go",
+      "pattern": "func Test"
+    }
+  ],
+  "reviewer": "revisor-ficticio"
+}

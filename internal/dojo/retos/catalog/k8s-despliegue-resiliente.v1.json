@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "license": "CC-BY-4.0",
+  "origin": "ai",
+  "model": "claude-opus-5-5",
+  "author": "duv0-x",
+  "deliverables": [
+    "Repositorio público",
+    "Demo (URL o video)",
+    "Informe de decisiones (README o docs/)"
+  ],
+  "id": "k8s-despliegue-resiliente",
+  "title": "Despliegue resiliente en Kubernetes",
+  "pitch": "Lleva un servicio a Kubernetes listo para producción: probes, límites, escalado, disrupción controlada, red restringida y CI.",
+  "context": "Un servicio crítico se cae en cada actualización de nodos y nadie sabe por qué. Hay que desplegarlo de forma que sobreviva a drains, picos de carga y despliegues, con overlays por ambiente y un pipeline que valide los manifiestos.",
+  "level": 3,
+  "skills": [
+    {
+      "skill": "kubernetes",
+      "level": 3
+    },
+    {
+      "skill": "ci-cd",
+      "level": 2
+    },
+    {
+      "skill": "observability",
+      "level": 2
+    }
+  ],
+  "disciplines": [
+    "Plataforma"
+  ],
+  "stack": [
+    "Kubernetes",
+    "Kustomize",
+    "GitHub Actions"
+  ],
+  "requirements": [
+    "Deployment con readiness, liveness y startup probes",
+    "requests y limits de CPU y memoria",
+    "HorizontalPodAutoscaler",
+    "PodDisruptionBudget",
+    "NetworkPolicy que niega por defecto",
+    "topologySpreadConstraints o antiafinidad",
+    "Overlays de Kustomize por ambiente",
+    "Workflow de CI que valida los manifiestos (kubeconform o similar)",
+    "ADR con las decisiones de capacidad"
+  ],
+  "constraints": [
+    "Sin imágenes con tag latest",
+    "Contenedor sin root"
+  ],
+  "definitionOfDone": [
+    "kustomize build de cada overlay pasa la validación en CI",
+    "Un drain de nodo no deja el servicio sin réplicas (documentado en el informe)",
+    "Las métricas del servicio se exponen para Prometheus"
+  ],
+  "estimatedDuration": "P2W",
+  "checks": [
+    {
+      "id": "probes",
+      "description": "Readiness y liveness probes",
+      "kind": "contains",
+      "path": "**/*.yaml",
+      "pattern": "(?s)readinessProbe:.*livenessProbe:|(?s)livenessProbe:.*readinessProbe:"
+    },
+    {
+      "id": "resources",
+      "description": "Requests y limits",
+      "kind": "contains",
+      "path": "**/*.yaml",
+      "pattern": "(?s)requests:.*limits:|(?s)limits:.*requests:"
+    },
+    {
+      "id": "hpa",
+      "description": "HorizontalPodAutoscaler",
+      "kind": "contains",
+      "path": "**/*.yaml",
+      "pattern": "kind:\\s*HorizontalPodAutoscaler"
+    },
+    {
+      "id": "pdb",
+      "description": "PodDisruptionBudget",
+      "kind": "contains",
+      "path": "**/*.yaml",
+      "pattern": "kind:\\s*PodDisruptionBudget"
+    },
+    {
+      "id": "netpol",
+      "description": "NetworkPolicy",
+      "kind": "contains",
+      "path": "**/*.yaml",
+      "pattern": "kind:\\s*NetworkPolicy"
+    },
+    {
+      "id": "spread",
+      "description": "Reparto entre nodos o zonas",
+      "kind": "contains",
+      "path": "**/*.yaml",
+      "pattern": "topologySpreadConstraints:|podAntiAffinity:"
+    },
+    {
+      "id": "nonroot",
+      "description": "Contenedor sin root",
+      "kind": "contains",
+      "path": "**/*.yaml",
+      "pattern": "runAsNonRoot:\\s*true"
+    },
+    {
+      "id": "overlays",
+      "description": "Al menos dos overlays de Kustomize",
+      "kind": "file",
+      "path": "**/overlays/*/kustomization.yaml",
+      "min": 2
+    },
+    {
+      "id": "ci",
+      "description": "CI que valida los manifiestos",
+      "kind": "contains",
+      "path": ".github/workflows/*.y*ml",
+      "pattern": "kubeconform|kubeval|kube-linter|kustomize build"
+    },
+    {
+      "id": "no-latest",
+      "description": "Sin tag latest",
+      "kind": "absent",
+      "path": "**/*.yaml",
+      "pattern": "image:\\s*\\S+:latest\\b"
+    },
+    {
+      "id": "adr",
+      "description": "ADR con las decisiones",
+      "kind": "file",
+      "path": "docs/**/*.md"
+    }
+  ]
+}
