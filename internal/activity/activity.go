@@ -12,6 +12,7 @@ import (
 
 	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/federation"
+	"github.com/duv0-x/gremio/internal/medals"
 )
 
 // Publisher es lo que usa Actividad de federation.Server.
@@ -22,7 +23,7 @@ type Publisher interface {
 
 // Subscriber publica cada evento que entra al libro y retira el Note de cada evento retirado. Va registrado en el
 // único dojo.Ledger del servidor. profileURL es https://<host>/@usuario: el respaldo de una medalla es su
-// fila en la ficha.
+// fila en la ficha (#medalla-<id>), no la prueba, que ya muestra la ficha.
 func Subscriber(pub Publisher, l *dojo.Ledger, profileURL string) dojo.Subscriber {
 	return func(ctx context.Context, e dojo.Event) {
 		var err error
@@ -69,12 +70,14 @@ func Note(events []dojo.Event, e dojo.Event, profileURL string) (federation.Even
 			n.Text += ", sin sumar Entrenamiento."
 		}
 	case dojo.BadgeAwarded:
+		// El respaldo es la medalla en la ficha, que muestra cómo se ganó y su prueba.
 		n.Ref = profileURL + "#medalla-" + e.Badge.ID
-		if e.Proof != nil && e.Proof.URL != "" {
-			n.Ref = e.Proof.URL
+		m, ok := medals.Find(e.Badge.ID)
+		if !ok {
+			return federation.Event{}, fmt.Errorf("la medalla %q no está en el catálogo", e.Badge.ID)
 		}
-		// shortcut: el texto usa el id de la medalla; usar medals.Find (nombre y descripción) cuando internal/medals esté en main.
-		n.Text = "Ganó la medalla «" + e.Badge.ID + "»."
+		// La descripción ya termina en punto.
+		n.Text = "Ganó la medalla «" + m.Name + "»: " + m.Description
 	default:
 		return federation.Event{}, fmt.Errorf("el evento %s no va a Actividad", e.Type)
 	}
