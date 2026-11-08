@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 )
@@ -24,6 +25,9 @@ type Page struct {
 	View     int    // vista seleccionada; la primera es la principal
 	Tab      string // pestaña: ficha, cv, portafolio o actividad
 	HasCV    bool   // hay un PDF del CV para descargar
+	// Book es el libro del dojo y Now la fecha de cálculo: el Entrenamiento no se guarda, se calcula (ADR-013 §6).
+	Book []dojo.Event
+	Now  time.Time
 	// Executions son los retos del dojo terminados y publicados, para la línea de tiempo del Portafolio.
 	Executions []execution
 

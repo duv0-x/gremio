@@ -66,6 +66,8 @@
   --warning: #9a4a06;
   --danger: #b42318;
   --focus: #1d4ed8;
+  /* Barra Entrenamiento del dojo (ADR-013): ≥ 4.5:1 sobre bg, surface y surface-2. */
+  --train: #6d3fc0;
   /* Banda invertida del selector de vistas. */
   --band: #16181b;
   --on-band: #f3f4f1;
@@ -90,6 +92,7 @@
     --warning: #e0a256;
     --danger: #f08a7e;
     --focus: #8ab4f8;
+    --train: #b9a3f5;
     --band: #22262a;
     --on-band: #ecede9;
   }
@@ -112,6 +115,7 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-focus: var(--focus);
+  --color-train: var(--train);
   --color-band: var(--band);
   --color-on-band: var(--on-band);
   --color-band-line: var(--band-line);

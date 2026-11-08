@@ -14,6 +14,7 @@ import (
 
 	"github.com/a-h/templ"
 
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/profile"
 )
 
@@ -559,7 +560,7 @@ func applyAttribute(r *http.Request, res *profile.Resume, id *string) error {
 		if err != nil {
 			bad = fmt.Errorf("el puntaje de %q debe ser un número de 0 a 99", x.get("name"))
 		}
-		a.Subs = append(a.Subs, profile.Sub{Name: x.get("name"), Score: score, Learning: x.get("learning") != ""})
+		a.Subs = append(a.Subs, profile.Sub{Name: x.get("name"), Score: score, Learning: x.get("learning") != "", DojoSkill: x.get("dojoSkill")})
 	}
 	if i := attributeIndex(res, *id); i >= 0 && *id != "nuevo" {
 		res.Gremio.Attributes[i] = a
@@ -671,4 +672,13 @@ func editorError(w http.ResponseWriter, r *http.Request, msg string, code int) {
 	h.Set("HX-Reselect", "p")
 	w.WriteHeader(code)
 	fmt.Fprintf(w, `<p role="alert" tabindex="-1" autofocus class="rounded-md border border-danger p-4 text-sm text-ink">%s</p>`, html.EscapeString(msg))
+}
+
+// dojoSkillOptions es el catálogo de habilidades del dojo para el selector de un sub-atributo (ADR-013 §2).
+func dojoSkillOptions() []option {
+	opts := []option{{"", "Sin enlazar"}}
+	for _, s := range dojo.Skills {
+		opts = append(opts, option{s.ID, s.Name + " · " + volatilityWord(s.Volatility)})
+	}
+	return opts
 }

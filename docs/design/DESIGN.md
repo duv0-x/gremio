@@ -32,6 +32,7 @@ Fuente de los tokens y principios visuales de Gremio. El código ([ADR-008](../a
 | `warning` | `#9A4A06` | `#E0A256` | Aviso |
 | `danger` | `#B42318` | `#F08A7E` | Error, botón de peligro |
 | `focus` | `#1D4ED8` | `#8AB4F8` | Anillo de foco (2 px + 2 px de separación) |
+| `train` | `#6D3FC0` | `#B9A3F5` | Barra y número de Entrenamiento del dojo (ADR-013) |
 
 - Los estados (`success`, `warning`, `danger`) usan un fondo suave al 10–12 % de su color, con el texto en el color pleno.
 - La sección invertida del perfil (selector de vistas) usa `ink` de fondo y `bg` de texto en claro; en oscuro usa `surface-2`.
@@ -56,6 +57,8 @@ Fuente de los tokens y principios visuales de Gremio. El código ([ADR-008](../a
 | `danger` / `bg` | 5.95 | 7.66 |
 | `focus` / `bg` | 6.07 | 8.84 |
 | `control` / `surface` | 3.98 | 3.98 |
+| `train` / `surface` | 6.73 | 7.75 |
+| `train` / `surface-2` | 5.72 | 6.98 |
 
 ## Tipografía
 
@@ -133,6 +136,15 @@ Un botón con icono solo lleva `aria-label`. Con htmx, el botón pasa a `aria-bu
   - **Sin evidencia**: fondo transparente, borde 1 px `line`, texto `ink`; no es interactivo.
 - **Tarjeta de experiencia**: `surface`, borde `line`, radio `lg`, padding 24 px. Cargo (`title-md`), organización (`body-md` `muted`), fechas en `data-md` (`2022-03 → hoy`), logros en lista con viñeta `accent` y skills relacionadas en chips al pie.
 - **Tarjeta de ejecución**: título (`title-md`) que enlaza al proyecto, estado en chip de dato (mono, radio `sm`), fecha, rol propio y stack en chips de dato. Una ejecución sin resultado publicado no se muestra en el perfil público.
+- **Barra Entrenamiento** ([ADR-013](../adr/ADR-013-dojo-y-entrenamiento.md) §7): va debajo de la barra Declarado de un sub-atributo enlazado a una habilidad del dojo (`subs[].dojoSkill`).
+  - Barra de 2 px en `train` (la Declarado es de 4 px), con el rótulo "Entrenamiento" y "número · banda" en `data-sm` `train` encima: no depende solo del color.
+  - Si la habilidad del catálogo no se llama igual que el sub-atributo, el rótulo lleva su nombre ("Entrenamiento · AWS core").
+  - Sin retos no hay barra ni 0: "Sin entrenamiento todavía" en `faint`.
+  - La tarjeta con al menos un sub-atributo enlazado lleva una vez la leyenda "● Declarado ● Entrenamiento" (puntos decorativos en `ink` y `train`).
+  - Tooltip (el mismo `tipBox`): última práctica (mes y año), retos por confianza, el máximo y su fecha, y la volatilidad con su vida media. En la tarjeta, que ya es un enlace, no es enfocable; en el panel del atributo sí, y debajo va la confianza, la última práctica y el enlace "Ver los retos de …".
+  - Detalle `:target` (`#entrenamiento-<habilidad>`): número grande en `train`, banda, confianza, máximo y volatilidad; un evento por línea (fecha, reto con enlace, versión, nivel, confianza, ejecución, verificación y cuánto aportó o "no sumó"); al pie, "Reglas dojo-1 · calculado el AAAA-MM-DD · descargar libro · cómo recalcular". Cerrar vuelve al panel del atributo.
+  - Texto neutral: "última práctica", nunca "está perdiendo puntos"; sin flechas, animaciones ni percentiles.
+- **Línea de tiempo del Portafolio**: lista ordenada con borde izquierdo `line` y un punto por entrada (`accent` para un reto del dojo, `control` para un proyecto). Encima de cada tarjeta, la fecha en `data-md` y el tipo escrito ("Proyecto" o "Reto del dojo"). De lo más reciente a lo más antiguo; los proyectos sin fecha van al final.
 - **Selector de vistas por rol**: `role="tablist"` con tabs pill de 44 px sobre la banda invertida. Seleccionada: fondo `bg`, texto `ink`; resto: transparente, borde 1.5 px `#767B83` (el `#4A4F56` del mockup daba 2.15:1; este da 4.18:1 en claro y 3.58:1 en oscuro), texto `bg`. Sin JavaScript cada tab es un enlace a `/@usuario/<vista>`; con htmx cambia el contenido sin recargar y actualiza la URL.
 
 ### Estructura
