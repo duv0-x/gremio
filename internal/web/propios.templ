@@ -1,0 +1,149 @@
+package web
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/duv0-x/gremio/internal/dojo"
+	"github.com/duv0-x/gremio/internal/dojo/retos"
+)
+
+// ownList es la sección de retos propios en /panel/dojo.
+templ ownList(list []retos.Own) {
+	<section aria-labelledby="propios" class="flex flex-col gap-4">
+		<h2 id="propios" class="font-display text-xl font-bold">Retos propios</h2>
+		<p class="text-sm text-muted">Escríbelos a mano o pide un borrador a un plugin de IA. Cuentan como práctica propia: N2 (60) como máximo. Para que cuenten más, propónlos al catálogo revisado.</p>
+		if len(list) > 0 {
+			<ul class="flex flex-col gap-3">
+				for _, o := range list {
+					<li>
+						<a href={ templ.SafeURL("/panel/dojo/propios/" + o.ID) } class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-surface p-4 text-ink no-underline hover:border-accent hover:text-ink">
+							<span class="font-semibold">{ cmpOr(o.Draft.Title, "Sin título") }</span>
+							<span class="flex flex-wrap gap-1.5">
+								if o.Draft.Origin == "ai" {
+									<span class={ dataChip }>Borrador de IA</span>
+								}
+								if o.Versions > 0 {
+									<span class={ dataChip }>Publicado v{ itoa(o.Versions) }</span>
+								} else {
+									<span class={ dataChip }>Sin publicar</span>
+								}
+							</span>
+						</a>
+					</li>
+				}
+			</ul>
+		}
+		<a class={ btnSec, "sm:self-start" } href="/panel/dojo/propios/nuevo">Nuevo reto propio</a>
+	</section>
+}
+
+templ OwnPage(p ownPage) {
+	@panelLayout(p.Version, ownTitle(p)) {
+		@pluginsHeader("/panel/dojo", "Dojo", ownTitle(p))
+		if p.Notice != "" {
+			<p role="status" tabindex="-1" autofocus class="rounded-md border border-success p-4 text-sm text-ink">{ p.Notice }</p>
+		}
+		if p.Error != "" {
+			<p role="alert" tabindex="-1" autofocus class="rounded-md border border-danger p-4 text-sm text-ink">{ p.Error }</p>
+		}
+		if p.ID == "" {
+			@panelSection("Borrador con IA") {
+				if len(p.Generators) == 0 {
+					<p class="text-sm text-muted">Habilita Ollama o Claude en <a href="/panel/plugins">Plugins</a> para pedir un borrador.</p>
+				} else {
+					<form method="post" action="/panel/dojo/propios/generar" class="flex flex-col gap-4">
+						<p class="text-sm text-muted">El modelo propone el enunciado, el nivel y los checks; tú lo revisas y lo publicas como autor. El nivel que propone es solo una sugerencia.</p>
+						@selectField("Plugin", "plugin", p.Generators[0].ID, generatorOptions(p.Generators))
+						@textField("Modelo", "model", p.Generators[0].Model, "Déjalo vacío para usar el que propone el plugin. Con Ollama, escribe uno de tu instalación.")
+						@textArea("Tema", "topic", "", "Qué quieres practicar, p. ej. \"un operador de Kubernetes en Go que rote certificados\".", 3)
+						<button type="submit" class={ btnSec, "sm:self-start" }>Generar borrador</button>
+						<p class={ hintCls }>Puede tardar hasta 2 minutos.</p>
+					</form>
+				}
+			}
+		} else {
+			@panelSection("Publicar y tomar") {
+				<p class="text-sm text-muted">
+					if p.Published > 0 {
+						Publicado hasta la versión { itoa(p.Published) }. Publicar de nuevo crea la versión { itoa(p.Published + 1) } con este borrador; las anteriores no cambian. <a href={ templ.SafeURL("/dojo/retos/" + p.ID) }>Página pública</a>.
+					} else {
+						Todavía no lo publicaste. Al publicarlo se valida y queda como versión 1, inmutable.
+					}
+				</p>
+				<div class="flex flex-col gap-3 sm:flex-row">
+					<form method="post" action={ templ.SafeURL("/panel/dojo/propios/" + p.ID + "/publicar") }>
+						<button type="submit" class={ btnSec, "w-full" }>Publicar versión { itoa(p.Published + 1) }</button>
+					</form>
+					if p.Published > 0 {
+						<form method="post" action={ templ.SafeURL("/panel/dojo/propios/" + p.ID + "/tomar") }>
+							<button type="submit" class={ btnPrimary, "w-full" }>Tomar v{ itoa(p.Published) }</button>
+						</form>
+					}
+				</div>
+			}
+		}
+		<form method="post" action={ templ.SafeURL(ownAction(p)) } class={ card, "flex flex-col gap-5" }>
+			<h2 class="font-display text-xl font-bold">Enunciado</h2>
+			if p.Challenge.Origin == "ai" {
+				<p class="text-sm text-muted">Borrador generado con { p.Challenge.Model }. Al publicarlo quedas como autor.</p>
+			}
+			@textField("Título (obligatorio)", "title", p.Challenge.Title, "")
+			@textField("Pitch", "pitch", p.Challenge.Pitch, "Una frase.")
+			@textArea("Contexto de negocio", "context", p.Challenge.Context, "", 4)
+			@selectField("Nivel del reto", "level", strconv.Itoa(int(p.Challenge.Level)), levelOptions())
+			<fieldset class="flex flex-col gap-3">
+				<legend class={ labelCls }>Habilidades (de 1 a 3, ninguna por encima del nivel del reto)</legend>
+				for i := range dojo.MaxSkills {
+					<div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+						@selectField(fmt.Sprintf("Habilidad %d", i+1), fmt.Sprintf("skill%d", i+1), skillAt(p.Challenge, i).Skill, dojoSkillOptions())
+						@selectField(fmt.Sprintf("Nivel en la habilidad %d", i+1), fmt.Sprintf("skill%dlevel", i+1), strconv.Itoa(int(skillAt(p.Challenge, i).Level)), levelOptions())
+					</div>
+				}
+			</fieldset>
+			@textField("Stack", "stack", strings.Join(p.Challenge.Stack, ", "), "Separado por comas.")
+			@textArea("Requisitos técnicos (obligatorio)", "requirements", strings.Join(p.Challenge.Requirements, "\n"), "Uno por línea.", 5)
+			@textArea("Restricciones", "constraints", strings.Join(p.Challenge.Constraints, "\n"), "Una por línea.", 3)
+			@textArea("Definition of Done (obligatorio)", "dod", strings.Join(p.Challenge.DefinitionOfDone, "\n"), "Uno por línea.", 4)
+			@textArea("Entregables", "deliverables", strings.Join(p.Challenge.Deliverables, "\n"), "Uno por línea.", 3)
+			@textField("Duración estimada", "duration", p.Challenge.EstimatedDuration, "Duración ISO 8601, p. ej. P1W o P3D.")
+			@textField("Licencia del enunciado", "license", p.Challenge.License, "CC-BY-4.0 por defecto (ADR-002 §6).")
+			@textArea("Checks (JSON)", "checks", p.Checks, `Sin checks no se puede verificar, y sin verificación no hay ganancia. Ejemplo: [{"id":"tests","description":"Tiene tests","kind":"contains","path":"**/*_test.go","pattern":"func Test"}]. Kinds: file, contains, absent.`, 8)
+			<button type="submit" class={ btnPrimary, "sm:self-start" }>Guardar borrador</button>
+		</form>
+	}
+}
+
+func ownTitle(p ownPage) string {
+	if p.ID == "" {
+		return "Nuevo reto propio"
+	}
+	return cmpOr(p.Challenge.Title, "Reto propio")
+}
+
+func ownAction(p ownPage) string {
+	if p.ID == "" {
+		return "/panel/dojo/propios"
+	}
+	return "/panel/dojo/propios/" + p.ID
+}
+
+func skillAt(c retos.Challenge, i int) dojo.SkillLevel {
+	if i < len(c.Skills) {
+		return c.Skills[i]
+	}
+	return dojo.SkillLevel{}
+}
+
+func levelOptions() []option {
+	return []option{{"1", "N1 Fundamentos"}, {"2", "N2"}, {"3", "N3"}, {"4", "N4 Experto"}}
+}
+
+func generatorOptions(list []generatorOption) []option {
+	out := make([]option, len(list))
+	for i, g := range list {
+		out[i] = option{Value: g.ID, Label: g.Name}
+	}
+	return out
+}

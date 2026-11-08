@@ -80,14 +80,18 @@ func (s *Service) Take(ctx context.Context, slug string) (Execution, error) {
 	if !ok {
 		return Execution{}, fmt.Errorf("el reto %s no está en el catálogo", slug)
 	}
-	c := entry.Latest()
+	return s.take(ctx, CatalogPrefix+slug, entry.Latest())
+}
+
+// take crea la ejecución con la copia del enunciado y el id de linaje del reto.
+func (s *Service) take(ctx context.Context, lineage string, c Challenge) (Execution, error) {
 	doc, err := json.Marshal(c)
 	if err != nil {
 		return Execution{}, err
 	}
 	id, now := strings.ToLower(rand.Text()[:16]), s.now()
 	err = s.st.Write.CreateExecution(ctx, store.CreateExecutionParams{
-		ID: id, Challenge: CatalogPrefix + slug, ChallengeVersion: int64(c.Version), Snapshot: string(doc),
+		ID: id, Challenge: lineage, ChallengeVersion: int64(c.Version), Snapshot: string(doc),
 		StartedAt: now, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {
@@ -247,16 +251,19 @@ type URLs struct {
 
 func (u URLs) Execution(id string) string { return u.Host + "/dojo/ejecuciones/" + id }
 
-// ChallengeVersion es la página pública de la versión de un reto del catálogo.
-func (u URLs) ChallengeVersion(slug string, v int) string {
-	return fmt.Sprintf("%s/dojo/catalogo/%s/v%d", u.Host, slug, v)
-}
+// Own es la página pública de un reto propio: su id de linaje (ADR-013 §3).
+func (u URLs) Own(id string) string { return u.Host + "/dojo/retos/" + id }
 
 func (u URLs) challenge(e Execution) string {
+	return u.Host + ChallengePath(e)
+}
+
+// ChallengePath es la ruta de la página pública de la versión que se tomó.
+func ChallengePath(e Execution) string {
 	if slug, ok := e.Slug(); ok {
-		return u.ChallengeVersion(slug, e.Version)
+		return fmt.Sprintf("/dojo/catalogo/%s/v%d", slug, e.Version)
 	}
-	return e.Challenge
+	return fmt.Sprintf("/dojo/retos/%s/v%d", e.Snapshot.ID, e.Version)
 }
 
 // Event arma el evento del libro de la ejecución. Para challengeCompleted lleva la confianza y la prueba.

@@ -168,3 +168,74 @@ func TestFailingChecksBlockCompletion(t *testing.T) {
 		t.Errorf("con checks fallidos no se termina: %v", err)
 	}
 }
+
+// Un reto propio N3 con checks que pasan cuenta como práctica propia: N2 como máximo (ADR-013 §4).
+func TestOwnChallengeCapsAtN2(t *testing.T) {
+	s, ledger, ctx := newService(t, k8sSolution)
+	c := Catalog["qa-revisado-ficticio"].Latest()
+	c.Reviewer, c.Author = "alguien", "otra" // nada de esto vale fuera del catálogo
+	id, err := s.CreateOwn(ctx, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.TakeOwn(ctx, id, URLs{Host: "https://x"}); err == nil {
+		t.Fatal("un reto sin publicar no se toma")
+	}
+	if v, err := s.PublishOwn(ctx, id, "root"); err != nil || v != 1 {
+		t.Fatalf("publicar: %d %v", v, err)
+	}
+	o, _ := s.GetOwn(ctx, id)
+	if o.Latest.Author != "root" || o.Latest.Reviewer != "" {
+		t.Errorf("el autor es el dueño y un reto propio no tiene revisor: %+v", o.Latest)
+	}
+	urls := URLs{Host: "https://duv0-x.cloud"}
+	e, err := s.TakeOwn(ctx, id, urls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Challenge != urls.Own(id) || ChallengePath(e) != "/dojo/retos/"+id+"/v1" {
+		t.Errorf("linaje %q, ruta %q", e.Challenge, ChallengePath(e))
+	}
+	s.Deliver(ctx, e.ID, Delivery{Repo: "https://github.com/ana/app", Commit: strings.Repeat("d", 40)})
+	if _, err := s.Verify(ctx, e.ID); err != nil {
+		t.Fatal(err)
+	}
+	s.Complete(ctx, e.ID, urls)
+	if _, err := s.Publish(ctx, e.ID, urls); err != nil {
+		t.Fatal(err)
+	}
+	book, _ := ledger.List(ctx)
+	if book[1].Trust != dojo.SelfPractice {
+		t.Fatalf("confianza %q", book[1].Trust)
+	}
+	if got := dojo.Training(book, "kubernetes", s.Now()).Shown(); got != 44 {
+		t.Errorf("Training = %d, quería 44", got)
+	}
+	// Una versión nueva queda aparte y la anterior no cambia.
+	c.Title = "Otro título"
+	s.SaveOwn(ctx, id, c)
+	if v, _ := s.PublishOwn(ctx, id, "root"); v != 2 {
+		t.Errorf("segunda versión: %d", v)
+	}
+	if v1, _ := s.OwnVersion(ctx, id, 1); v1.Title == "Otro título" {
+		t.Error("la versión 1 cambió")
+	}
+}
+
+func TestParseDraft(t *testing.T) {
+	text := "Aquí va:\n```json\n" + `{"id":"x","title":"T","author":"claude","reviewer":"claude","origin":"human","level":5,
+	"skills":[{"skill":"go","level":1},{"skill":"git","level":1},{"skill":"sql","level":1},{"skill":"bash","level":1}]}` + "\n```"
+	c, err := ParseDraft(text, "ollama:qwen")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Origin != "ai" || c.Model != "ollama:qwen" || c.Author != "" || c.Reviewer != "" || c.ID != "" || len(c.Skills) != 3 {
+		t.Errorf("la IA no fija autoría, revisión ni id: %+v", c)
+	}
+	if c.Validate() == nil {
+		t.Error("un nivel 5 no valida: se corrige en el panel")
+	}
+	if _, err := ParseDraft("no sé", "m"); err == nil {
+		t.Error("sin JSON debía fallar")
+	}
+}
