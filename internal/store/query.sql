@@ -115,3 +115,18 @@ UPDATE plugins SET status = ?, checked_at = ? WHERE id = ?;
 
 -- name: DeletePlugin :exec
 DELETE FROM plugins WHERE id = ?;
+
+-- name: AppendDojoEvent :exec
+INSERT INTO dojo_events (hash, prev, type, at, challenge, body) VALUES (?, ?, ?, ?, ?, ?);
+
+-- name: LastDojoEventHash :one
+SELECT hash FROM dojo_events ORDER BY seq DESC LIMIT 1;
+
+-- name: GetDojoEvent :one
+SELECT * FROM dojo_events WHERE hash = ?;
+
+-- name: ListDojoEvents :many
+SELECT * FROM dojo_events ORDER BY seq;
+
+-- name: ScrubDojoEvent :execrows
+UPDATE dojo_events SET body = ? WHERE hash = ?;
