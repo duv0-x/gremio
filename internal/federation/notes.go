@@ -32,9 +32,20 @@ func (s *Server) PublishNote(ctx context.Context, text string) (string, int, err
 		Content:     "<p>" + strings.ReplaceAll(html.EscapeString(text), "\n", "<br>") + "</p>",
 		PublishedAt: dbTime(now()),
 	}
+	queued, err := s.publish(ctx, n)
+	if err != nil {
+		return "", 0, err
+	}
+	return n.ID, queued, nil
+}
+
+// publish guarda el Note y encola su Create para cada servidor seguidor, en una transacción. Si el Note ya existía
+// no hace nada y devuelve 0: así publicar dos veces el mismo evento no lo duplica en los seguidores.
+func (s *Server) publish(ctx context.Context, n store.Note) (int, error) {
 	var queued int
 	err := s.st.Tx(ctx, func(q *store.Queries) error {
-		if err := q.CreateNote(ctx, store.CreateNoteParams(n)); err != nil {
+		created, err := q.CreateNote(ctx, store.CreateNoteParams(n))
+		if err != nil || created == 0 {
 			return err
 		}
 		rows, err := q.ListFollowerInboxes(ctx)
@@ -46,15 +57,15 @@ func (s *Server) PublishNote(ctx context.Context, text string) (string, int, err
 		return s.enqueue(ctx, q, inboxes, s.createActivity(n))
 	})
 	if err != nil {
-		return "", 0, err
+		return 0, err
 	}
 	s.wake()
-	return n.ID, queued, nil
+	return queued, nil
 }
 
-func (s *Server) noteObject(n store.Note) *ap.Object {
+func (s *Server) noteObject(n store.Note) ap.Item {
 	published, _ := time.Parse(dbTimeLayout, n.PublishedAt)
-	return &ap.Object{
+	o := &ap.Object{
 		ID:           ap.IRI(n.ID),
 		Type:         ap.NoteType,
 		AttributedTo: s.actorID,
@@ -64,13 +75,17 @@ func (s *Server) noteObject(n store.Note) *ap.Object {
 		To:           ap.ItemCollection{ap.PublicNS},
 		CC:           ap.ItemCollection{s.actorID + "/followers"},
 	}
+	if n.Gremio == "" {
+		return o
+	}
+	return gremioItem{o, n.Gremio}
 }
 
 func (s *Server) createActivity(n store.Note) *ap.Activity {
-	note := s.noteObject(n)
+	published, _ := time.Parse(dbTimeLayout, n.PublishedAt)
 	return &ap.Activity{
-		ID: note.ID + "/activity", Type: ap.CreateType, Actor: s.actorID, Object: note,
-		Published: note.Published, To: note.To, CC: note.CC,
+		ID: ap.IRI(n.ID + "/activity"), Type: ap.CreateType, Actor: s.actorID, Object: s.noteObject(n),
+		Published: published, To: ap.ItemCollection{ap.PublicNS}, CC: ap.ItemCollection{s.actorID + "/followers"},
 	}
 }
 

@@ -34,8 +34,18 @@ SELECT count(*) FROM followers;
 -- name: ListFollowerInboxes :many
 SELECT inbox, shared_inbox FROM followers;
 
--- name: CreateNote :exec
-INSERT INTO notes (id, content, published_at) VALUES (?, ?, ?);
+-- name: CreateNote :execrows
+-- Un id repetido no hace nada: publicar dos veces el mismo evento no duplica el Note.
+INSERT INTO notes (id, content, published_at, gremio) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO NOTHING;
+
+-- name: DeleteNote :execrows
+DELETE FROM notes WHERE id = ?;
+
+-- name: ListEventNotes :many
+SELECT * FROM notes WHERE gremio != '' ORDER BY published_at DESC, id LIMIT ?;
+
+-- name: HasEventNotes :one
+SELECT EXISTS (SELECT 1 FROM notes WHERE gremio != '');
 
 -- name: GetNote :one
 SELECT * FROM notes WHERE id = ?;

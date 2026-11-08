@@ -66,8 +66,8 @@ func inboxesFor(rows []store.ListFollowerInboxesRow) []string {
 
 // enqueue serializa la actividad una vez y la encola para cada inbox. Usa q para poder ir dentro de una
 // transacción; quien llama debe invocar s.wake() después del commit.
-func (s *Server) enqueue(ctx context.Context, q *store.Queries, inboxes []string, act *ap.Activity) error {
-	body, err := jsonld.WithContext(jsonld.IRI(ap.ActivityBaseURI)).Marshal(act)
+func (s *Server) enqueue(ctx context.Context, q *store.Queries, inboxes []string, act ap.Item) error {
+	body, err := jsonld.WithContext(apContext).Marshal(act)
 	if err != nil {
 		return err
 	}

@@ -58,6 +58,7 @@ type Note struct {
 	ID          string
 	Content     string
 	PublishedAt string
+	Gremio      string
 }
 
 type Plugin struct {

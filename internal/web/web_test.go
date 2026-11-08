@@ -469,3 +469,53 @@ func TestAtributosPorPesoEnElRol(t *testing.T) {
 		t.Errorf("orden en PLE: CNT %d, COD %d, OBS %d", cnt, cod, obs)
 	}
 }
+
+func TestPestanaActividad(t *testing.T) {
+	dir := t.TempDir()
+	ts := newTestServerIn(t, fichaDoc, dir)
+	if _, body := get(t, ts.URL+"/@alice"); strings.Contains(body, `href="/@alice/actividad"`) {
+		t.Error("sin eventos no debe haber pestaña Actividad")
+	}
+	if resp, _ := get(t, ts.URL+"/@alice/actividad"); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("/actividad sin eventos: HTTP %d", resp.StatusCode)
+	}
+
+	ctx := context.Background()
+	st, err := store.Open(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	// Un Note libre viejo (sin gremio) no es actividad; los de eventos salen del más nuevo al más viejo.
+	for _, n := range []store.CreateNoteParams{
+		{ID: "https://gremio.ejemplo.org/notes/libre", Content: "<p>post libre</p>", PublishedAt: "2026-11-03T00:00:00.000Z"},
+		{ID: "https://gremio.ejemplo.org/notes/a1", Content: "<p>Empezó el reto «K8s &amp; Go».</p><p><a href=\"x\">x</a></p>", PublishedAt: "2026-11-01T10:00:00.000Z",
+			Gremio: `{"gremio:event":"challengeStarted","gremio:ref":"https://gremio.ejemplo.org/retos/k8s/1","gremio:rules":"dojo-1","gremio:head":"a1"}`},
+		{ID: "https://gremio.ejemplo.org/notes/b2", Content: "<p>Ganó la medalla Cinturón blanco.</p>", PublishedAt: "2026-11-02T10:00:00.000Z",
+			Gremio: `{"gremio:event":"badgeAwarded","gremio:ref":"https://gremio.ejemplo.org/@alice","gremio:rules":"dojo-1","gremio:head":"b2"}`},
+	} {
+		if _, err := st.Write.CreateNote(ctx, n); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, body := get(t, ts.URL+"/@alice"); !strings.Contains(body, `href="/@alice/actividad"`) || !strings.Contains(body, "grid-cols-3") {
+		t.Error("con eventos la ficha debe tener la pestaña Actividad")
+	}
+	resp, body := get(t, ts.URL+"/@alice/actividad")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("HTTP %d", resp.StatusCode)
+	}
+	medal, started := strings.Index(body, "Ganó la medalla Cinturón blanco."), strings.Index(body, "Empezó el reto «K8s &amp; Go».")
+	if medal < 0 || started < 0 || medal > started {
+		t.Error("Actividad debe mostrar los eventos del más nuevo al más viejo, con el texto escapado una sola vez")
+	}
+	for _, want := range []string{`href="https://gremio.ejemplo.org/retos/k8s/1"`, "Ver la ejecución", "Ver la medalla", `datetime="2026-11-02T10:00:00Z"`,
+		`href="/@alice/actividad" aria-current="page"`, "<title>Alice Ejemplo · Actividad</title>"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("Actividad: falta %q", want)
+		}
+	}
+	if strings.Contains(body, "post libre") {
+		t.Error("un Note sin evento no es actividad")
+	}
+}
