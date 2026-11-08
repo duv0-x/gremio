@@ -464,7 +464,7 @@ templ AttributeForm(e editPage) {
 			</div>
 		}
 		@fieldset("Sub-atributos") {
-			<p class="text-sm text-muted">El puntaje del atributo es el promedio de estos, de 0 a 99.</p>
+			<p class="text-sm text-muted">El puntaje del atributo es el promedio de estos, de 0 a 99. Enlazar un sub-atributo a una habilidad del dojo le suma la barra Entrenamiento, que se gana con retos y no se edita; cada habilidad va en un solo sub-atributo.</p>
 			for i := range e.pad("sub", len(attribute(e).Subs)) {
 				@rowBox(e, "sub", i, len(attribute(e).Subs)) {
 					<div class="grid gap-4 sm:grid-cols-3">
@@ -476,6 +476,7 @@ templ AttributeForm(e editPage) {
 							<input id={ field("sub", i, "score") } name={ field("sub", i, "score") } type="number" min="0" max="99" value={ scoreValue(at(attribute(e).Subs, i), i >= len(attribute(e).Subs)) } class={ inputCls }/>
 						</div>
 					</div>
+					@selectField("Habilidad del dojo", field("sub", i, "dojoSkill"), at(attribute(e).Subs, i).DojoSkill, dojoSkillOptions())
 					@checkField("Lo estoy aprendiendo", field("sub", i, "learning"), at(attribute(e).Subs, i).Learning)
 					@rowControls("sub", i, i >= len(attribute(e).Subs))
 				}

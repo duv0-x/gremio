@@ -16,6 +16,7 @@ import (
 	"time"
 	_ "time/tzdata" // el binario no depende de las zonas del sistema
 
+	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/icons"
 )
 
@@ -391,6 +392,9 @@ func (r *Resume) Normalize() error {
 				return fmt.Errorf("%s.subs[%d]: falta name o el puntaje no está entre 0 y 99", what, j)
 			}
 			if k := sub.DojoSkill; k != "" {
+				if _, ok := dojo.FindSkill(k); !ok {
+					return fmt.Errorf("%s.subs[%d]: la habilidad del dojo %q no está en el catálogo", what, j, k)
+				}
 				if dojoSkills[k] {
 					return fmt.Errorf("%s.subs[%d]: la habilidad del dojo %q ya está en otro sub-atributo", what, j, k)
 				}

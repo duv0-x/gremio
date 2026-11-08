@@ -27,6 +27,11 @@ templ ficha(p Page) {
 	</div>
 	for _, a := range p.Resume.Gremio.Attributes {
 		@attributeDetail(p, a)
+		for _, s := range a.Subs {
+			if t, ok := p.training(s); ok && !t.Empty() {
+				@trainingDetail(p, a, t)
+			}
+		}
 	}
 }
 
@@ -293,9 +298,12 @@ templ fichaAttributes(p Page) {
 							</span>
 							<span class={ "font-display text-[32px] leading-none font-bold", scoreClass(a.Score()) }>{ itoa(a.Score()) }</span>
 						</span>
+						if hasTraining(a) {
+							@trainingLegend()
+						}
 						<span class="mt-4 flex flex-col gap-3 border-t border-line pt-4">
 							for _, s := range a.Subs {
-								@subBar(s)
+								@subBar(p, s, false)
 							}
 						</span>
 						<span class="mt-auto flex items-center justify-between pt-4 font-mono text-[13px] text-faint">Explorar <span aria-hidden="true">›</span></span>
@@ -306,7 +314,10 @@ templ fichaAttributes(p Page) {
 	</section>
 }
 
-templ subBar(s profile.Sub) {
+// subBar es la barra Declarado de un sub-atributo y, si está enlazado al dojo, su barra Entrenamiento (ADR-013 §1).
+// detail dice si va en el panel del atributo, donde el tooltip es enfocable y enlaza a los eventos; en la tarjeta,
+// que ya es un enlace, no lleva elementos enfocables.
+templ subBar(p Page, s profile.Sub, detail bool) {
 	<span class="block">
 		<span class="flex items-baseline justify-between gap-2 text-[13px]">
 			<span class="truncate">
@@ -325,6 +336,9 @@ templ subBar(s profile.Sub) {
 				<rect width={ itoa(s.Score) } height="4" rx="2" class={ barClass(s) }></rect>
 			}
 		</svg>
+		if t, ok := p.training(s); ok {
+			@trainingBar(t, detail)
+		}
 	</span>
 }
 
@@ -369,8 +383,11 @@ templ attributeDetail(p Page, a profile.Attribute) {
 		<div>
 			<h3 class={ eyebrow }>Sub-atributos</h3>
 			<div class="mt-3 flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
+				if hasTraining(a) {
+					@trainingLegend()
+				}
 				for _, s := range a.Subs {
-					@subBar(s)
+					@subBar(p, s, true)
 				}
 			</div>
 		</div>
@@ -546,4 +563,115 @@ templ guiaPaso(zona, title string) {
 			{ children... }
 		</p>
 	</li>
+}
+
+// trainingLegend va una vez por tarjeta: los puntos son decorativos y el texto dice qué barra es cuál.
+templ trainingLegend() {
+	<span class="mt-3 flex flex-wrap gap-x-3 font-mono text-[11px] text-muted">
+		<span><span aria-hidden="true" class="text-ink">●</span> Declarado</span>
+		<span><span aria-hidden="true" class="text-train">●</span> Entrenamiento</span>
+	</span>
+}
+
+// trainingBar es la barra Entrenamiento: otro color (train), más delgada y siempre con su rótulo escrito, para no
+// depender del color. Sin retos no hay barra: "Sin entrenamiento todavía", nunca un 0 (ADR-013 §1).
+templ trainingBar(t trainingRow, detail bool) {
+	<span
+		class="tip mt-2 block cursor-help no-underline"
+		data-tip={ t.tip() }
+		if detail {
+			tabindex="0"
+		}
+	>
+		<span class="flex items-baseline justify-between gap-2 font-mono text-[11px] text-train">
+			<span class="truncate">
+				Entrenamiento
+				if n := t.otherName(); n != "" {
+					· { n }
+				}
+			</span>
+			if !t.Empty() {
+				<span class="shrink-0 font-semibold">{ itoa(t.Shown()) } · { t.Band.String() }</span>
+			}
+		</span>
+		if t.Empty() {
+			<span class="mt-0.5 block text-[12px] text-faint">Sin entrenamiento todavía</span>
+		} else {
+			<svg viewBox="0 0 100 2" preserveAspectRatio="none" class="mt-1 block h-0.5 w-full" aria-hidden="true">
+				<rect width="100" height="2" class="fill-line"></rect>
+				<rect width={ itoa(t.Shown()) } height="2" class="fill-train"></rect>
+			</svg>
+			if detail {
+				<span class="mt-1 block text-[12px] text-muted">{ trustLabel(t.Trust) } · última práctica { monthYear(t.LastPractice) }</span>
+			}
+		}
+		<span class="sr-only">{ t.tip() }</span>
+		@tipBox("Entrenamiento", t.tip())
+	</span>
+	if detail && !t.Empty() {
+		<a href={ templ.SafeURL("#" + trainingAnchor(t.Skill.ID)) } class="inline-flex min-h-11 items-center font-mono text-[13px]">Ver los retos de { t.Skill.Name } ›</a>
+	}
+}
+
+templ trainingHeader(t trainingRow) {
+	<p class={ eyebrow }>Entrenamiento</p>
+	<h2 id={ trainingAnchor(t.Skill.ID) + "-titulo" } class="mt-2 font-display text-2xl font-bold">{ t.Skill.Name }</h2>
+	if n := t.otherName(); n != "" {
+		<p class="mt-1 text-muted">Sub-atributo { t.Sub.Name }</p>
+	}
+}
+
+// trainingDetail es el detalle :target de la barra (ADR-013 §7): un evento por línea y, al pie, las reglas, la fecha
+// de cálculo y el libro para recalcularlo. El texto es neutral: mide resultados entregados.
+templ trainingDetail(p Page, a profile.Attribute, t trainingRow) {
+	@drawer(trainingAnchor(t.Skill.ID), "#"+attrAnchor(a.Code), trainingHeader(t)) {
+		<div class="flex items-end gap-4 rounded-lg border border-line bg-surface p-5">
+			<p class="font-display text-[56px] leading-none font-bold text-train">{ itoa(t.Shown()) }</p>
+			<p class="pb-1 text-sm text-muted">
+				Banda { t.Band.String() } · { trustLabel(t.Trust) }
+				<br/>
+				Máximo { itoa(round(t.Max)) } en { monthYear(t.MaxAt) } · volatilidad { volatilityWord(t.Skill.Volatility) }, vida media de { halfLifeLabel(t.Skill.Volatility) }
+			</p>
+		</div>
+		<p class="text-sm leading-relaxed text-muted">
+			Mide resultados entregados en el dojo: no se declara, se gana con retos. Sin práctica baja despacio hacia un piso. La práctica propia cuenta hasta N2 (60); un reto reproducible del catálogo revisado, hasta N3 (80), y uno verificado por terceros, hasta N4.
+		</p>
+		<div>
+			<h3 class={ eyebrow }>Retos</h3>
+			<ol class="mt-3 flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
+				for _, c := range t.Contributions {
+					<li class="flex flex-col gap-1 p-4">
+						<p class="flex flex-wrap items-baseline justify-between gap-2">
+							if c.URL != "" {
+								<a href={ templ.SafeURL(c.URL) } rel="noopener" class="font-semibold">{ cmpOr(c.Title, c.Challenge) }</a>
+							} else {
+								<span class="font-semibold">{ cmpOr(c.Title, c.Challenge) }</span>
+							}
+							<span class="font-mono text-[13px] font-semibold text-train">{ gainLabel(c) }</span>
+						</p>
+						<p class="font-mono text-[12px] text-muted">
+							{ day(c.At) }
+							if c.Version > 0 {
+								· v{ itoa(c.Version) }
+							}
+							· { c.Level.String() } · { trustLabel(c.Trust) }
+						</p>
+						<p class="flex flex-wrap gap-x-4 font-mono text-[13px]">
+							if c.Execution != "" {
+								<a href={ templ.SafeURL(c.Execution) } rel="noopener" class="inline-flex min-h-11 items-center">ejecución ↗</a>
+							}
+							if c.Proof != nil && c.Proof.URL != "" {
+								<a href={ templ.SafeURL(c.Proof.URL) } rel="noopener" class="inline-flex min-h-11 items-center">verificación ↗</a>
+							}
+						</p>
+					</li>
+				}
+			</ol>
+		</div>
+		<p class="font-mono text-[12px] text-faint">
+			Reglas { t.Rules } · calculado el { day(t.At) } ·
+			<a href={ templ.SafeURL("/@" + p.Username + "/dojo.json") } download>descargar libro</a> ·
+			<a href={ templ.SafeURL(adr013URL) } rel="noopener">cómo recalcular</a>
+		</p>
+	}
 }

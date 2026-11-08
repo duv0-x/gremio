@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/duv0-x/gremio/internal/auth"
 	"github.com/duv0-x/gremio/internal/dojo"
@@ -100,7 +101,14 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		Handle:   "@" + inst.Username + "@" + inst.AccountDomain.String,
 		Actor:    inst.Host.String + "/users/" + inst.Username,
 		Version:  s.version,
+		Now:      time.Now().UTC(),
 	}
+	if page.Book, err = s.Dojo.List(r.Context()); err != nil {
+		slog.Error("libro del dojo", "err", err)
+		http.Error(w, "perfil no disponible", http.StatusInternalServerError)
+		return
+	}
+	page.Executions = dojoExecutions(page.Book)
 	page.Tab = "ficha"
 	page.HasCV = s.hasCV()
 	if page.HasActivity, err = s.st.Read.HasEventNotes(r.Context()); err != nil {

@@ -321,12 +321,12 @@ func TestEditorVistasAtributosYRasgos(t *testing.T) {
 	}
 
 	// Renombrar un atributo mueve sus pesos en todas las vistas.
-	if resp, _ := p.do("/panel/atributos/CNT", url.Values{"code": {"cnx"}, "name": {"Contenedores"}, "sub.0.name": {"Kubernetes"}, "sub.0.score": {"95"},
+	if resp, _ := p.do("/panel/atributos/CNT", url.Values{"code": {"cnx"}, "name": {"Contenedores"}, "sub.0.name": {"Kubernetes"}, "sub.0.score": {"95"}, "sub.0.dojoSkill": {"kubernetes"},
 		"sub.1.name": {"EKS"}, "sub.1.score": {"85"}, "sub.1.learning": {"1"}, "skill": {"k8s"}}, true); resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("editar atributo: %d", resp.StatusCode)
 	}
 	r := p.profile()
-	if a := r.Gremio.Attributes[0]; a.Code != "CNX" || a.Score() != 90 || !a.Subs[1].Learning || len(a.Highlights) != 0 {
+	if a := r.Gremio.Attributes[0]; a.Code != "CNX" || a.Score() != 90 || !a.Subs[1].Learning || a.Subs[0].DojoSkill != "kubernetes" || len(a.Highlights) != 0 {
 		t.Errorf("atributo: %+v", a)
 	}
 	for _, v := range r.Gremio.Views {
