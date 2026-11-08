@@ -18,6 +18,16 @@ type DeliveryQueue struct {
 	CreatedAt     string
 }
 
+type DojoEvent struct {
+	Seq       int64
+	Hash      string
+	Prev      string
+	Type      string
+	At        string
+	Challenge string
+	Body      string
+}
+
 type Follower struct {
 	ActorIri    string
 	Inbox       string

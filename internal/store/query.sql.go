@@ -10,6 +10,31 @@ import (
 	"database/sql"
 )
 
+const appendDojoEvent = `-- name: AppendDojoEvent :exec
+INSERT INTO dojo_events (hash, prev, type, at, challenge, body) VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type AppendDojoEventParams struct {
+	Hash      string
+	Prev      string
+	Type      string
+	At        string
+	Challenge string
+	Body      string
+}
+
+func (q *Queries) AppendDojoEvent(ctx context.Context, arg AppendDojoEventParams) error {
+	_, err := q.db.ExecContext(ctx, appendDojoEvent,
+		arg.Hash,
+		arg.Prev,
+		arg.Type,
+		arg.At,
+		arg.Challenge,
+		arg.Body,
+	)
+	return err
+}
+
 const bindInstanceHost = `-- name: BindInstanceHost :execrows
 UPDATE instance SET host = ?, account_domain = ? WHERE id = 1 AND host IS NULL
 `
@@ -260,6 +285,25 @@ func (q *Queries) EnqueueDelivery(ctx context.Context, arg EnqueueDeliveryParams
 	return err
 }
 
+const getDojoEvent = `-- name: GetDojoEvent :one
+SELECT seq, hash, prev, type, at, challenge, body FROM dojo_events WHERE hash = ?
+`
+
+func (q *Queries) GetDojoEvent(ctx context.Context, hash string) (DojoEvent, error) {
+	row := q.db.QueryRowContext(ctx, getDojoEvent, hash)
+	var i DojoEvent
+	err := row.Scan(
+		&i.Seq,
+		&i.Hash,
+		&i.Prev,
+		&i.Type,
+		&i.At,
+		&i.Challenge,
+		&i.Body,
+	)
+	return i, err
+}
+
 const getFollower = `-- name: GetFollower :one
 SELECT actor_iri, inbox, shared_inbox, follow_iri, created_at FROM followers WHERE actor_iri = ?
 `
@@ -352,6 +396,17 @@ func (q *Queries) GetSessionExpiry(ctx context.Context, arg GetSessionExpiryPara
 	return expires_at, err
 }
 
+const lastDojoEventHash = `-- name: LastDojoEventHash :one
+SELECT hash FROM dojo_events ORDER BY seq DESC LIMIT 1
+`
+
+func (q *Queries) LastDojoEventHash(ctx context.Context) (string, error) {
+	row := q.db.QueryRowContext(ctx, lastDojoEventHash)
+	var hash string
+	err := row.Scan(&hash)
+	return hash, err
+}
+
 const latestLoginLink = `-- name: LatestLoginLink :one
 SELECT id, token_hash, created_at, used_at FROM login_links ORDER BY id DESC LIMIT 1
 `
@@ -366,6 +421,41 @@ func (q *Queries) LatestLoginLink(ctx context.Context) (LoginLink, error) {
 		&i.UsedAt,
 	)
 	return i, err
+}
+
+const listDojoEvents = `-- name: ListDojoEvents :many
+SELECT seq, hash, prev, type, at, challenge, body FROM dojo_events ORDER BY seq
+`
+
+func (q *Queries) ListDojoEvents(ctx context.Context) ([]DojoEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listDojoEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DojoEvent
+	for rows.Next() {
+		var i DojoEvent
+		if err := rows.Scan(
+			&i.Seq,
+			&i.Hash,
+			&i.Prev,
+			&i.Type,
+			&i.At,
+			&i.Challenge,
+			&i.Body,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listFollowerInboxes = `-- name: ListFollowerInboxes :many
@@ -517,6 +607,23 @@ func (q *Queries) SavePlugin(ctx context.Context, arg SavePluginParams) error {
 		arg.EnabledAt,
 	)
 	return err
+}
+
+const scrubDojoEvent = `-- name: ScrubDojoEvent :execrows
+UPDATE dojo_events SET body = ? WHERE hash = ?
+`
+
+type ScrubDojoEventParams struct {
+	Body string
+	Hash string
+}
+
+func (q *Queries) ScrubDojoEvent(ctx context.Context, arg ScrubDojoEventParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, scrubDojoEvent, arg.Body, arg.Hash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const setOwnerEmail = `-- name: SetOwnerEmail :execrows
