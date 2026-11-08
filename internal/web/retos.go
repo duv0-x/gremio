@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -26,6 +25,7 @@ func (s *Server) registerDojo(mux *http.ServeMux, post func(string, http.Handler
 	mux.HandleFunc("GET /dojo/catalogo/{slug}", s.getPublicChallenge)
 	mux.HandleFunc("GET /dojo/catalogo/{slug}/{version}", s.getPublicChallenge)
 	mux.HandleFunc("GET /dojo/ejecuciones/{id}", s.getPublicExecution)
+	s.registerOwn(mux, post)
 }
 
 func (s *Server) retos() *retos.Service { return retos.NewService(s.st, s.Dojo) }
@@ -47,6 +47,7 @@ type dojoPage struct {
 	Version    string
 	Catalog    []catalogItem
 	Executions []retos.Execution
+	Own        []retos.Own
 	Notice     string
 	Error      string
 }
@@ -87,7 +88,12 @@ func (s *Server) getDojo(w http.ResponseWriter, r *http.Request) {
 		s.dojoError(w, "ejecuciones", err)
 		return
 	}
-	s.renderPanel(w, r, http.StatusOK, DojoPage(dojoPage{Version: s.version, Catalog: catalogItems(), Executions: list}))
+	own, err := s.retos().ListOwn(r.Context())
+	if err != nil {
+		s.dojoError(w, "retos propios", err)
+		return
+	}
+	s.renderPanel(w, r, http.StatusOK, DojoPage(dojoPage{Version: s.version, Catalog: catalogItems(), Executions: list, Own: own}))
 }
 
 func (s *Server) getDojoChallenge(w http.ResponseWriter, r *http.Request) {
@@ -301,8 +307,8 @@ func (s *Server) getPublicChallenge(w http.ResponseWriter, r *http.Request) {
 	}
 	c := entry.Latest()
 	if v := r.PathValue("version"); v != "" {
-		var n int
-		if _, err := fmt.Sscanf(v, "v%d", &n); err != nil || "v"+itoa(n) != v {
+		n, ok := parseVersion(v)
+		if !ok {
 			http.NotFound(w, r)
 			return
 		}
@@ -316,7 +322,7 @@ func (s *Server) getPublicChallenge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setPublicHeaders(w)
-	if err := PublicChallengePage(p, r.PathValue("slug"), c, len(entry.Versions)).Render(r.Context(), w); err != nil {
+	if err := PublicChallengePage(p, "/dojo/catalogo/"+r.PathValue("slug"), c, len(entry.Versions)).Render(r.Context(), w); err != nil {
 		slog.Error("render reto", "err", err)
 	}
 }

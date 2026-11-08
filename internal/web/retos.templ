@@ -39,6 +39,7 @@ templ DojoPage(p dojoPage) {
 				</ul>
 			}
 		</section>
+		@ownList(p.Own)
 		<section aria-labelledby="catalogo" class="flex flex-col gap-4">
 			<h2 id="catalogo" class="font-display text-xl font-bold">Catálogo</h2>
 			<ul class="flex flex-col gap-3">
@@ -321,15 +322,16 @@ templ challengeBody(c retos.Challenge) {
 	</p>
 }
 
-templ PublicChallengePage(p Page, slug string, c retos.Challenge, latest int) {
+// PublicChallengePage es una versión de un reto; base es su página sin versión (/dojo/catalogo/<slug> o /dojo/retos/<id>).
+templ PublicChallengePage(p Page, base string, c retos.Challenge, latest int) {
 	@layout(p, c.Title+" · Dojo") {
 		<article class="mx-auto flex max-w-[960px] flex-col gap-6 px-4 py-10 sm:px-6">
 			<header>
-				<p class={ eyebrow }>Reto del dojo · { slug } · v{ itoa(c.Version) }</p>
+				<p class={ eyebrow }>Reto del dojo · v{ itoa(c.Version) }</p>
 				<h1 class="mt-2 font-display text-[34px] leading-tight font-bold">{ c.Title }</h1>
 				<p class="mt-2 text-[17px] text-muted">{ c.Pitch }</p>
 				if c.Version < latest {
-					<p class="mt-3 text-sm">Hay una versión más nueva: <a href={ templ.SafeURL("/dojo/catalogo/" + slug) }>v{ itoa(latest) }</a>.</p>
+					<p class="mt-3 text-sm">Hay una versión más nueva: <a href={ templ.SafeURL(base) }>v{ itoa(latest) }</a>.</p>
 				}
 			</header>
 			@challengeBody(c)
@@ -355,7 +357,7 @@ templ PublicExecutionPage(p Page, e retos.Execution, trust dojo.Trust) {
 					if !e.CompletedAt.IsZero() {
 						· terminada el { e.CompletedAt.Format("2006-01-02") }
 					}
-					· <a href={ templ.SafeURL(challengePath(e)) }>enunciado v{ itoa(e.Version) }</a>
+					· <a href={ templ.SafeURL(retos.ChallengePath(e)) }>enunciado v{ itoa(e.Version) }</a>
 				</p>
 			</header>
 			<section class={ card, "flex flex-col gap-3" } aria-label="Entrega">
@@ -387,13 +389,6 @@ templ PublicExecutionPage(p Page, e retos.Execution, trust dojo.Trust) {
 
 func execAction(e retos.Execution, action string) string {
 	return "/panel/dojo/ejecuciones/" + e.ID + "/" + action
-}
-
-func challengePath(e retos.Execution) string {
-	if slug, ok := e.Slug(); ok {
-		return "/dojo/catalogo/" + slug + "/v" + strconv.Itoa(e.Version)
-	}
-	return e.Challenge
 }
 
 func statusLabel(e retos.Execution) string {
