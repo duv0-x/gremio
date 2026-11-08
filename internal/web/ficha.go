@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/duv0-x/gremio/internal/icons"
+	"github.com/duv0-x/gremio/internal/medals"
 	"github.com/duv0-x/gremio/internal/profile"
 )
 
@@ -302,43 +302,16 @@ func languagesLine(r *profile.Resume) string {
 	return strings.Join(parts, " · ")
 }
 
-func traitTip(t profile.Trait) string {
-	if t.Summary == "" {
-		return t.Name
+// medalTip es "Nombre: cómo se ganó · fecha · prueba". La fecha es el día UTC, como en el libro del dojo.
+func medalTip(a medals.Award) string {
+	tip := a.Name + ": " + a.Description + " Ganada el " + a.At.UTC().Format("2006-01-02") + "."
+	switch {
+	case a.External && a.Unverified:
+		tip += " Sin comprobar: la identidad de GitHub dejó de comprobarse."
+	case a.External && a.Proof != nil:
+		tip += " Comprobada en GitHub como " + a.Proof.User + "."
 	}
-	return t.Name + ": " + t.Summary
-}
-
-func traitColor(t profile.Trait) string {
-	if t.Color == "" {
-		return "verde"
-	}
-	return t.Color
-}
-
-func traitIcon(t profile.Trait) string {
-	if t.Icon == "" {
-		return ""
-	}
-	return icons.Inner(t.Icon)
-}
-
-// traitInitials son las letras del medallón de un rasgo: las iniciales de las dos primeras palabras largas
-// ("Líder de equipo" → LE), o las dos primeras letras si hay una sola.
-func traitInitials(name string) string {
-	var words [][]rune
-	for _, w := range strings.Fields(strings.ReplaceAll(name, "-", " ")) {
-		if r := []rune(w); len(r) > 2 {
-			words = append(words, r)
-		}
-	}
-	switch len(words) {
-	case 0:
-		return ""
-	case 1:
-		return strings.ToUpper(string(words[0][:2]))
-	}
-	return strings.ToUpper(string([]rune{words[0][0], words[1][0]}))
+	return tip
 }
 
 // guiaSecciones es el último paso de la guía: qué hay en las otras pestañas y en los botones de abajo.

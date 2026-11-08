@@ -124,8 +124,7 @@ func TestFichaDeJugador(t *testing.T) {
 		`aria-label="Índice general 77.`, // SRE: (2·70 + 91) / 3
 		`id="atributo-cnt"`, `href="#atributo-cnt"`, ">91<", "Kubernetes", "aprendiendo",
 		"Bajó el MTTR 23 %", "respaldado por 1 logro", "SRE<span class=\"sr-only\">", "PLE<span class=\"sr-only\">",
-		`href="/@alice/platform-engineer"`, `aria-current="page"`, "Automatizadora",
-		"badge-violeta", `data-tip="Automatizadora: Todo pasa por un pipeline."`, `<path d="M12 8V4H8"/>`, "badge-verde", ">SÍ</text>",
+		`href="/@alice/platform-engineer"`, `aria-current="page"`,
 		"<polygon", `data-tip="Zona horaria: America/Bogota (UTC−5 hoy)"`, "data-cinta-track", `href="/@alice/cv"`,
 		// Toda sigla explica su significado al pasar el mouse.
 		`data-tip="SRE · Site Reliability Engineer: Mantiene`, `data-tip="Senior"`, "· Senior",
@@ -138,6 +137,9 @@ func TestFichaDeJugador(t *testing.T) {
 	}
 	if strings.Contains(body, "style=") {
 		t.Error("la CSP no admite style inline")
+	}
+	if strings.Contains(body, "Automatizadora") || strings.Contains(body, `id="medallas"`) {
+		t.Error("los rasgos ya no se muestran y, sin medallas, no hay fila (ADR-015 §4)")
 	}
 
 	// Rol y pestaña cambian #vista sin recargar (static/vista.js); sin JS, los enlaces navegan igual.
@@ -272,14 +274,6 @@ func TestTimeZoneConHorarioDeVerano(t *testing.T) {
 	}
 }
 
-func TestIniciales(t *testing.T) {
-	for name, want := range map[string]string{"Líder de equipo": "LE", "Ingeniería agéntica": "IA", "Self-hosted": "SH", "Automatizador": "AU"} {
-		if got := traitInitials(name); got != want {
-			t.Errorf("traitInitials(%q) = %q, quiero %q", name, got, want)
-		}
-	}
-}
-
 func TestAccionesDescargarCV(t *testing.T) {
 	dir := t.TempDir()
 	ts := newTestServerIn(t, fichaDoc, dir)
@@ -402,7 +396,7 @@ func TestTipParts(t *testing.T) {
 func TestGuiaDeLaFicha(t *testing.T) {
 	ts := newTestServer(t, fichaDoc)
 	_, body := get(t, ts.URL+"/@alice")
-	for _, zona := range []string{"ovr", "roles", "radar", "atributos", "rasgos", "secciones"} {
+	for _, zona := range []string{"ovr", "roles", "radar", "atributos", "secciones"} {
 		if !strings.Contains(body, `data-guia-paso="`+zona+`"`) || !strings.Contains(body, `data-guia="`+zona+`"`) {
 			t.Errorf("falta el paso o la zona %q", zona)
 		}
@@ -419,14 +413,14 @@ func TestGuiaDeLaFicha(t *testing.T) {
 		t.Error("la guía es de la pestaña Ficha")
 	}
 
-	// Sin varios roles ni rasgos, esos pasos no se escriben.
+	// Sin varios roles ni medallas, esos pasos no se escriben.
 	solo := strings.Replace(fichaDoc, `,
     {"slug": "platform-engineer", "code": "PLE", "name": "Platform Engineer", "weights": {"CNT": 2, "COD": 1}}]`, `]`, 1)
 	solo = strings.Replace(solo, `,
   "traits": [{"name": "Automatizadora", "summary": "Todo pasa por un pipeline.", "icon": "bot", "color": "violeta"}, {"name": "Sin ícono"}]`, ``, 1)
 	_, body = get(t, newTestServer(t, solo).URL+"/@alice")
-	if !strings.Contains(body, `data-guia-paso="ovr"`) || strings.Contains(body, `data-guia-paso="roles"`) || strings.Contains(body, `data-guia-paso="rasgos"`) {
-		t.Error("sin varios roles ni rasgos no hay esos pasos")
+	if !strings.Contains(body, `data-guia-paso="ovr"`) || strings.Contains(body, `data-guia-paso="roles"`) || strings.Contains(body, `data-guia-paso="medallas"`) {
+		t.Error("sin varios roles ni medallas no hay esos pasos")
 	}
 }
 

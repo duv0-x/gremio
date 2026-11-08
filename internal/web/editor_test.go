@@ -280,12 +280,11 @@ func TestEditorListas(t *testing.T) {
 	}
 }
 
-func TestEditorVistasAtributosYRasgos(t *testing.T) {
+func TestEditorVistasYAtributos(t *testing.T) {
 	p := newPanelServer(t, fichaDoc)
 	p.requireOwner("/panel/vistas", url.Values{"vista.0.id": {"sre"}, "vista.0.borrar": {"1"}})
 	p.requireOwner("/panel/vistas/sre", url.Values{"name": {"x"}, "slug": {"sre"}})
 	p.requireOwner("/panel/atributos/CNT", url.Values{"code": {"CNT"}, "name": {"x"}})
-	p.requireOwner("/panel/rasgos", url.Values{"rasgo.0.name": {"x"}})
 	if resp, _ := p.do("/panel/vistas/no-existe", nil, true); resp.StatusCode != http.StatusNotFound {
 		t.Errorf("vista inexistente: %d", resp.StatusCode)
 	}
@@ -351,12 +350,12 @@ func TestEditorVistasAtributosYRasgos(t *testing.T) {
 		t.Errorf("con 2 atributos el radar no se arma: %d", resp.StatusCode)
 	}
 
-	if resp, _ := p.do("/panel/rasgos", url.Values{"rasgo.0.name": {"Automatizadora"}, "rasgo.0.icon": {"no-existe"}}, true); resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("ícono inexistente: %d", resp.StatusCode)
+	// Los rasgos ya no se editan (ADR-015 §4), pero se conservan en el perfil.
+	if resp, _ := p.do("/panel/rasgos", nil, true); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("el editor de rasgos ya no existe: %d", resp.StatusCode)
 	}
-	p.do("/panel/rasgos", url.Values{"rasgo.0.name": {"Automatizadora"}, "rasgo.0.icon": {"bot"}, "rasgo.0.color": {"violeta"}}, true)
-	if ts := p.profile().Gremio.Traits; len(ts) != 1 || ts[0].Color != "violeta" {
-		t.Errorf("rasgos: %+v", ts)
+	if ts := p.profile().Gremio.Traits; len(ts) != 2 {
+		t.Errorf("los rasgos se conservan: %+v", ts)
 	}
 }
 

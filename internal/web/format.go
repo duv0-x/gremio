@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/duv0-x/gremio/internal/dojo"
+	"github.com/duv0-x/gremio/internal/medals"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 )
@@ -33,6 +34,8 @@ type Page struct {
 
 	HasActivity bool       // hay al menos un evento público: la pestaña Actividad aparece (ADR-014 §1)
 	Activity    []activity // los eventos de la pestaña Actividad; solo se cargan en esa pestaña
+
+	Medals []medals.Award // medallas ganadas (ADR-015); reemplazan a los rasgos en la ficha
 }
 
 // activity es un evento de la pestaña Actividad, leído del Note que se federó (ADR-014 §2).

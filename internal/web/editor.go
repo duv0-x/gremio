@@ -264,7 +264,6 @@ var editorLinks = []option{
 	{"/panel/formacion", "Educación, idiomas y certificados"},
 	{"/panel/vistas", "Vistas por rol"},
 	{"/panel/atributos", "Atributos de la ficha"},
-	{"/panel/rasgos", "Rasgos"},
 }
 
 func (s *Server) sections() []editSection {
@@ -282,7 +281,6 @@ func (s *Server) sections() []editSection {
 		{path: "/panel/atributos/{id}", form: AttributeForm, apply: applyAttribute, exists: func(r *profile.Resume, id string) bool {
 			return attributeIndex(r, id) >= 0
 		}},
-		{path: "/panel/rasgos", form: TraitsForm, apply: applyTraits},
 		{path: "/panel/experiencia/{id}", form: WorkForm, apply: applyWork, exists: func(r *profile.Resume, id string) bool {
 			return slices.ContainsFunc(r.Work, func(w profile.Work) bool { return w.ID == id })
 		}},
@@ -577,25 +575,6 @@ func applyAttribute(r *http.Request, res *profile.Resume, id *string) error {
 	}
 	*id = a.Code
 	return bad
-}
-
-var traitColors = func() []option {
-	out := []option{{"", "Sin color"}}
-	for _, c := range profile.TraitColors {
-		out = append(out, option{c, c})
-	}
-	return out
-}()
-
-func applyTraits(r *http.Request, res *profile.Resume, _ *string) error {
-	res.Gremio.Traits = nil
-	for _, x := range rows(r, "rasgo") {
-		if x.get("name") == "" {
-			return errors.New("cada rasgo necesita un nombre; para quitarlo, marca Borrar")
-		}
-		res.Gremio.Traits = append(res.Gremio.Traits, profile.Trait{Name: x.get("name"), Summary: x.get("summary"), Icon: x.get("icon"), Color: x.get("color")})
-	}
-	return nil
 }
 
 var viewLevels = []option{{"", "Sin nivel"}, {"jr", "Junior"}, {"semi-sr", "Semi Senior"}, {"sr", "Senior"}}
