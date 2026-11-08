@@ -406,7 +406,7 @@ func applyProjects(r *http.Request, res *profile.Resume, _ *string) error {
 			return errors.New("cada proyecto necesita un nombre; para quitarlo, marca Borrar")
 		}
 		res.Projects = append(res.Projects, profile.Project{ID: x.get("id"), Name: x.get("name"), Description: x.get("description"),
-			URL: x.get("url"), Image: x.get("image"), Keywords: splitList(x.get("keywords"))})
+			URL: x.get("url"), Image: x.get("image"), Keywords: splitList(x.get("keywords")), StartDate: x.get("start"), EndDate: x.get("end")})
 	}
 	return nil
 }

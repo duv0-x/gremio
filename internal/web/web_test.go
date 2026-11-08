@@ -369,7 +369,7 @@ func TestPestanaPortafolio(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("HTTP %d", resp.StatusCode)
 	}
-	for _, want := range []string{`id="portafolio"`, "data-cinta-track", `href="https://papiro.ejemplo.org/"`, `src="https://ejemplo.org/papiro.jpg"`, "papiro.ejemplo.org<", "EPUB a tu Kindle", ">templ<",
+	for _, want := range []string{`id="portafolio"`, `aria-label="Línea de tiempo"`, `href="https://papiro.ejemplo.org/"`, `src="https://ejemplo.org/papiro.jpg"`, "papiro.ejemplo.org<", "EPUB a tu Kindle", ">templ<",
 		`href="/@alice/portafolio" aria-current="page"`, "<title>Alice Ejemplo · Portafolio</title>"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("Portafolio: falta %q", want)

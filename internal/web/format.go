@@ -21,12 +21,14 @@ type Page struct {
 	View     int    // vista seleccionada; la primera es la principal
 	Tab      string // pestaña: ficha, cv o portafolio
 	HasCV    bool   // hay un PDF del CV para descargar
+	// Executions son los retos del dojo terminados y publicados, para la línea de tiempo del Portafolio.
+	Executions []execution
 }
 
 // tabCount es el número de pestañas del perfil, para repartir el ancho.
 func (p Page) tabCount() int {
 	n := 2
-	if len(p.Resume.Projects) > 0 {
+	if p.hasPortfolio() {
 		n++
 	}
 	return n

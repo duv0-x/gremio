@@ -2173,6 +2173,14 @@ func ProjectsForm(e editPage) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
+						templ_7745c5c3_Err = textField("Inicio", field("proyecto", i, "start"), at(e.R.Projects, i).StartDate, "AAAA o AAAA-MM: ordena la línea de tiempo.").Render(ctx, templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						templ_7745c5c3_Err = textField("Fin", field("proyecto", i, "end"), at(e.R.Projects, i).EndDate, "Vacío si sigue en curso.").Render(ctx, templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
 						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "</div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -2515,7 +2523,7 @@ func checkList(name string, opts []option, selected []string) templ.Component {
 			var templ_7745c5c3_Var124 string
 			templ_7745c5c3_Var124, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 365, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 367, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var124)
 			if templ_7745c5c3_Err != nil {
@@ -2528,7 +2536,7 @@ func checkList(name string, opts []option, selected []string) templ.Component {
 			var templ_7745c5c3_Var125 string
 			templ_7745c5c3_Var125, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Value)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 365, Col: 56}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 367, Col: 56}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var125)
 			if templ_7745c5c3_Err != nil {
@@ -2551,7 +2559,7 @@ func checkList(name string, opts []option, selected []string) templ.Component {
 			var templ_7745c5c3_Var126 string
 			templ_7745c5c3_Var126, templ_7745c5c3_Err = templ.JoinStringErrs(o.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 366, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 368, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var126))
 			if templ_7745c5c3_Err != nil {
@@ -2611,7 +2619,7 @@ func listItem(e editPage, prefix string, i, n int, id, title, detail, href strin
 			var templ_7745c5c3_Var129 string
 			templ_7745c5c3_Var129, templ_7745c5c3_Err = templ.ResolveAttributeValue(field(prefix, i, "id"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 375, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 377, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var129)
 			if templ_7745c5c3_Err != nil {
@@ -2624,7 +2632,7 @@ func listItem(e editPage, prefix string, i, n int, id, title, detail, href strin
 			var templ_7745c5c3_Var130 string
 			templ_7745c5c3_Var130, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 375, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 377, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var130)
 			if templ_7745c5c3_Err != nil {
@@ -2637,7 +2645,7 @@ func listItem(e editPage, prefix string, i, n int, id, title, detail, href strin
 			var templ_7745c5c3_Var131 string
 			templ_7745c5c3_Var131, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 378, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 380, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var131))
 			if templ_7745c5c3_Err != nil {
@@ -2650,7 +2658,7 @@ func listItem(e editPage, prefix string, i, n int, id, title, detail, href strin
 			var templ_7745c5c3_Var132 string
 			templ_7745c5c3_Var132, templ_7745c5c3_Err = templ.JoinStringErrs(detail)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 379, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 381, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var132))
 			if templ_7745c5c3_Err != nil {
@@ -2844,7 +2852,7 @@ func ViewForm(e editPage) templ.Component {
 				var templ_7745c5c3_Var142 string
 				templ_7745c5c3_Var142, templ_7745c5c3_Err = templ.ResolveAttributeValue(view(e).Code)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 406, Col: 84}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 408, Col: 84}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var142)
 				if templ_7745c5c3_Err != nil {
@@ -2897,7 +2905,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var146 string
 					templ_7745c5c3_Var146, templ_7745c5c3_Err = templ.ResolveAttributeValue(pos.Code)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 410, Col: 31}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 412, Col: 31}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var146)
 					if templ_7745c5c3_Err != nil {
@@ -2910,7 +2918,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var147 string
 					templ_7745c5c3_Var147, templ_7745c5c3_Err = templ.JoinStringErrs(pos.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 410, Col: 44}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 412, Col: 44}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var147))
 					if templ_7745c5c3_Err != nil {
@@ -2980,7 +2988,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var150 string
 					templ_7745c5c3_Var150, templ_7745c5c3_Err = templ.ResolveAttributeValue("peso." + a.Code)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 424, Col: 35}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 426, Col: 35}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var150)
 					if templ_7745c5c3_Err != nil {
@@ -3006,7 +3014,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var152 string
 					templ_7745c5c3_Var152, templ_7745c5c3_Err = templ.JoinStringErrs(a.Code)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 424, Col: 65}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 426, Col: 65}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var152))
 					if templ_7745c5c3_Err != nil {
@@ -3019,7 +3027,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var153 string
 					templ_7745c5c3_Var153, templ_7745c5c3_Err = templ.JoinStringErrs(a.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 424, Col: 79}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 426, Col: 79}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var153))
 					if templ_7745c5c3_Err != nil {
@@ -3041,7 +3049,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var155 string
 					templ_7745c5c3_Var155, templ_7745c5c3_Err = templ.ResolveAttributeValue("peso." + a.Code)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 425, Col: 34}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 427, Col: 34}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var155)
 					if templ_7745c5c3_Err != nil {
@@ -3054,7 +3062,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var156 string
 					templ_7745c5c3_Var156, templ_7745c5c3_Err = templ.ResolveAttributeValue("peso." + a.Code)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 425, Col: 60}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 427, Col: 60}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var156)
 					if templ_7745c5c3_Err != nil {
@@ -3067,7 +3075,7 @@ func ViewForm(e editPage) templ.Component {
 					var templ_7745c5c3_Var157 string
 					templ_7745c5c3_Var157, templ_7745c5c3_Err = templ.ResolveAttributeValue(weightValue(view(e), a.Code))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 425, Col: 132}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 427, Col: 132}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var157)
 					if templ_7745c5c3_Err != nil {
@@ -3410,7 +3418,7 @@ func AttributeForm(e editPage) templ.Component {
 						var templ_7745c5c3_Var175 string
 						templ_7745c5c3_Var175, templ_7745c5c3_Err = templ.ResolveAttributeValue(field("sub", i, "score"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 473, Col: 44}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 475, Col: 44}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var175)
 						if templ_7745c5c3_Err != nil {
@@ -3445,7 +3453,7 @@ func AttributeForm(e editPage) templ.Component {
 						var templ_7745c5c3_Var178 string
 						templ_7745c5c3_Var178, templ_7745c5c3_Err = templ.ResolveAttributeValue(field("sub", i, "score"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 474, Col: 43}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 476, Col: 43}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var178)
 						if templ_7745c5c3_Err != nil {
@@ -3458,7 +3466,7 @@ func AttributeForm(e editPage) templ.Component {
 						var templ_7745c5c3_Var179 string
 						templ_7745c5c3_Var179, templ_7745c5c3_Err = templ.ResolveAttributeValue(field("sub", i, "score"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 474, Col: 77}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 476, Col: 77}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var179)
 						if templ_7745c5c3_Err != nil {
@@ -3471,7 +3479,7 @@ func AttributeForm(e editPage) templ.Component {
 						var templ_7745c5c3_Var180 string
 						templ_7745c5c3_Var180, templ_7745c5c3_Err = templ.ResolveAttributeValue(scoreValue(at(attribute(e).Subs, i), i >= len(attribute(e).Subs)))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 474, Col: 184}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 476, Col: 184}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var180)
 						if templ_7745c5c3_Err != nil {
@@ -3755,7 +3763,7 @@ func addRow(e editPage, prefix string, n int) templ.Component {
 		var templ_7745c5c3_Var192 string
 		templ_7745c5c3_Var192, templ_7745c5c3_Err = templ.ResolveAttributeValue("mas-" + prefix)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 516, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 518, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var192)
 		if templ_7745c5c3_Err != nil {
@@ -3790,7 +3798,7 @@ func addRow(e editPage, prefix string, n int) templ.Component {
 		var templ_7745c5c3_Var195 string
 		templ_7745c5c3_Var195, templ_7745c5c3_Err = templ.ResolveAttributeValue(e.Path + "?mas=" + prefix + "&n=" + itoa(e.more(prefix)+1))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 520, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 522, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var195)
 		if templ_7745c5c3_Err != nil {
@@ -3803,7 +3811,7 @@ func addRow(e editPage, prefix string, n int) templ.Component {
 		var templ_7745c5c3_Var196 string
 		templ_7745c5c3_Var196, templ_7745c5c3_Err = templ.ResolveAttributeValue("#mas-" + prefix)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 521, Col: 31}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 523, Col: 31}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var196)
 		if templ_7745c5c3_Err != nil {
@@ -3816,7 +3824,7 @@ func addRow(e editPage, prefix string, n int) templ.Component {
 		var templ_7745c5c3_Var197 string
 		templ_7745c5c3_Var197, templ_7745c5c3_Err = templ.ResolveAttributeValue("#fila-" + prefix + "-" + itoa(e.pad(prefix, n)) + ", #mas-" + prefix)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 522, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 524, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var197)
 		if templ_7745c5c3_Err != nil {
