@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-
-	"github.com/duv0-x/gremio/internal/store"
 )
 
 // Sección Plugins del panel (ADR-012) con un Ollama propio falso: habilitar, probar, editar y deshabilitar.
@@ -99,101 +97,6 @@ func TestPanelPlugins(t *testing.T) {
 	}
 }
 
-// Pestaña Notas (gremio#112): la casilla del panel la muestra; las notas van escapadas, de la más nueva a la más vieja.
-func TestPestanaNotas(t *testing.T) {
-	p := newPanelServer(t, fichaDoc)
-	ctx := t.Context()
-	for _, n := range []struct{ id, content, at string }{
-		{"https://gremio.ejemplo.org/notes/aaa", "<p>Primera nota</p>", "2026-11-01T10:00:00.000Z"},
-		{"https://gremio.ejemplo.org/notes/bbb", "<p>Hola &lt;script&gt;alert(1)&lt;/script&gt;<br>segunda línea</p>", "2026-11-02T10:00:00.000Z"},
-	} {
-		if err := p.st.Write.CreateNote(ctx, store.CreateNoteParams{ID: n.id, Content: n.content, PublishedAt: n.at}); err != nil {
-			t.Fatal(err)
-		}
-	}
-	// Sin la casilla no hay pestaña ni ruta.
-	if _, body := p.do("/@alice", nil, false); strings.Contains(body, `href="/@alice/notas"`) {
-		t.Error("sin la casilla no hay pestaña Notas")
-	}
-	if resp, _ := p.do("/@alice/notas", nil, false); resp.StatusCode != http.StatusNotFound {
-		t.Errorf("/notas sin la casilla: %d", resp.StatusCode)
-	}
-
-	// El panel tiene la casilla y guardarla la activa (el resto del formulario va como estaba).
-	_, form := p.do("/panel/basico", nil, true)
-	if !strings.Contains(form, `name="notas_publicas"`) {
-		t.Fatal("el panel tiene la casilla de las notas")
-	}
-	r := p.profile()
-	values := url.Values{"name": {r.Basics.Name}, "label": {r.Basics.Label}, "notas_publicas": {"1"}}
-	if resp, _ := p.do("/panel/basico", values, true); resp.StatusCode != http.StatusSeeOther {
-		t.Fatalf("guardar: %d", resp.StatusCode)
-	}
-	if !p.profile().Gremio.ShowNotes {
-		t.Fatal("la casilla activa showNotes")
-	}
-
-	_, body := p.do("/@alice", nil, false)
-	if !strings.Contains(body, `href="/@alice/notas"`) || !strings.Contains(body, "Notas</a>") {
-		t.Error("con la casilla, la ficha tiene la pestaña Notas")
-	}
-	resp, body := p.do("/@alice/notas", nil, false)
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("/notas: %d", resp.StatusCode)
-	}
-	for _, want := range []string{"<title>Alice Ejemplo · Notas</title>", `id="nota-bbb"`, "Hola &lt;script&gt;alert(1)&lt;/script&gt;\nsegunda línea",
-		`datetime="2026-11-02T10:00:00Z"`, "2026-11-02 10:00 UTC", `href="/@alice/notas" aria-current="page"`} {
-		if !strings.Contains(body, want) {
-			t.Errorf("Notas: falta %q", want)
-		}
-	}
-	if strings.Contains(body, "<script>alert") || strings.Contains(body, "<br>") {
-		t.Error("las notas no llevan HTML crudo")
-	}
-	if strings.Index(body, `id="nota-bbb"`) > strings.Index(body, `id="nota-aaa"`) {
-		t.Error("la más nueva va primero")
-	}
-}
-
-// Publicar notas desde el panel (gremio#115) con la federación real.
-func TestPanelPublicarNota(t *testing.T) {
-	p := newPanelServer(t, fichaDoc)
-	form := url.Values{"texto": {"Hola <fediverso>\r\nsegunda línea"}}
-	if resp, _ := p.do("/panel/notas", nil, false); resp.Header.Get("Location") != "/login" {
-		t.Errorf("sin sesión: %d", resp.StatusCode)
-	}
-	if resp, _ := p.do("/panel/notas", form, true, "Sec-Fetch-Site", "cross-site"); resp.StatusCode != http.StatusForbidden {
-		t.Errorf("desde otro origen: %d", resp.StatusCode)
-	}
-	if _, body := p.do("/panel", nil, true); !strings.Contains(body, `href="/panel/notas"`) {
-		t.Error("el panel enlaza a Notas")
-	}
-	_, body := p.do("/panel/notas", nil, true)
-	if !strings.Contains(body, `name="texto"`) || !strings.Contains(body, "Todavía no has publicado notas.") || !strings.Contains(body, "@alice@ejemplo.org") {
-		t.Fatal("la página trae el formulario y el handle")
-	}
-
-	if resp, _ := p.do("/panel/notas", url.Values{"texto": {"   "}}, true); resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("nota vacía: %d", resp.StatusCode)
-	}
-	larga := strings.Repeat("á", maxNoteLen+1)
-	if resp, body := p.do("/panel/notas", url.Values{"texto": {larga}}, true); resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, larga) {
-		t.Errorf("nota larga: %d (debe volver con lo escrito)", resp.StatusCode)
-	}
-
-	resp, _ := p.do("/panel/notas", form, true)
-	if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != "/panel/notas?publicada=0" {
-		t.Fatalf("publicar: %d %s", resp.StatusCode, resp.Header.Get("Location"))
-	}
-	_, body = p.do("/panel/notas?publicada=0", nil, true)
-	if !strings.Contains(body, "Nota publicada.") || !strings.Contains(body, "Hola &lt;fediverso&gt;\nsegunda línea") {
-		t.Error("la nota publicada aparece en Recientes, escapada y con el salto de línea")
-	}
-	if n, err := p.st.Read.CountNotes(t.Context()); err != nil || n != 1 {
-		t.Errorf("la nota queda en la base: %d %v", n, err)
-	}
-}
-
 // Enlaces rel="me" (gremio#117): se configuran en Básico y contacto y van en el <head> de las páginas públicas.
 func TestRelMe(t *testing.T) {
 	p := newPanelServer(t, fichaDoc)
@@ -228,5 +131,21 @@ func TestRelMe(t *testing.T) {
 	}
 	if _, form := p.do("/panel/basico", nil, true); !strings.Contains(form, "https://mastodon.social/@alice\nhttps://github.com/alice</textarea>") {
 		t.Error("el panel muestra los enlaces guardados, uno por línea")
+	}
+}
+
+// Las notas libres se quitaron (gremio#121): ni pestaña ni formulario, aunque un perfil viejo traiga showNotes.
+func TestSinNotas(t *testing.T) {
+	p := newPanelServer(t, strings.Replace(fichaDoc, `"timezone": "America/Bogota",`, `"timezone": "America/Bogota", "showNotes": true,`, 1))
+	if _, body := p.do("/@alice", nil, false); strings.Contains(body, "/@alice/notas") || strings.Contains(body, "Notas</a>") {
+		t.Error("no hay pestaña Notas")
+	}
+	for _, path := range []string{"/@alice/notas", "/panel/notas"} {
+		if resp, _ := p.do(path, nil, true); resp.StatusCode != http.StatusNotFound {
+			t.Errorf("%s: %d, quería 404", path, resp.StatusCode)
+		}
+	}
+	if _, body := p.do("/panel", nil, true); strings.Contains(body, "Publicar una nota") {
+		t.Error("el panel no ofrece publicar notas")
 	}
 }

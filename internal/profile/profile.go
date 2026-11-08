@@ -130,8 +130,6 @@ type Extension struct {
 	About    string  `json:"about,omitempty"`
 	Timezone string  `json:"timezone,omitempty"` // nombre IANA, p. ej. America/Bogota
 	Contact  Contact `json:"contact"`
-	// ShowNotes muestra en el perfil la pestaña Notas, con los Note que publica la instancia (gremio#112).
-	ShowNotes bool `json:"showNotes,omitempty"`
 	// RelMe son URLs https que el perfil enlaza con rel="me" en el <head>, para que Mastodon y otros servicios
 	// verifiquen que la página es del dueño (gremio#117).
 	RelMe      []string    `json:"relMe,omitempty"`
@@ -399,7 +397,7 @@ func (r *Resume) Normalize() error {
 	for i, v := range r.Gremio.Views {
 		what := fmt.Sprintf("gremio.views[%d]", i)
 		// cv y contacto son pestañas de la página (/@usuario/cv), no vistas.
-		if !slugRe.MatchString(v.Slug) || slugs[v.Slug] || v.Slug == "cv" || v.Slug == "contacto" || v.Slug == "portafolio" || v.Slug == "proyectos" || v.Slug == "notas" {
+		if !slugRe.MatchString(v.Slug) || slugs[v.Slug] || v.Slug == "cv" || v.Slug == "contacto" || v.Slug == "portafolio" || v.Slug == "proyectos" || v.Slug == "notas" || v.Slug == "actividad" {
 			return fmt.Errorf("%s: slug %q inválido o repetido", what, v.Slug)
 		}
 		slugs[v.Slug] = true
