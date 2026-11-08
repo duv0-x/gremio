@@ -171,6 +171,16 @@ func Find(slug string) (CatalogEntry, bool) {
 	return e, ok
 }
 
+// AnyReviewed dice si el catálogo tiene algún reto revisado. Sin ninguno, nadie pasa de 60 (ADR-013 §4).
+func AnyReviewed() bool {
+	for _, e := range Catalog {
+		if e.Latest().Reviewed() {
+			return true
+		}
+	}
+	return false
+}
+
 // Slugs devuelve los slugs del catálogo ordenados.
 func Slugs() []string {
 	out := make([]string, 0, len(Catalog))
