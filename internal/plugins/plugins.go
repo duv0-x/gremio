@@ -67,8 +67,18 @@ type Manager struct {
 	now     func() time.Time
 }
 
-func NewManager(st *store.Store) *Manager {
-	return &Manager{st: st, catalog: Catalog(st), now: func() time.Time { return time.Now().UTC() }}
+// NewManager arma el Manager con el catálogo. Los plugins de override reemplazan a los del catálogo con el
+// mismo id: los tests de otros paquetes los usan para apuntar a un servicio falso.
+func NewManager(st *store.Store, override ...Plugin) *Manager {
+	catalog := Catalog(st)
+	for _, o := range override {
+		for i, p := range catalog {
+			if p.Info().ID == o.Info().ID {
+				catalog[i] = o
+			}
+		}
+	}
+	return &Manager{st: st, catalog: catalog, now: func() time.Time { return time.Now().UTC() }}
 }
 
 // Find busca un plugin del catálogo por id.

@@ -16,6 +16,7 @@ import (
 	"github.com/duv0-x/gremio/internal/auth"
 	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/instance"
+	"github.com/duv0-x/gremio/internal/medals"
 	"github.com/duv0-x/gremio/internal/plugins"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
@@ -35,13 +36,17 @@ type Server struct {
 	// Dojo es el libro único de la instancia (ADR-013). Lo crea serve, que es donde se registran los suscriptores
 	// (medallas, actividad): un segundo NewLedger no les avisaría de lo que se agrega desde la web.
 	Dojo *dojo.Ledger
+	// medals solo lee las medallas ganadas; las otorga el Engine que serve suscribe al libro.
+	medals *medals.Engine
 }
 
 func New(st *store.Store, version string, mail Mailer, profiles Profiles, ledger *dojo.Ledger) *Server {
 	if version == "" {
 		version = "dev"
 	}
-	return &Server{st: st, version: version, auth: auth.New(st), mail: mail, profiles: profiles, plugins: plugins.NewManager(st), Dojo: ledger}
+	pm := plugins.NewManager(st)
+	return &Server{st: st, version: version, auth: auth.New(st), mail: mail, profiles: profiles, plugins: pm, Dojo: ledger,
+		medals: medals.New(st, ledger, pm)}
 }
 
 // Register agrega las rutas web al mux.
@@ -113,6 +118,9 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	page.HasCV = s.hasCV()
 	if page.HasActivity, err = s.st.Read.HasEventNotes(r.Context()); err != nil {
 		slog.Error("actividad", "err", err)
+	}
+	if page.Medals, err = s.medals.Medals(r.Context()); err != nil {
+		slog.Error("medallas", "err", err) // la ficha se muestra igual, sin la fila
 	}
 	switch slug := r.PathValue("view"); slug {
 	case "":

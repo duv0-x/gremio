@@ -21,6 +21,8 @@ import (
 	"github.com/duv0-x/gremio/internal/federation"
 	"github.com/duv0-x/gremio/internal/instance"
 	"github.com/duv0-x/gremio/internal/mail"
+	"github.com/duv0-x/gremio/internal/medals"
+	"github.com/duv0-x/gremio/internal/plugins"
 	"github.com/duv0-x/gremio/internal/profile"
 	"github.com/duv0-x/gremio/internal/store"
 	"github.com/duv0-x/gremio/internal/web"
@@ -150,6 +152,9 @@ func serve(ctx context.Context, args []string) error {
 	// Un solo libro del dojo para toda la instancia: los suscriptores (medallas, actividad) se registran sobre este.
 	ledger := dojo.NewLedger(st)
 	ledger.Subscribe(activity.Subscriber(fed, ledger, inst.Host.String+"/@"+inst.Username))
+	// Medallas (ADR-015): las del dojo después de cada reto terminado; las externas al arrancar y periódicamente.
+	awards := medals.New(st, ledger, plugins.NewManager(st))
+	awards.Subscribe()
 
 	mux := http.NewServeMux()
 	fed.Register(mux)
@@ -173,6 +178,7 @@ func serve(ctx context.Context, args []string) error {
 	srv := &http.Server{Addr: *addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 
 	go fed.RunDeliveries(ctx)
+	go awards.Run(ctx)
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
 	slog.Info("escuchando", "addr", *addr, "actor", inst.Host.String+"/users/"+inst.Username,

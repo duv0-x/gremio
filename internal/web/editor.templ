@@ -492,26 +492,6 @@ templ AttributeForm(e editPage) {
 	}
 }
 
-templ TraitsForm(e editPage) {
-	@editorLayout(e, "Rasgos") {
-		@fieldset("Rasgos") {
-			<p class="text-sm text-muted">Insignias de la ficha. El ícono es un nombre de lucide.dev/icons, p. ej. bot.</p>
-			for i := range e.pad("rasgo", len(e.R.Gremio.Traits)) {
-				@rowBox(e, "rasgo", i, len(e.R.Gremio.Traits)) {
-					@textField("Nombre", field("rasgo", i, "name"), at(e.R.Gremio.Traits, i).Name, "")
-					@textArea("Descripción", field("rasgo", i, "summary"), at(e.R.Gremio.Traits, i).Summary, "", 2)
-					<div class="grid gap-4 sm:grid-cols-2">
-						@textField("Ícono", field("rasgo", i, "icon"), at(e.R.Gremio.Traits, i).Icon, "")
-						@selectField("Color", field("rasgo", i, "color"), at(e.R.Gremio.Traits, i).Color, traitColors)
-					</div>
-					@rowControls("rasgo", i, i >= len(e.R.Gremio.Traits))
-				}
-			}
-			@addRow(e, "rasgo", len(e.R.Gremio.Traits))
-		}
-	}
-}
-
 // addRow pide a htmx una fila vacía más para la lista prefix, sin recargar ni perder lo escrito: el servidor
 // arma la página con una fila extra y htmx se queda con ella y con el botón siguiente. Sin JavaScript no se
 // muestra: están las blankRows filas vacías.
