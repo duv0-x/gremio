@@ -34,8 +34,8 @@ func TestPanelPlugins(t *testing.T) {
 		t.Error("el panel enlaza a Plugins")
 	}
 	_, body = p.do("/panel/plugins", nil, true)
-	if strings.Count(body, ">Habilitar<") != 2 || !strings.Contains(body, ">Ollama<") || !strings.Contains(body, ">Claude<") {
-		t.Fatal("el catálogo muestra Ollama y Claude sin habilitar")
+	if strings.Count(body, ">Habilitar<") != 3 || !strings.Contains(body, ">Ollama<") || !strings.Contains(body, ">Claude<") || !strings.Contains(body, ">GitHub<") {
+		t.Fatal("el catálogo muestra Ollama, Claude y GitHub sin habilitar")
 	}
 	_, body = p.do("/panel/plugins/ollama", nil, true)
 	if !strings.Contains(body, `value="https://ollama.com"`) || !strings.Contains(body, `type="password"`) {
