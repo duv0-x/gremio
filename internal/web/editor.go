@@ -301,7 +301,6 @@ func applyBasics(r *http.Request, res *profile.Resume, _ *string) error {
 	}
 	c := &res.Gremio.Contact
 	c.Email, c.Phone = visibility(checked(r, "email_publico")), visibility(checked(r, "telefono_publico"))
-	res.Gremio.ShowNotes = checked(r, "notas_publicas")
 	res.Gremio.RelMe = lines(r.PostFormValue("rel_me"))
 	b.Profiles = nil
 	for _, x := range rows(r, "red") {

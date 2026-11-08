@@ -20,10 +20,9 @@ type Mailer interface {
 	Send(ctx context.Context, to, subject, body string) error
 }
 
-// Profiles guarda el perfil y publica notas, y avisa a los seguidores; federation.Server lo implementa.
+// Profiles guarda el perfil y avisa a los seguidores; federation.Server lo implementa.
 type Profiles interface {
 	ReplaceProfile(ctx context.Context, r *profile.Resume) (int, error)
-	PublishNote(ctx context.Context, text string) (id string, queued int, err error)
 }
 
 // maxImport es el tamaño máximo de un perfil importado; el de @root pesa unos 60 KB.
@@ -51,8 +50,6 @@ func (s *Server) registerPanel(mux *http.ServeMux) {
 	post("/panel/importar/confirmar", s.postImportConfirm)
 	s.registerEditor(mux, post)
 	s.registerPlugins(mux, post)
-	mux.HandleFunc("GET /panel/notas", s.getPanelNotes)
-	post("/panel/notas", s.postPanelNote)
 }
 
 // owner exige sesión: si no la hay, lleva a /login y devuelve false.

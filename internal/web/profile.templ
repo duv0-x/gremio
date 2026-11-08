@@ -1,9 +1,8 @@
 package web
 
 import (
-	"time"
-
 	"github.com/duv0-x/gremio/internal/profile"
+	"time"
 )
 
 // Clases compartidas (DESIGN.md: tarjetas, eyebrow, chips de dato y botones de 44 px).
@@ -93,8 +92,6 @@ templ ProfilePage(p Page) {
 							@cv(p)
 						case "portafolio":
 							@projects(p)
-						case "notas":
-							@notes(p)
 						default:
 							@ficha(p)
 					}
@@ -103,8 +100,6 @@ templ ProfilePage(p Page) {
 				@cv(p)
 			case p.Tab == "portafolio":
 				@projects(p)
-			case p.Tab == "notas":
-				@notes(p)
 			default:
 				@cvPage(p)
 		}
@@ -128,9 +123,6 @@ templ profileTabs(p Page) {
 			@profileTab(p, "cv", "CV", "file-text")
 			if len(p.Resume.Projects) > 0 {
 				@profileTab(p, "portafolio", "Portafolio", "folder-git-2")
-			}
-			if p.Resume.Gremio.ShowNotes {
-				@profileTab(p, "notas", "Notas", "message-square-text")
 			}
 		</ul>
 	</nav>
@@ -492,28 +484,5 @@ templ contact(p Page) {
 				}
 			</ul>
 		</div>
-	</section>
-}
-
-// notes es la pestaña Notas (gremio#112): los Note que publica la instancia, del más nuevo al más viejo.
-templ notes(p Page) {
-	<section id="notas" class={ section } aria-labelledby="notas-titulo">
-		<p class={ eyebrow }>Fediverso</p>
-		<h2 id="notas-titulo" class="mt-2 font-display text-[28px] font-bold tracking-[-0.01em] sm:text-4xl">Notas</h2>
-		<p class="mt-1 font-mono text-[13px] text-faint">Lo que publica { p.Handle }. Síguelo desde Mastodon o cualquier instancia del fediverso.</p>
-		if len(p.Notes) == 0 {
-			<p class={ card, "mt-6 text-muted" }>Todavía no hay notas.</p>
-		} else {
-			<ol class="mt-6 flex max-w-[720px] flex-col gap-4">
-				for _, n := range p.Notes {
-					<li id={ noteAnchor(n.ID) } class={ card }>
-						<p class="leading-relaxed whitespace-pre-line text-ink">{ n.Text }</p>
-						<p class="mt-3 font-mono text-[13px] text-faint">
-							<time datetime={ n.Published.Format(time.RFC3339) }>{ n.Published.Format("2006-01-02 15:04") } UTC</time>
-						</p>
-					</li>
-				}
-			</ol>
-		}
 	</section>
 }

@@ -142,8 +142,6 @@ func TestLoginDelPanel(t *testing.T) {
 
 type fakeProfiles struct{ saved *profile.Resume }
 
-func (f *fakeProfiles) PublishNote(context.Context, string) (string, int, error) { return "", 0, nil }
-
 func (f *fakeProfiles) ReplaceProfile(_ context.Context, r *profile.Resume) (int, error) {
 	f.saved = r
 	return 0, nil
