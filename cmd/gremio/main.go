@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/duv0-x/gremio/internal/activity"
 	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/federation"
 	"github.com/duv0-x/gremio/internal/instance"
@@ -142,6 +143,7 @@ func serve(ctx context.Context, args []string) error {
 
 	// Un solo libro del dojo para toda la instancia: los suscriptores (medallas, actividad) se registran sobre este.
 	ledger := dojo.NewLedger(st)
+	ledger.Subscribe(activity.Subscriber(fed, ledger, inst.Host.String+"/@"+inst.Username))
 
 	mux := http.NewServeMux()
 	fed.Register(mux)
