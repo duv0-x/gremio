@@ -47,17 +47,9 @@ type Plugin interface {
 	Check(ctx context.Context, cfg Config) (string, error)
 }
 
-// Catalog son los plugins disponibles, en el orden en que los muestra el panel.
-func Catalog() []Plugin { return []Plugin{Ollama{}, Claude{}} }
-
-// Find busca un plugin del catálogo por id.
-func Find(id string) (Plugin, bool) {
-	for _, p := range Catalog() {
-		if p.Info().ID == id {
-			return p, true
-		}
-	}
-	return nil, false
+// Catalog son los plugins disponibles, en el orden en que los muestra el panel. GitHub lee la instancia de st.
+func Catalog(st *store.Store) []Plugin {
+	return []Plugin{Ollama{}, Claude{}, GitHub{Instance: st.Read.GetInstance}}
 }
 
 // ErrNotFound es un id que no está en el catálogo.
@@ -70,13 +62,23 @@ const (
 
 // Manager guarda y consulta los plugins habilitados.
 type Manager struct {
-	st   *store.Store
-	find func(id string) (Plugin, bool)
-	now  func() time.Time
+	st      *store.Store
+	catalog []Plugin
+	now     func() time.Time
 }
 
 func NewManager(st *store.Store) *Manager {
-	return &Manager{st: st, find: Find, now: func() time.Time { return time.Now().UTC() }}
+	return &Manager{st: st, catalog: Catalog(st), now: func() time.Time { return time.Now().UTC() }}
+}
+
+// Find busca un plugin del catálogo por id.
+func (m *Manager) Find(id string) (Plugin, bool) {
+	for _, p := range m.catalog {
+		if p.Info().ID == id {
+			return p, true
+		}
+	}
+	return nil, false
 }
 
 // State es un plugin del catálogo con su estado en esta instancia.
@@ -100,7 +102,7 @@ func (m *Manager) List(ctx context.Context) ([]State, error) {
 		byID[r.ID] = r
 	}
 	var out []State
-	for _, p := range Catalog() {
+	for _, p := range m.catalog {
 		info := p.Info()
 		s := State{Info: info}
 		if r, ok := byID[info.ID]; ok {
@@ -120,7 +122,7 @@ func (m *Manager) List(ctx context.Context) ([]State, error) {
 // (o actualizado, si ya lo estaba). Un campo secret vacío conserva el valor guardado; uno text vacío toma el
 // valor por defecto. Si el chequeo falla no se guarda nada.
 func (m *Manager) Enable(ctx context.Context, id string, input Config) (string, error) {
-	p, ok := m.find(id)
+	p, ok := m.Find(id)
 	if !ok {
 		return "", ErrNotFound
 	}
@@ -161,7 +163,7 @@ func (m *Manager) Enable(ctx context.Context, id string, input Config) (string, 
 
 // Recheck repite el chequeo de un plugin habilitado y guarda el resultado, sea un resumen o un error.
 func (m *Manager) Recheck(ctx context.Context, id string) (string, error) {
-	p, ok := m.find(id)
+	p, ok := m.Find(id)
 	if !ok {
 		return "", ErrNotFound
 	}
@@ -183,7 +185,7 @@ func (m *Manager) Recheck(ctx context.Context, id string) (string, error) {
 
 // Disable borra la configuración del plugin, credenciales incluidas.
 func (m *Manager) Disable(ctx context.Context, id string) error {
-	if _, ok := m.find(id); !ok {
+	if _, ok := m.Find(id); !ok {
 		return ErrNotFound
 	}
 	return m.st.Write.DeletePlugin(ctx, id)
