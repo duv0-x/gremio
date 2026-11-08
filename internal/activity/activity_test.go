@@ -2,12 +2,12 @@ package activity
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/duv0-x/gremio/internal/dojo"
 	"github.com/duv0-x/gremio/internal/federation"
+	"github.com/duv0-x/gremio/internal/medals"
 	"github.com/duv0-x/gremio/internal/store"
 )
 
@@ -72,8 +72,9 @@ func TestEventosDelLibroLleganAActividad(t *testing.T) {
 	if c.Ref != exec || c.Text != "Terminó el reto «Desplegar un operador» (N3, reproducible): +64 en Kubernetes core, +8 en Go." {
 		t.Errorf("terminado = %q (ref %s)", c.Text, c.Ref)
 	}
+	cinturon, _ := medals.Find("cinturon-blanco")
 	b := pub.published[2]
-	if b.Type != "badgeAwarded" || b.Ref != profileURL+"#medalla-cinturon-blanco" || !strings.Contains(b.Text, "medalla") {
+	if b.Type != "badgeAwarded" || b.Ref != profileURL+"#medalla-cinturon-blanco" || b.Text != "Ganó la medalla «Cinturón blanco»: "+cinturon.Description {
 		t.Errorf("medalla = %+v", b)
 	}
 
@@ -92,8 +93,11 @@ func TestEventosDelLibroLleganAActividad(t *testing.T) {
 func TestNoteSinRespaldoOSinSumar(t *testing.T) {
 	at := time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)
 	medal := dojo.Event{Type: dojo.BadgeAwarded, At: at, Hash: "h", Badge: &dojo.Badge{ID: "forjador"}, Proof: &dojo.Proof{URL: "https://api.github.com/repos/duv0-x/gremio/contributors"}}
-	if n, err := Note(nil, medal, profileURL); err != nil || n.Ref != medal.Proof.URL {
-		t.Errorf("una medalla con prueba se respalda con ella: %+v, %v", n, err)
+	if n, err := Note(nil, medal, profileURL); err != nil || n.Ref != profileURL+"#medalla-forjador" {
+		t.Errorf("una medalla se respalda con su fila en la ficha, no con la prueba: %+v, %v", n, err)
+	}
+	if _, err := Note(nil, dojo.Event{Type: dojo.BadgeAwarded, At: at, Hash: "h", Badge: &dojo.Badge{ID: "no-existe"}}, profileURL); err == nil {
+		t.Error("una medalla fuera del catálogo no se publica con un texto inventado")
 	}
 	if _, err := Note(nil, dojo.Event{Type: dojo.ChallengeStarted, At: at}, profileURL); err == nil {
 		t.Error("un evento sin hash no está en el libro")
