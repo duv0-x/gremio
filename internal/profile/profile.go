@@ -120,6 +120,8 @@ type Project struct {
 	Description string   `json:"description,omitempty"`
 	URL         string   `json:"url,omitempty"`
 	Keywords    []string `json:"keywords,omitempty"`
+	StartDate   string   `json:"startDate,omitempty"` // ordena la línea de tiempo del Portafolio
+	EndDate     string   `json:"endDate,omitempty"`
 	Image       string   `json:"image,omitempty"` // captura del proyecto; JSON Resume no la tiene
 }
 
@@ -152,6 +154,9 @@ type Sub struct {
 	Name     string `json:"name"`
 	Score    int    `json:"score"`
 	Learning bool   `json:"learning,omitempty"`
+	// DojoSkill enlaza el sub-atributo a una habilidad del catálogo del dojo, que le da la barra Entrenamiento
+	// (ADR-013 §2). Se llama así porque attributes[].skills ya son las skills de JSON Resume.
+	DojoSkill string `json:"dojoSkill,omitempty"`
 }
 
 // Score es el promedio redondeado de los sub-atributos.
@@ -367,7 +372,7 @@ func (r *Resume) Normalize() error {
 			return fmt.Errorf("gremio.timezone: %q no es una zona IANA (p. ej. America/Bogota)", tz)
 		}
 	}
-	codes := map[string]bool{}
+	codes, dojoSkills := map[string]bool{}, map[string]bool{}
 	if n := len(r.Gremio.Attributes); n > 0 && n < 3 {
 		return fmt.Errorf("gremio.attributes: el radar necesita al menos 3 atributos, hay %d", n)
 	}
@@ -384,6 +389,12 @@ func (r *Resume) Normalize() error {
 		for j, sub := range a.Subs {
 			if strings.TrimSpace(sub.Name) == "" || sub.Score < 0 || sub.Score > 99 {
 				return fmt.Errorf("%s.subs[%d]: falta name o el puntaje no está entre 0 y 99", what, j)
+			}
+			if k := sub.DojoSkill; k != "" {
+				if dojoSkills[k] {
+					return fmt.Errorf("%s.subs[%d]: la habilidad del dojo %q ya está en otro sub-atributo", what, j, k)
+				}
+				dojoSkills[k] = true
 			}
 		}
 		if err := refs(what, a.Skills, skills, "skills"); err != nil {

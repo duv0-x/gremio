@@ -125,7 +125,7 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/@"+inst.Username+"/portafolio", http.StatusMovedPermanently)
 		return
 	case "portafolio":
-		if len(res.Projects) == 0 {
+		if !page.hasPortfolio() {
 			http.NotFound(w, r)
 			return
 		}
